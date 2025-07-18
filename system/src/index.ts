@@ -7,6 +7,10 @@ import { Elysia } from 'elysia';
 import { swagger } from '@elysiajs/swagger';
 import { cors } from '@elysiajs/cors';
 import { prisma, testDatabaseConnection, connectRedis, initializeRedis, closeConnections } from './config/database';
+import { mkdir } from 'fs/promises';
+import { existsSync, createReadStream } from 'fs';
+import { stat } from 'fs/promises';
+import path from 'path';
 
 // API Routes
 import { contactsRoutes } from './routes/contacts';
@@ -192,6 +196,18 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
                 type: 'string', 
                 enum: ['POOR', 'FAIR', 'GOOD', 'EXCELLENT', 'NEW'],
                 description: 'Property condition'
+              },
+              image_url: { 
+                type: 'string', 
+                nullable: true, 
+                description: 'Main property image URL',
+                example: '/uploads/villa-12345.jpg'
+              },
+              images: { 
+                type: 'array', 
+                items: { type: 'string' },
+                description: 'Additional property images',
+                example: ['/uploads/image1.jpg', '/uploads/image2.jpg']
               },
               scores: { 
                 type: 'array', 
@@ -513,6 +529,55 @@ Real-time statistics and insights about the Algeria real estate platform perform
       }
     }
   )
+  // Static file serving for uploads
+  .get('/uploads/*', async ({ params, set }: { params: Record<string, string>, set: any }) => {
+    try {
+      const filePath = params['*'];
+      const fullPath = path.join(process.cwd(), 'uploads', filePath);
+      
+      // Security check: ensure the file is within uploads directory
+      const normalizedPath = path.normalize(fullPath);
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (!normalizedPath.startsWith(uploadsDir)) {
+        set.status = 403;
+        return { success: false, error: 'Access denied' };
+      }
+      
+      if (!existsSync(fullPath)) {
+        set.status = 404;
+        return { success: false, error: 'File not found' };
+      }
+      
+      const stats = await stat(fullPath);
+      if (!stats.isFile()) {
+        set.status = 404;
+        return { success: false, error: 'File not found' };
+      }
+      
+      // Determine content type based on file extension
+      const ext = path.extname(filePath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.pdf': 'application/pdf',
+        '.txt': 'text/plain'
+      };
+      
+      set.headers['Content-Type'] = contentTypes[ext] || 'application/octet-stream';
+      set.headers['Content-Length'] = stats.size.toString();
+      set.headers['Cache-Control'] = 'public, max-age=31536000'; // 1 year cache
+      
+      return Bun.file(fullPath);
+    } catch (error) {
+      console.error('Static file serving error:', error);
+      set.status = 500;
+      return { success: false, error: 'Failed to serve file' };
+    }
+  })
   // API Routes
   .group('/api', (app) => 
     app
@@ -617,6 +682,13 @@ export default {
 (async () => {
   try {
     console.log('🚀 Starting Smart Contact System...');
+    
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+      console.log('📁 Created uploads directory');
+    }
     
     // Initialize Redis
     initializeRedis();

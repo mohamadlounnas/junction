@@ -13,6 +13,12 @@ RUN bun install
 # توليد Prisma
 RUN bunx prisma generate
 
+# Create uploads directory for file persistence
+RUN mkdir -p /app/uploads
+
+# Create volume for uploads persistence
+VOLUME ["/app/uploads"]
+
 # لا تستخدم bun build
 # شغل السيرفر مباشرة من TypeScript
 CMD ["bun", "src/index.ts"]

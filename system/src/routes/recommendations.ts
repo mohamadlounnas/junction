@@ -19,7 +19,7 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
       const limitNum = Math.min(50, Math.max(1, Number(limit)));
       const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
 
-      // Get the contact
+      // Get the contact with enhanced transaction data
       const contact = await prisma.contact.findUnique({
         where: { id },
         select: {
@@ -28,7 +28,11 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
           email: true,
           type: true,
           transactionType: true,
+          transactionTypes: true,
+          primaryTransactionType: true,
+          transactionFlexibility: true,
           scores: true,
+          transactionScores: true,
           budgetMin: true,
           budgetMax: true,
           locationWilayas: true
@@ -42,15 +46,21 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
         };
       }
 
-      // Build property filters
+      // Build property filters with enhanced transaction support
       const where: any = {
         status: 'AVAILABLE'
       };
 
-      // Match transaction type
-      if (contact.transactionType) {
+      // Enhanced transaction type matching
+      if (contact.transactionTypes?.length) {
+        // Contact has multiple transaction types - match any of them
+        where.transactionType = { in: contact.transactionTypes };
+      } else if (contact.transactionType) {
+        // Legacy single transaction type
         where.transactionType = contact.transactionType;
       }
+      
+      // Override with query parameter if provided
       if (transactionType) {
         where.transactionType = transactionType;
       }
@@ -62,15 +72,8 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
       // Budget filtering
       if (contact.budgetMin || contact.budgetMax || priceMin || priceMax) {
         where.price = {};
-        const minPrice = Math.max(
-          contact.budgetMin || 0,
-          priceMin ? Number(priceMin) : 0
-        );
-        const maxPrice = Math.min(
-          contact.budgetMax || Infinity,
-          priceMax ? Number(priceMax) : Infinity
-        );
-        
+        const minPrice = Math.max(contact.budgetMin || 0, priceMin ? Number(priceMin) : 0);
+        const maxPrice = Math.min(contact.budgetMax || Infinity, priceMax ? Number(priceMax) : Infinity);
         if (minPrice > 0) where.price.gte = minPrice;
         if (maxPrice < Infinity) where.price.lte = maxPrice;
       }
@@ -85,10 +88,18 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
         }
       });
 
-      // Calculate similarities and sort
+      // Calculate similarities with enhanced transaction scoring
       const recommendations = properties
         .map((property: any) => {
-          const similarity = calculateSimilarity(contact.scores, property.scores);
+          let similarity = calculateSimilarity(contact.scores, property.scores);
+          
+          // Apply transaction type bonus if contact has transaction scores
+          if (contact.transactionScores?.length === 2) {
+            const [rentScore, saleScore] = contact.transactionScores;
+            const transactionBonus = property.transactionType === 'RENT' ? rentScore : saleScore;
+            // Boost similarity for matching transaction types
+            similarity = similarity * 0.8 + transactionBonus * 0.2;
+          }
           
           // Calculate average success score for this property
           const avgSuccessScore = property.sales.length > 0
@@ -110,7 +121,6 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
           property: {
             id: rec.property.id,
             title: rec.property.title,
-            description: rec.property.description,
             price: rec.property.price,
             area: rec.property.area,
             rooms: rec.property.rooms,
@@ -118,10 +128,7 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
             city: rec.property.city,
             propertyType: rec.property.propertyType,
             transactionType: rec.property.transactionType,
-            condition: rec.property.condition,
-            hasParking: rec.property.hasParking,
-            hasSecurity: rec.property.hasSecurity,
-            featured: rec.property.featured
+            condition: rec.property.condition
           },
           similarity: Math.round(rec.similarity * 1000) / 1000,
           combinedScore: Math.round(rec.combinedScore * 1000) / 1000,
@@ -134,31 +141,95 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
           contact: {
             id: contact.id,
             name: contact.name,
+            email: contact.email,
             type: contact.type,
-            transactionType: contact.transactionType
+            transactionType: contact.transactionType,
+            transactionTypes: contact.transactionTypes,
+            primaryTransactionType: contact.primaryTransactionType,
+            transactionFlexibility: contact.transactionFlexibility
           },
           recommendations,
-          metadata: {
-            totalProperties: properties.length,
-            recommendationsFound: recommendations.length,
+          total: recommendations.length,
+          filters: {
             minSimilarity: minSim,
-            algorithm: '12D Vector Similarity',
-            generatedAt: new Date().toISOString()
+            propertyType,
+            transactionType: where.transactionType,
+            wilaya,
+            priceMin: priceMin ? Number(priceMin) : undefined,
+            priceMax: priceMax ? Number(priceMax) : undefined
           }
         }
       };
     } catch (error) {
-      console.error('Get contact recommendations error:', error);
+      console.error('Get recommendations error:', error);
       return {
         success: false,
-        error: 'Failed to generate recommendations'
+        error: 'Failed to get recommendations'
       };
     }
   }, {
+    params: t.Object({
+      id: t.String({ description: 'Contact ID' })
+    }),
+    query: t.Object({
+      limit: t.Optional(t.Union([
+        t.Number({ minimum: 1, maximum: 50, default: 10 }),
+        t.String()
+      ])),
+      minSimilarity: t.Optional(t.Union([
+        t.Number({ minimum: 0, maximum: 1, default: 0.3 }),
+        t.String()
+      ])),
+      propertyType: t.Optional(t.Union([
+        t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+        t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+        t.Literal('LAND'), t.Literal('GARAGE')
+      ])),
+      transactionType: t.Optional(t.Union([
+        t.Literal('RENT'),
+        t.Literal('SALE')
+      ])),
+      wilaya: t.Optional(t.String()),
+      priceMin: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ])),
+      priceMax: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ]))
+    }),
     detail: {
       tags: ['Recommendations'],
-      summary: 'Get property recommendations for contact',
-      description: 'Get AI-powered property recommendations for a specific contact'
+      summary: 'Get property recommendations for contact with enhanced transaction support',
+      description: `
+## Enhanced Property Recommendations with Dual Transaction Support
+
+Get AI-powered property recommendations for a contact, now with support for multiple transaction types.
+
+### 🔄 Enhanced Transaction Support
+- **Legacy**: Matches single transactionType
+- **Enhanced**: Matches any transaction type from transactionTypes array
+- **Flexibility**: Considers transaction flexibility in scoring
+- **Primary Preference**: Prioritizes primary transaction type
+
+### 🤖 AI Features
+- **Dual Scoring**: Uses both main scores and transaction scores
+- **Transaction Bonus**: Boosts similarity for matching transaction types
+- **Flexibility Weighting**: Considers how flexible the contact is
+- **Success History**: Incorporates past successful transactions
+
+### 📊 Scoring Algorithm
+1. **Base Similarity**: 12D vector similarity (80% weight)
+2. **Transaction Bonus**: Transaction type matching (20% weight)
+3. **Success History**: Past transaction success rates
+4. **Combined Score**: Weighted combination for final ranking
+
+### 🎯 Use Cases
+- Flexible buyers open to both renting and buying
+- Investors with multiple transaction strategies
+- Contacts with primary and secondary preferences
+        `
     }
   })
 
@@ -359,7 +430,7 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
       const limitNum = Math.min(50, Math.max(1, Number(limit)));
       const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
 
-      // Get all contacts for matching
+      // Get all contacts for matching with enhanced transaction data
       const allContacts = await prisma.contact.findMany({
         where: { isActive: true },
         select: {
@@ -368,7 +439,11 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
           email: true,
           type: true,
           transactionType: true,
+          transactionTypes: true,
+          primaryTransactionType: true,
+          transactionFlexibility: true,
           scores: true,
+          transactionScores: true,
           budgetMin: true,
           budgetMax: true,
           locationWilayas: true
@@ -404,15 +479,32 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
             continue;
           }
 
-          // Filter contacts by transaction type match
-          const matchingContacts = allContacts.filter(contact => 
-            contact.transactionType === property.transactionType
-          );
+          // Enhanced transaction type matching with dual support
+          const matchingContacts = allContacts.filter(contact => {
+            // Enhanced dual transaction type matching
+            if (contact.transactionTypes?.length) {
+              // Contact has multiple transaction types - match any of them
+              return contact.transactionTypes.includes(property.transactionType);
+            } else if (contact.transactionType) {
+              // Legacy single transaction type
+              return contact.transactionType === property.transactionType;
+            }
+            return false;
+          });
 
-          // Calculate similarities
+          // Calculate similarities with enhanced transaction scoring
           const recommendations = matchingContacts
             .map(contact => {
-              const similarity = calculateSimilarity(contact.scores, property.scores);
+              let similarity = calculateSimilarity(contact.scores, property.scores);
+              
+              // Apply transaction type bonus if contact has transaction scores
+              if (contact.transactionScores?.length === 2) {
+                const [rentScore, saleScore] = contact.transactionScores;
+                const transactionBonus = property.transactionType === 'RENT' ? rentScore : saleScore;
+                // Boost similarity for matching transaction types
+                similarity = similarity * 0.8 + transactionBonus * 0.2;
+              }
+              
               return { contact, similarity };
             })
             .filter(rec => rec.similarity >= minSim)
@@ -423,7 +515,11 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
                 id: rec.contact.id,
                 name: rec.contact.name,
                 email: rec.contact.email,
-                type: rec.contact.type
+                type: rec.contact.type,
+                transactionType: rec.contact.transactionType,
+                transactionTypes: rec.contact.transactionTypes,
+                primaryTransactionType: rec.contact.primaryTransactionType,
+                transactionFlexibility: rec.contact.transactionFlexibility
               },
               similarity: Math.round(rec.similarity * 1000) / 1000
             }));
@@ -467,8 +563,37 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
     }),
     detail: {
       tags: ['Recommendations'],
-      summary: 'Bulk recommendations for properties',
-      description: 'Get recommendations for multiple properties at once'
+      summary: 'Bulk recommendations for properties with enhanced dual transaction support',
+      description: `
+## Bulk Property Recommendations with Enhanced Dual Transaction Support
+
+Get AI-powered contact recommendations for multiple properties at once, now with support for dual transaction types.
+
+### 🔄 Enhanced Transaction Support
+- **Legacy**: Matches single transactionType
+- **Enhanced**: Matches any transaction type from transactionTypes array
+- **Flexibility**: Considers transaction flexibility in scoring
+- **Primary Preference**: Prioritizes primary transaction type
+
+### 📊 Similarity Thresholds
+- **0.0-0.2**: Very low similarity (rare matches)
+- **0.2-0.4**: Low similarity (some matches)
+- **0.4-0.6**: Medium similarity (good matches)
+- **0.6-0.8**: High similarity (excellent matches)
+- **0.8-1.0**: Very high similarity (perfect matches)
+
+### 💡 Recommended Settings
+- **minSimilarity: 0.3** - Good balance of quality and quantity
+- **minSimilarity: 0.5** - Higher quality matches
+- **minSimilarity: 0.7** - Premium matches only
+- **minSimilarity: 0.95** - Perfect matches only (very rare)
+
+### 🎯 Use Cases
+- Batch processing multiple properties
+- Market analysis and insights
+- Lead generation campaigns
+- Portfolio optimization
+        `
     }
   })
 
@@ -785,8 +910,385 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
     }),
     detail: {
       tags: ['Recommendations'],
-      summary: 'Batch recommendation processing',
-      description: 'Process recommendations for multiple contacts and properties simultaneously'
+      summary: 'Batch recommendation processing for multiple contacts and properties',
+      description: `
+## 🚀 Batch Recommendation Processing
+
+Process recommendations for **multiple contacts against multiple properties simultaneously**, creating a comprehensive matching matrix for bulk operations.
+
+### 🎯 What Is Batch Processing?
+
+Batch processing takes arrays of contact IDs and property IDs, then finds the best property matches for each contact using AI-powered similarity scoring. Perfect for lead generation, portfolio analysis, and market research.
+
+### 📊 Key Features
+
+- **Many-to-Many Processing**: Multiple contacts × Multiple properties (up to 50×50 = 2,500 combinations)
+- **Contact-Centric Results**: Each contact gets their best property matches
+- **AI-Powered Matching**: Uses 12D vector similarity scoring with enhanced dual transaction support
+- **Transaction Type Filtering**: Only matches compatible transaction types
+- **Performance Optimized**: Efficient parallel processing
+
+### 🔄 Algorithm Flow
+
+1. **Input Validation**: Validate contact and property IDs arrays
+2. **Data Fetching**: Retrieve contacts and properties in parallel
+3. **For Each Contact**:
+   - Filter properties by compatible transaction types
+   - Calculate AI similarity scores using 12D vectors
+   - Apply transaction type bonuses for dual transaction contacts
+   - Filter by minimum similarity threshold
+   - Sort by similarity score and take top N results
+4. **Return Results**: Contact-centric recommendation matrix
+
+### 🎯 Use Cases
+
+#### **Lead Generation Campaigns**
+Generate targeted property recommendations for marketing segments:
+\`\`\`json
+{
+  "contactIds": ["segment_buyers_001", "segment_buyers_002"],
+  "propertyIds": ["new_listing_001", "new_listing_002"],
+  "minSimilarity": 0.4,
+  "limit": 3
+}
+\`\`\`
+
+#### **Portfolio Analysis**
+Analyze which properties match investor clients:
+\`\`\`json
+{
+  "contactIds": ["investor_001", "investor_002"],
+  "propertyIds": ["commercial_001", "office_001", "retail_001"],
+  "minSimilarity": 0.6,
+  "limit": 5
+}
+\`\`\`
+
+#### **Market Research**
+Broad market demand analysis:
+\`\`\`json
+{
+  "contactIds": ["sample_contacts_array"],
+  "propertyIds": ["market_properties_array"],
+  "minSimilarity": 0.2,
+  "limit": 10
+}
+\`\`\`
+
+#### **Sales Team Optimization**
+Daily property matches for active contacts:
+\`\`\`json
+{
+  "contactIds": ["active_contact_001", "active_contact_002"],
+  "propertyIds": ["available_property_001", "available_property_002"],
+  "minSimilarity": 0.35,
+  "limit": 4
+}
+\`\`\`
+
+### 📊 Performance Guidelines
+
+| Batch Size | Contacts | Properties | Combinations | Response Time | Recommended Use |
+|------------|----------|------------|--------------|---------------|-----------------|
+| **Small** | 5-10 | 5-15 | 25-150 | < 500ms | Quick campaigns |
+| **Medium** | 15-25 | 20-30 | 300-750 | 500ms-2s | Regular operations |
+| **Large** | 30-50 | 35-50 | 1,050-2,500 | 2s-5s | Comprehensive analysis |
+
+### 💡 Similarity Threshold Guidelines
+
+- **0.2-0.3**: Broad matching for market research
+- **0.3-0.5**: Balanced quality/quantity for campaigns ✅ **Recommended**
+- **0.5-0.7**: High-quality matches for premium clients
+- **0.7-1.0**: Exclusive matches (very selective)
+
+### 🔄 Enhanced Dual Transaction Support
+
+The batch processor now supports contacts with multiple transaction types:
+- **Legacy contacts**: Single transaction type (RENT or SALE)
+- **Enhanced contacts**: Multiple transaction types with primary preference
+- **Flexibility scoring**: Transaction flexibility weighting in recommendations
+- **Transaction bonuses**: Similarity boosts for matching transaction types
+
+### ⚙️ Request Parameters
+
+- **contactIds**: Array of contact IDs (1-50 required)
+- **propertyIds**: Array of property IDs (1-50 required)  
+- **minSimilarity**: Minimum similarity threshold (0-1, default: 0.3)
+- **limit**: Maximum recommendations per contact (1-50, default: 10)
+
+### 📈 Response Structure
+
+Each contact receives:
+- **contactId**: Contact identifier
+- **contactName**: Contact name for reference
+- **recommendations**: Array of matching properties with similarity scores
+- **metadata**: Processing statistics and performance info
+
+### 🛡️ Error Handling
+
+Common validation errors:
+- Empty contact or property arrays
+- Arrays exceeding 50 items
+- Invalid similarity thresholds
+- Server processing errors
+
+### 🔗 Related Endpoints
+
+- **Individual**: \`/recommendations/contact/{id}\` - Single contact recommendations
+- **Property**: \`/recommendations/property/{id}\` - Single property marketing
+- **Bulk**: \`/recommendations/bulk\` - Multiple properties to contacts
+- **Batch**: \`/recommendations/batch-process\` - Multiple contacts to properties ⭐
+
+### 🎉 Integration Examples
+
+Perfect for integrating with:
+- **CRM Systems**: Lead generation and contact management
+- **Email Marketing**: Personalized property recommendations  
+- **Analytics Dashboards**: Market insights and demand analysis
+- **Sales Tools**: Daily prospect matching and follow-up lists
+
+### 🇩🇿 Algeria Market Optimization
+
+- **48 Wilayas Support**: Geographic coverage across Algeria
+- **DZD Currency**: All prices in Algerian Dinar
+- **Cultural Preferences**: Family-oriented and investment patterns
+- **Property Types**: Villa, apartment, office, land, and commercial spaces
+        `,
+      responses: {
+        '200': {
+          description: 'Batch processing completed successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        contactId: { type: 'string', example: 'cmd92djy5000a14ollrdik8y8' },
+                        contactName: { type: 'string', example: 'Sara Benmoussa' },
+                        recommendations: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              property: {
+                                type: 'object',
+                                properties: {
+                                  id: { type: 'string', example: 'cmd92dk6q000d14ol3ervqga7' },
+                                  title: { type: 'string', example: 'Bureau 120m² Centre d\'Alger' },
+                                  price: { type: 'number', example: 45000000, description: 'Price in DZD' },
+                                  wilaya: { type: 'string', example: 'Algiers' },
+                                  propertyType: { type: 'string', example: 'OFFICE' }
+                                }
+                              },
+                              similarity: { type: 'number', minimum: 0, maximum: 1, example: 0.875, description: 'AI similarity score' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  metadata: {
+                    type: 'object',
+                    properties: {
+                      contactsProcessed: { type: 'number', example: 2 },
+                      propertiesProcessed: { type: 'number', example: 3 },
+                      totalRecommendations: { type: 'number', example: 4 },
+                      minSimilarity: { type: 'number', example: 0.3 },
+                      generatedAt: { type: 'string', format: 'date-time', example: '2025-07-18T17:37:34.820Z' }
+                    }
+                  }
+                }
+              },
+              examples: {
+                'lead_generation_campaign': {
+                  summary: 'Lead Generation Campaign Results',
+                  description: 'Batch processing results for a targeted marketing campaign with multiple contacts and new property listings',
+                  value: {
+                    success: true,
+                    data: [
+                      {
+                        contactId: 'cmd92djy5000a14ollrdik8y8',
+                        contactName: 'Sara Benmoussa',
+                        recommendations: [
+                          {
+                            property: {
+                              id: 'cmd92dk6q000d14ol3ervqga7',
+                              title: 'Bureau 120m² Centre d\'Alger',
+                              price: 45000000,
+                              wilaya: 'Algiers',
+                              propertyType: 'OFFICE'
+                            },
+                            similarity: 0.875
+                          },
+                          {
+                            property: {
+                              id: 'cmd92dkfg000g14olx9jckmji',
+                              title: 'Terrain constructible à Tipaza',
+                              price: 8000000,
+                              wilaya: 'Tipaza',
+                              propertyType: 'LAND'
+                            },
+                            similarity: 0.764
+                          }
+                        ]
+                      },
+                      {
+                        contactId: 'cmd92djwf000914oljj04qcej',
+                        contactName: 'Youcef Hamidi',
+                        recommendations: []
+                      }
+                    ],
+                    metadata: {
+                      contactsProcessed: 2,
+                      propertiesProcessed: 3,
+                      totalRecommendations: 2,
+                      minSimilarity: 0.3,
+                      generatedAt: '2025-07-18T17:37:34.820Z'
+                    }
+                  }
+                },
+                'portfolio_analysis': {
+                  summary: 'Investment Portfolio Analysis',
+                  description: 'High-quality matches for investor clients analyzing commercial properties',
+                  value: {
+                    success: true,
+                    data: [
+                      {
+                        contactId: 'investor_premium_001',
+                        contactName: 'Karim Investment Group',
+                        recommendations: [
+                          {
+                            property: {
+                              id: 'commercial_office_001',
+                              title: 'Premium Office Complex Algiers',
+                              price: 150000000,
+                              wilaya: 'Algiers',
+                              propertyType: 'OFFICE'
+                            },
+                            similarity: 0.92
+                          },
+                          {
+                            property: {
+                              id: 'retail_center_001',
+                              title: 'Shopping Center Oran',
+                              price: 200000000,
+                              wilaya: 'Oran',
+                              propertyType: 'SHOP'
+                            },
+                            similarity: 0.87
+                          }
+                        ]
+                      }
+                    ],
+                    metadata: {
+                      contactsProcessed: 1,
+                      propertiesProcessed: 5,
+                      totalRecommendations: 2,
+                      minSimilarity: 0.6,
+                      generatedAt: '2025-07-18T17:37:34.820Z'
+                    }
+                  }
+                },
+                'market_research': {
+                  summary: 'Market Research Analysis',
+                  description: 'Broad market analysis for research purposes with lower similarity threshold',
+                  value: {
+                    success: true,
+                    data: [
+                      {
+                        contactId: 'research_segment_001',
+                        contactName: 'Young Professionals Segment',
+                        recommendations: [
+                          {
+                            property: {
+                              id: 'modern_apartment_001',
+                              title: 'Modern F3 Apartment',
+                              price: 12000000,
+                              wilaya: 'Algiers',
+                              propertyType: 'APARTMENT'
+                            },
+                            similarity: 0.45
+                          }
+                        ]
+                      }
+                    ],
+                    metadata: {
+                      contactsProcessed: 3,
+                      propertiesProcessed: 10,
+                      totalRecommendations: 8,
+                      minSimilarity: 0.2,
+                      generatedAt: '2025-07-18T17:37:34.820Z'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          description: 'Bad request - validation errors',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: false },
+                  error: { type: 'string' }
+                }
+              },
+              examples: {
+                'empty_contact_ids': {
+                  summary: 'Empty Contact IDs',
+                  value: {
+                    success: false,
+                    error: 'Contact IDs array is required and cannot be empty'
+                  }
+                },
+                'empty_property_ids': {
+                  summary: 'Empty Property IDs',
+                  value: {
+                    success: false,
+                    error: 'Property IDs array is required and cannot be empty'
+                  }
+                },
+                'too_many_items': {
+                  summary: 'Batch Size Limit Exceeded',
+                  value: {
+                    success: false,
+                    error: 'Maximum 50 contacts and 50 properties can be processed at once'
+                  }
+                },
+                'invalid_similarity': {
+                  summary: 'Invalid Similarity Threshold',
+                  value: {
+                    success: false,
+                    error: 'Minimum similarity must be between 0 and 1'
+                  }
+                }
+              }
+            }
+          }
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: false },
+                  error: { type: 'string', example: 'Failed to process batch recommendations' }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }); 
 

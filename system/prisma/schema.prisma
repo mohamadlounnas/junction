@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider      = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -10,114 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Contacts table - potential buyers/tenants
 model Contact {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  phone     String?
-  
-  // Contact type and preferences
-  type              ContactType
-  budgetMin         Float?      // Minimum budget in DZD
-  budgetMax         Float?      // Maximum budget in DZD
-  locationWilayas   String[]    // Preferred wilayas (array of wilaya names)
-  locationCities    String[]    // Preferred cities within wilayas
-  propertyTypes     PropertyType[] // Preferred property types
-  transactionType   TransactionType // RENT or BUY
-  
-  // Family context
-  familySize        Int?        // Number of family members
-  hasChildren       Boolean     @default(false)
-  minRooms          Int?        // Minimum number of rooms
-  maxRooms          Int?        // Maximum number of rooms
-  minArea           Float?      // Minimum area in m²
-  maxArea           Float?      // Maximum area in m²
-  
-  // Preferences
-  furnishingType    FurnishingType?
-  preferredCondition PropertyCondition?
-  requiresParking   Boolean     @default(false)
-  requiresSecurity  Boolean     @default(false)
-  
-  // 12D Score Vector (automatically generated)
-  scores            Float[]     @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-  
-  // Metadata
-  isActive          Boolean     @default(true)
-  notes             String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  // Relations
-  sales             Sale[]
-  
+  id                     String             @id @default(cuid())
+  email                  String             @unique
+  name                   String
+  phone                  String?
+  type                   ContactType
+  budgetMin              Float?
+  budgetMax              Float?
+  locationWilayas        String[]
+  locationCities         String[]
+  propertyTypes          PropertyType[]
+  transactionType        TransactionType
+  familySize             Int?
+  hasChildren            Boolean            @default(false)
+  minRooms               Int?
+  maxRooms               Int?
+  minArea                Float?
+  maxArea                Float?
+  furnishingType         FurnishingType?
+  preferredCondition     PropertyCondition?
+  requiresParking        Boolean            @default(false)
+  requiresSecurity       Boolean            @default(false)
+  scores                 Float[]            @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  isActive               Boolean            @default(true)
+  notes                  String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  primaryTransactionType TransactionType?
+  transactionFlexibility Float?             @default(0.5)
+  transactionScores      Float[]            @default([0.5, 0.5])
+  transactionTypes       TransactionType[]
+  sales                  Sale[]
+
   @@index([type])
   @@index([locationWilayas])
   @@index([transactionType])
+  @@index([transactionTypes])
+  @@index([primaryTransactionType])
   @@index([isActive])
 }
 
-// Properties table - available properties
 model Property {
-  id              String         @id @default(cuid())
-  title           String
-  description     String?
-  
-  // Basic property info
-  price           Float          // Price in DZD
-  area            Float          // Area in m²
-  rooms           Int            // Number of rooms
-  bathrooms       Int?           // Number of bathrooms
-  
-  // Location
-  wilaya          String         // Wilaya name
-  city            String         // City/commune name
-  address         String?        // Full address
-  latitude        Float?         // GPS coordinates
-  longitude       Float?         // GPS coordinates
-  
-  // Geospatial search optimization
-  geohash         String?        // Geohash for efficient proximity queries
-  geohashPrecision5 String?      // ~2.4km precision for neighborhood search
-  geohashPrecision6 String?      // ~610m precision for local search
-  geohashPrecision7 String?      // ~76m precision for street-level search
-  
-  // Property details
-  propertyType    PropertyType
-  transactionType TransactionType
-  furnishing      FurnishingType
-  condition       PropertyCondition
-  
-  // Features and amenities
-  hasParking      Boolean        @default(false)
-  hasSecurity     Boolean        @default(false)
-  hasElevator     Boolean        @default(false)
-  hasGarden       Boolean        @default(false)
-  hasBalcony      Boolean        @default(false)
-  hasSwimmingPool Boolean        @default(false)
-  
-  // Building info
-  buildingAge     Int?           // Age in years
-  floor           Int?           // Floor number
-  totalFloors     Int?           // Total floors in building
-  
-  // 12D Score Vector (automatically generated)
-  scores          Float[]        @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-  
-  // Status and ownership
-  status          PropertyStatus @default(AVAILABLE)
-  ownerId         String?        // Property owner/agent ID
-  
-  // Metadata
-  viewCount       Int            @default(0)
-  featured        Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  
-  // Relations
-  sales           Sale[]
-  
+  id                String            @id @default(cuid())
+  title             String
+  description       String?
+  price             Float
+  area              Float
+  rooms             Int
+  bathrooms         Int?
+  wilaya            String
+  city              String
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  propertyType      PropertyType
+  transactionType   TransactionType
+  furnishing        FurnishingType
+  condition         PropertyCondition
+  hasParking        Boolean           @default(false)
+  hasSecurity       Boolean           @default(false)
+  hasElevator       Boolean           @default(false)
+  hasGarden         Boolean           @default(false)
+  hasBalcony        Boolean           @default(false)
+  hasSwimmingPool   Boolean           @default(false)
+  buildingAge       Int?
+  floor             Int?
+  totalFloors       Int?
+  image_url         String?
+  images            String[]          @default([])
+  scores            Float[]           @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  status            PropertyStatus    @default(AVAILABLE)
+  ownerId           String?
+  viewCount         Int               @default(0)
+  featured          Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  geohash           String?
+  geohashPrecision5 String?
+  geohashPrecision6 String?
+  geohashPrecision7 String?
+  sales             Sale[]
+
   @@index([propertyType])
   @@index([transactionType])
   @@index([wilaya])
@@ -133,51 +104,39 @@ model Property {
   @@index([latitude, longitude])
 }
 
-// Sales table - learning data for improving recommendations
 model Sale {
-  id            String      @id @default(cuid())
-  contactId     String
-  propertyId    String
-  
-  // Sale details
-  salePrice     Float       // Final sale/rent price in DZD
-  saleDate      DateTime    @default(now())
-  successScore  Float       // How satisfied was the customer (0-1)
-  
-  // Learning data
-  timeToDecision Int?       // Days from first contact to sale
-  viewCount      Int?       // How many times contact viewed this property
-  
-  // Metadata
-  notes         String?
-  createdAt     DateTime    @default(now())
-  
-  // Relations
-  contact       Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  
+  id             String   @id @default(cuid())
+  contactId      String
+  propertyId     String
+  salePrice      Float
+  saleDate       DateTime @default(now())
+  successScore   Float
+  timeToDecision Int?
+  viewCount      Int?
+  notes          String?
+  createdAt      DateTime @default(now())
+  contact        Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
   @@index([saleDate])
   @@index([successScore])
 }
 
-// Settings table - system configuration
 model Setting {
   id          String      @id @default(cuid())
   key         String      @unique
   value       String
   type        SettingType @default(STRING)
-  category    String      // algorithm, system, business, ui
+  category    String
   description String?
-  isPublic    Boolean     @default(false) // Can non-admin users see this setting?
-  
+  isPublic    Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  
+
   @@index([category])
   @@index([isPublic])
 }
 
-// Enums
 enum ContactType {
   BUYER
   TENANT
@@ -227,4 +186,4 @@ enum SettingType {
   NUMBER
   BOOLEAN
   JSON
-} 
+}
