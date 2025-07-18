@@ -825,4 +825,305 @@ Each dimension is scored 0.0 to 1.0:
       summary: 'Update contact scores',
       description: 'Manually update the 12D preference vector'
     }
+  })
+
+  // Bulk operations
+  .post('/bulk', async ({ body }) => {
+    try {
+      const { contacts } = body;
+      
+      if (!Array.isArray(contacts) || contacts.length === 0) {
+        return {
+          success: false,
+          error: 'Contacts array is required and cannot be empty'
+        };
+      }
+
+      if (contacts.length > 100) {
+        return {
+          success: false,
+          error: 'Maximum 100 contacts can be created at once'
+        };
+      }
+
+      const createdContacts = [];
+      const errors = [];
+
+      for (const contactData of contacts) {
+        try {
+          // Basic email validation
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactData.email)) {
+            errors.push({ email: contactData.email, error: 'Invalid email format' });
+            continue;
+          }
+
+          // Generate scores automatically
+          const scores = generateScoresFromContact(contactData);
+
+          const contact = await prisma.contact.create({
+            data: {
+              ...contactData,
+              scores
+            }
+          });
+
+          createdContacts.push(contact);
+        } catch (error) {
+          errors.push({ email: contactData.email, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          created: createdContacts,
+          errors,
+          summary: {
+            total: contacts.length,
+            created: createdContacts.length,
+            failed: errors.length
+          }
+        },
+        message: `Bulk operation completed. ${createdContacts.length} contacts created, ${errors.length} failed.`
+      };
+    } catch (error) {
+      console.error('Bulk create contacts error:', error);
+      return {
+        success: false,
+        error: 'Failed to create contacts in bulk'
+      };
+    }
+  }, {
+    body: t.Object({
+      contacts: t.Array(t.Object({
+        email: t.String({ minLength: 5 }),
+        name: t.String({ minLength: 2 }),
+        phone: t.Optional(t.String()),
+        type: t.Union([t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('INVESTOR')]),
+        budgetMin: t.Optional(t.Number({ minimum: 0 })),
+        budgetMax: t.Optional(t.Number({ minimum: 0 })),
+        locationWilayas: t.Array(t.String()),
+        locationCities: t.Array(t.String()),
+        propertyTypes: t.Array(t.Union([
+          t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+          t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+          t.Literal('LAND'), t.Literal('GARAGE')
+        ])),
+        transactionType: t.Union([t.Literal('RENT'), t.Literal('SALE')]),
+        familySize: t.Optional(t.Number({ minimum: 1 })),
+        hasChildren: t.Boolean(),
+        minRooms: t.Optional(t.Number({ minimum: 1 })),
+        maxRooms: t.Optional(t.Number({ minimum: 1 })),
+        minArea: t.Optional(t.Number({ minimum: 1 })),
+        maxArea: t.Optional(t.Number({ minimum: 1 })),
+        furnishingType: t.Optional(t.Union([
+          t.Literal('FURNISHED'), t.Literal('SEMI_FURNISHED'), t.Literal('UNFURNISHED')
+        ])),
+        preferredCondition: t.Optional(t.Union([
+          t.Literal('POOR'), t.Literal('FAIR'), t.Literal('GOOD'), t.Literal('EXCELLENT'), t.Literal('NEW')
+        ])),
+        requiresParking: t.Boolean(),
+        requiresSecurity: t.Boolean(),
+        notes: t.Optional(t.String())
+      }), { minItems: 1, maxItems: 100 })
+    }),
+    detail: {
+      tags: ['Contacts'],
+      summary: 'Bulk create contacts',
+      description: 'Create multiple contacts at once with automatic AI scoring'
+    }
+  })
+
+  // Export contacts
+  .get('/export', async ({ query }) => {
+    try {
+      const { format = 'json', type, wilaya, transactionType } = query;
+
+      // Build filters
+      const where: any = { isActive: true };
+      if (type) where.type = type;
+      if (wilaya) where.locationWilayas = { has: wilaya };
+      if (transactionType) where.transactionType = transactionType;
+
+      const contacts = await prisma.contact.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (format === 'csv') {
+        const csvHeaders = [
+          'ID', 'Name', 'Email', 'Phone', 'Type', 'Budget Min', 'Budget Max',
+          'Wilayas', 'Cities', 'Property Types', 'Transaction Type', 'Family Size',
+          'Has Children', 'Min Rooms', 'Max Rooms', 'Min Area', 'Max Area',
+          'Requires Parking', 'Requires Security', 'Created At'
+        ];
+
+        const csvRows = contacts.map(contact => [
+          contact.id,
+          contact.name,
+          contact.email,
+          contact.phone || '',
+          contact.type,
+          contact.budgetMin || '',
+          contact.budgetMax || '',
+          contact.locationWilayas.join(';'),
+          contact.locationCities.join(';'),
+          contact.propertyTypes.join(';'),
+          contact.transactionType,
+          contact.familySize || '',
+          contact.hasChildren ? 'Yes' : 'No',
+          contact.minRooms || '',
+          contact.maxRooms || '',
+          contact.minArea || '',
+          contact.maxArea || '',
+          contact.requiresParking ? 'Yes' : 'No',
+          contact.requiresSecurity ? 'Yes' : 'No',
+          contact.createdAt
+        ]);
+
+        const csvContent = [csvHeaders, ...csvRows]
+          .map(row => row.map(field => `"${field}"`).join(','))
+          .join('\n');
+
+        return {
+          success: true,
+          data: {
+            format: 'csv',
+            content: csvContent,
+            count: contacts.length,
+            filename: `contacts_export_${new Date().toISOString().split('T')[0]}.csv`
+          }
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          format: 'json',
+          contacts,
+          count: contacts.length,
+          exportedAt: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      console.error('Export contacts error:', error);
+      return {
+        success: false,
+        error: 'Failed to export contacts'
+      };
+    }
+  }, {
+    query: t.Object({
+      format: t.Optional(t.Union([t.Literal('json'), t.Literal('csv')])),
+      type: t.Optional(t.Union([t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('INVESTOR')])),
+      wilaya: t.Optional(t.String()),
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')]))
+    }),
+    detail: {
+      tags: ['Contacts'],
+      summary: 'Export contacts',
+      description: 'Export contacts in JSON or CSV format with optional filtering'
+    }
+  })
+
+  // Contact analytics
+  .get('/analytics', async () => {
+    try {
+      const [
+        totalContacts,
+        contactsByType,
+        contactsByWilaya,
+        contactsByTransactionType,
+        recentContacts,
+        topWilayas
+      ] = await Promise.all([
+        prisma.contact.count({ where: { isActive: true } }),
+        prisma.contact.groupBy({
+          by: ['type'],
+          _count: { type: true },
+          where: { isActive: true }
+        }),
+        prisma.contact.groupBy({
+          by: ['locationWilayas'],
+          _count: { locationWilayas: true },
+          where: { isActive: true }
+        }),
+        prisma.contact.groupBy({
+          by: ['transactionType'],
+          _count: { transactionType: true },
+          where: { isActive: true }
+        }),
+        prisma.contact.findMany({
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            createdAt: true
+          }
+        }),
+        prisma.contact.findMany({
+          where: { isActive: true },
+          select: { locationWilayas: true }
+        })
+      ]);
+
+      // Process wilaya data
+      const wilayaCounts: { [key: string]: number } = {};
+      contactsByWilaya.forEach(item => {
+        item.locationWilayas.forEach((wilaya: string) => {
+          wilayaCounts[wilaya] = (wilayaCounts[wilaya] || 0) + item._count.locationWilayas;
+        });
+      });
+
+      const topWilayasList = Object.entries(wilayaCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .map(([wilaya, count]) => ({ wilaya, count }));
+
+      return {
+        success: true,
+        data: {
+          overview: {
+            totalContacts,
+            activeContacts: totalContacts,
+            inactiveContacts: await prisma.contact.count({ where: { isActive: false } })
+          },
+          distribution: {
+            byType: contactsByType,
+            byTransactionType: contactsByTransactionType,
+            byWilaya: topWilayasList
+          },
+          recent: {
+            newContacts: recentContacts,
+            lastWeek: await prisma.contact.count({
+              where: {
+                isActive: true,
+                createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+              }
+            }),
+            lastMonth: await prisma.contact.count({
+              where: {
+                isActive: true,
+                createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+              }
+            })
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Contact analytics error:', error);
+      return {
+        success: false,
+        error: 'Failed to generate contact analytics'
+      };
+    }
+  }, {
+    detail: {
+      tags: ['Contacts'],
+      summary: 'Contact analytics and insights',
+      description: 'Get comprehensive analytics about contacts including distribution and trends'
+    }
   }); 

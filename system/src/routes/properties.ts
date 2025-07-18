@@ -632,4 +632,487 @@ Quick search for properties near famous Algeria landmarks.
       summary: 'Sync property scores',
       description: 'Regenerate scores from current property data'
     }
+  })
+
+  // Bulk operations
+  .post('/bulk', async ({ body }) => {
+    try {
+      const { properties } = body;
+      
+      if (!Array.isArray(properties) || properties.length === 0) {
+        return {
+          success: false,
+          error: 'Properties array is required and cannot be empty'
+        };
+      }
+
+      if (properties.length > 50) {
+        return {
+          success: false,
+          error: 'Maximum 50 properties can be created at once'
+        };
+      }
+
+      const createdProperties = [];
+      const errors = [];
+
+      for (const propertyData of properties) {
+        try {
+          // Generate scores automatically
+          const scores = generateScoresFromProperty(propertyData);
+
+          const property = await prisma.property.create({
+            data: {
+              ...propertyData,
+              scores
+            }
+          });
+
+          createdProperties.push(property);
+        } catch (error) {
+          errors.push({ title: propertyData.title, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          created: createdProperties,
+          errors,
+          summary: {
+            total: properties.length,
+            created: createdProperties.length,
+            failed: errors.length
+          }
+        },
+        message: `Bulk operation completed. ${createdProperties.length} properties created, ${errors.length} failed.`
+      };
+    } catch (error) {
+      console.error('Bulk create properties error:', error);
+      return {
+        success: false,
+        error: 'Failed to create properties in bulk'
+      };
+    }
+  }, {
+    body: t.Object({
+      properties: t.Array(t.Object({
+        title: t.String({ minLength: 5 }),
+        description: t.Optional(t.String()),
+        price: t.Number({ minimum: 0 }),
+        area: t.Number({ minimum: 1 }),
+        rooms: t.Number({ minimum: 0 }),
+        bathrooms: t.Optional(t.Number({ minimum: 0 })),
+        wilaya: t.String({ minLength: 2 }),
+        city: t.String({ minLength: 2 }),
+        address: t.Optional(t.String()),
+        latitude: t.Optional(t.Number()),
+        longitude: t.Optional(t.Number()),
+        propertyType: t.Union([
+          t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+          t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+          t.Literal('LAND'), t.Literal('GARAGE')
+        ]),
+        transactionType: t.Union([t.Literal('RENT'), t.Literal('SALE')]),
+        furnishing: t.Union([
+          t.Literal('FURNISHED'), t.Literal('SEMI_FURNISHED'), t.Literal('UNFURNISHED')
+        ]),
+        condition: t.Union([
+          t.Literal('POOR'), t.Literal('FAIR'), t.Literal('GOOD'), t.Literal('EXCELLENT'), t.Literal('NEW')
+        ]),
+        hasParking: t.Boolean(),
+        hasSecurity: t.Boolean(),
+        hasElevator: t.Boolean(),
+        hasGarden: t.Boolean(),
+        hasBalcony: t.Boolean(),
+        hasSwimmingPool: t.Boolean(),
+        buildingAge: t.Optional(t.Number({ minimum: 0 })),
+        floor: t.Optional(t.Number({ minimum: 0 })),
+        totalFloors: t.Optional(t.Number({ minimum: 1 })),
+        ownerId: t.Optional(t.String()),
+        featured: t.Optional(t.Boolean())
+      }), { minItems: 1, maxItems: 50 })
+    }),
+    detail: {
+      tags: ['Properties'],
+      summary: 'Bulk create properties',
+      description: 'Create multiple properties at once with automatic AI scoring'
+    }
+  })
+
+  // Export properties
+  .get('/export', async ({ query }) => {
+    try {
+      const { format = 'json', propertyType, wilaya, transactionType, status } = query;
+
+      // Build filters
+      const where: any = {};
+      if (propertyType) where.propertyType = propertyType;
+      if (wilaya) where.wilaya = wilaya;
+      if (transactionType) where.transactionType = transactionType;
+      if (status) where.status = status;
+
+      const properties = await prisma.property.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (format === 'csv') {
+        const csvHeaders = [
+          'ID', 'Title', 'Description', 'Price', 'Area', 'Rooms', 'Bathrooms',
+          'Wilaya', 'City', 'Address', 'Property Type', 'Transaction Type',
+          'Furnishing', 'Condition', 'Has Parking', 'Has Security', 'Has Elevator',
+          'Has Garden', 'Has Balcony', 'Has Swimming Pool', 'Building Age',
+          'Floor', 'Total Floors', 'Status', 'Featured', 'Created At'
+        ];
+
+        const csvRows = properties.map(property => [
+          property.id,
+          property.title,
+          property.description || '',
+          property.price,
+          property.area,
+          property.rooms,
+          property.bathrooms || '',
+          property.wilaya,
+          property.city,
+          property.address || '',
+          property.propertyType,
+          property.transactionType,
+          property.furnishing,
+          property.condition,
+          property.hasParking ? 'Yes' : 'No',
+          property.hasSecurity ? 'Yes' : 'No',
+          property.hasElevator ? 'Yes' : 'No',
+          property.hasGarden ? 'Yes' : 'No',
+          property.hasBalcony ? 'Yes' : 'No',
+          property.hasSwimmingPool ? 'Yes' : 'No',
+          property.buildingAge || '',
+          property.floor || '',
+          property.totalFloors || '',
+          property.status,
+          property.featured ? 'Yes' : 'No',
+          property.createdAt
+        ]);
+
+        const csvContent = [csvHeaders, ...csvRows]
+          .map(row => row.map(field => `"${field}"`).join(','))
+          .join('\n');
+
+        return {
+          success: true,
+          data: {
+            format: 'csv',
+            content: csvContent,
+            count: properties.length,
+            filename: `properties_export_${new Date().toISOString().split('T')[0]}.csv`
+          }
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          format: 'json',
+          properties,
+          count: properties.length,
+          exportedAt: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      console.error('Export properties error:', error);
+      return {
+        success: false,
+        error: 'Failed to export properties'
+      };
+    }
+  }, {
+    query: t.Object({
+      format: t.Optional(t.Union([t.Literal('json'), t.Literal('csv')])),
+      propertyType: t.Optional(t.Union([
+        t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+        t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+        t.Literal('LAND'), t.Literal('GARAGE')
+      ])),
+      wilaya: t.Optional(t.String()),
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      status: t.Optional(t.Union([t.Literal('AVAILABLE'), t.Literal('SOLD'), t.Literal('RENTED'), t.Literal('RESERVED')]))
+    }),
+    detail: {
+      tags: ['Properties'],
+      summary: 'Export properties',
+      description: 'Export properties in JSON or CSV format with optional filtering'
+    }
+  })
+
+  // Property analytics
+  .get('/analytics', async () => {
+    try {
+      const [
+        totalProperties,
+        propertiesByType,
+        propertiesByWilaya,
+        propertiesByTransactionType,
+        propertiesByStatus,
+        recentProperties,
+        priceStats
+      ] = await Promise.all([
+        prisma.property.count(),
+        prisma.property.groupBy({
+          by: ['propertyType'],
+          _count: { propertyType: true }
+        }),
+        prisma.property.groupBy({
+          by: ['wilaya'],
+          _count: { wilaya: true }
+        }),
+        prisma.property.groupBy({
+          by: ['transactionType'],
+          _count: { transactionType: true }
+        }),
+        prisma.property.groupBy({
+          by: ['status'],
+          _count: { status: true }
+        }),
+        prisma.property.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            title: true,
+            propertyType: true,
+            price: true,
+            wilaya: true,
+            createdAt: true
+          }
+        }),
+        prisma.property.aggregate({
+          _avg: { price: true },
+          _min: { price: true },
+          _max: { price: true },
+          _count: { price: true }
+        })
+      ]);
+
+      return {
+        success: true,
+        data: {
+          overview: {
+            totalProperties,
+            availableProperties: await prisma.property.count({ where: { status: 'AVAILABLE' } }),
+            soldProperties: await prisma.property.count({ where: { status: 'SOLD' } }),
+            rentedProperties: await prisma.property.count({ where: { status: 'RENTED' } })
+          },
+          distribution: {
+            byType: propertiesByType,
+            byWilaya: propertiesByWilaya,
+            byTransactionType: propertiesByTransactionType,
+            byStatus: propertiesByStatus
+          },
+          pricing: {
+            averagePrice: priceStats._avg.price,
+            minPrice: priceStats._min.price,
+            maxPrice: priceStats._max.price,
+            totalProperties: priceStats._count.price
+          },
+          recent: {
+            newProperties: recentProperties,
+            lastWeek: await prisma.property.count({
+              where: {
+                createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+              }
+            }),
+            lastMonth: await prisma.property.count({
+              where: {
+                createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+              }
+            })
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Property analytics error:', error);
+      return {
+        success: false,
+        error: 'Failed to generate property analytics'
+      };
+    }
+  }, {
+    detail: {
+      tags: ['Properties'],
+      summary: 'Property analytics and insights',
+      description: 'Get comprehensive analytics about properties including distribution, pricing, and trends'
+    }
+  })
+
+  // Search properties with advanced filters
+  .get('/search', async ({ query }) => {
+    try {
+      const {
+        q,
+        propertyType,
+        transactionType,
+        wilaya,
+        city,
+        priceMin,
+        priceMax,
+        areaMin,
+        areaMax,
+        rooms,
+        hasParking,
+        hasSecurity,
+        hasElevator,
+        hasGarden,
+        hasBalcony,
+        condition,
+        furnishing,
+        featured,
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+      } = query;
+
+      const pageNum = Math.max(1, Number(page));
+      const limitNum = Math.min(50, Math.max(1, Number(limit)));
+      const skip = (pageNum - 1) * limitNum;
+
+      // Build search filters
+      const where: any = {};
+
+      // Text search
+      if (q) {
+        where.OR = [
+          { title: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { address: { contains: q, mode: 'insensitive' } }
+        ];
+      }
+
+      // Property filters
+      if (propertyType) where.propertyType = propertyType;
+      if (transactionType) where.transactionType = transactionType;
+      if (wilaya) where.wilaya = wilaya;
+      if (city) where.city = { contains: city, mode: 'insensitive' };
+      if (condition) where.condition = condition;
+      if (furnishing) where.furnishing = furnishing;
+      if (featured !== undefined) where.featured = featured === 'true';
+
+      // Numeric filters
+      if (priceMin || priceMax) {
+        where.price = {};
+        if (priceMin) where.price.gte = Number(priceMin);
+        if (priceMax) where.price.lte = Number(priceMax);
+      }
+
+      if (areaMin || areaMax) {
+        where.area = {};
+        if (areaMin) where.area.gte = Number(areaMin);
+        if (areaMax) where.area.lte = Number(areaMax);
+      }
+
+      if (rooms) where.rooms = Number(rooms);
+
+      // Boolean filters
+      if (hasParking !== undefined) where.hasParking = hasParking === 'true';
+      if (hasSecurity !== undefined) where.hasSecurity = hasSecurity === 'true';
+      if (hasElevator !== undefined) where.hasElevator = hasElevator === 'true';
+      if (hasGarden !== undefined) where.hasGarden = hasGarden === 'true';
+      if (hasBalcony !== undefined) where.hasBalcony = hasBalcony === 'true';
+
+      // Sort options
+      const orderBy: any = {};
+      orderBy[sortBy] = sortOrder;
+
+      const [properties, total] = await Promise.all([
+        prisma.property.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy
+        }),
+        prisma.property.count({ where })
+      ]);
+
+      return {
+        success: true,
+        data: properties,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum)
+        },
+        search: {
+          query: q,
+          filters: {
+            propertyType,
+            transactionType,
+            wilaya,
+            city,
+            priceMin,
+            priceMax,
+            areaMin,
+            areaMax,
+            rooms,
+            hasParking,
+            hasSecurity,
+            hasElevator,
+            hasGarden,
+            hasBalcony,
+            condition,
+            furnishing,
+            featured
+          },
+          sortBy,
+          sortOrder
+        }
+      };
+    } catch (error) {
+      console.error('Search properties error:', error);
+      return {
+        success: false,
+        error: 'Failed to search properties'
+      };
+    }
+  }, {
+    query: t.Object({
+      q: t.Optional(t.String({ description: 'Search query for title, description, or address' })),
+      propertyType: t.Optional(t.Union([
+        t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+        t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+        t.Literal('LAND'), t.Literal('GARAGE')
+      ])),
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      wilaya: t.Optional(t.String()),
+      city: t.Optional(t.String()),
+      priceMin: t.Optional(t.Union([t.Number(), t.String()])),
+      priceMax: t.Optional(t.Union([t.Number(), t.String()])),
+      areaMin: t.Optional(t.Union([t.Number(), t.String()])),
+      areaMax: t.Optional(t.Union([t.Number(), t.String()])),
+      rooms: t.Optional(t.Union([t.Number(), t.String()])),
+      hasParking: t.Optional(t.Union([t.Boolean(), t.String()])),
+      hasSecurity: t.Optional(t.Union([t.Boolean(), t.String()])),
+      hasElevator: t.Optional(t.Union([t.Boolean(), t.String()])),
+      hasGarden: t.Optional(t.Union([t.Boolean(), t.String()])),
+      hasBalcony: t.Optional(t.Union([t.Boolean(), t.String()])),
+      condition: t.Optional(t.Union([
+        t.Literal('POOR'), t.Literal('FAIR'), t.Literal('GOOD'), t.Literal('EXCELLENT'), t.Literal('NEW')
+      ])),
+      furnishing: t.Optional(t.Union([
+        t.Literal('FURNISHED'), t.Literal('SEMI_FURNISHED'), t.Literal('UNFURNISHED')
+      ])),
+      featured: t.Optional(t.Union([t.Boolean(), t.String()])),
+      page: t.Optional(t.Union([t.Number(), t.String()])),
+      limit: t.Optional(t.Union([t.Number(), t.String()])),
+      sortBy: t.Optional(t.Union([
+        t.Literal('createdAt'), t.Literal('price'), t.Literal('area'), t.Literal('title')
+      ])),
+      sortOrder: t.Optional(t.Union([t.Literal('asc'), t.Literal('desc')]))
+    }),
+    detail: {
+      tags: ['Properties'],
+      summary: 'Advanced property search',
+      description: 'Search properties with comprehensive filtering and sorting options'
+    }
   }); 
