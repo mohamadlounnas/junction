@@ -38,9 +38,13 @@ COPY tsconfig.json ./
 # Create necessary directories
 RUN mkdir -p /app/uploads /app/storage/quotes /app/storage/comparisons /app/storage/professional-comparisons
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S bun -u 1001
+# Create non-root user for security (check if bun user already exists)
+RUN if ! id -u bun > /dev/null 2>&1; then \
+        addgroup -g 1001 -S nodejs && \
+        adduser -S bun -u 1001; \
+    else \
+        echo "User 'bun' already exists, skipping creation"; \
+    fi
 
 # Change ownership of app directory
 RUN chown -R bun:nodejs /app
