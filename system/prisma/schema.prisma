@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Contacts table - potential buyers/tenants
+model Contact {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  
+  // Contact type and preferences
+  type              ContactType
+  budgetMin         Float?      // Minimum budget in DZD
+  budgetMax         Float?      // Maximum budget in DZD
+  locationWilayas   String[]    // Preferred wilayas (array of wilaya names)
+  locationCities    String[]    // Preferred cities within wilayas
+  propertyTypes     PropertyType[] // Preferred property types
+  transactionType   TransactionType // RENT or BUY
+  
+  // Family context
+  familySize        Int?        // Number of family members
+  hasChildren       Boolean     @default(false)
+  minRooms          Int?        // Minimum number of rooms
+  maxRooms          Int?        // Maximum number of rooms
+  minArea           Float?      // Minimum area in m²
+  maxArea           Float?      // Maximum area in m²
+  
+  // Preferences
+  furnishingType    FurnishingType?
+  preferredCondition PropertyCondition?
+  requiresParking   Boolean     @default(false)
+  requiresSecurity  Boolean     @default(false)
+  
+  // 12D Score Vector (automatically generated)
+  scores            Float[]     @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  
+  // Metadata
+  isActive          Boolean     @default(true)
+  notes             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  sales             Sale[]
+  
+  @@index([type])
+  @@index([locationWilayas])
+  @@index([transactionType])
+  @@index([isActive])
+}
+
+// Properties table - available properties
+model Property {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  
+  // Basic property info
+  price           Float          // Price in DZD
+  area            Float          // Area in m²
+  rooms           Int            // Number of rooms
+  bathrooms       Int?           // Number of bathrooms
+  
+  // Location
+  wilaya          String         // Wilaya name
+  city            String         // City/commune name
+  address         String?        // Full address
+  latitude        Float?         // GPS coordinates
+  longitude       Float?         // GPS coordinates
+  
+  // Geospatial search optimization
+  geohash         String?        // Geohash for efficient proximity queries
+  geohashPrecision5 String?      // ~2.4km precision for neighborhood search
+  geohashPrecision6 String?      // ~610m precision for local search
+  geohashPrecision7 String?      // ~76m precision for street-level search
+  
+  // Property details
+  propertyType    PropertyType
+  transactionType TransactionType
+  furnishing      FurnishingType
+  condition       PropertyCondition
+  
+  // Features and amenities
+  hasParking      Boolean        @default(false)
+  hasSecurity     Boolean        @default(false)
+  hasElevator     Boolean        @default(false)
+  hasGarden       Boolean        @default(false)
+  hasBalcony      Boolean        @default(false)
+  hasSwimmingPool Boolean        @default(false)
+  
+  // Building info
+  buildingAge     Int?           // Age in years
+  floor           Int?           // Floor number
+  totalFloors     Int?           // Total floors in building
+  
+  // 12D Score Vector (automatically generated)
+  scores          Float[]        @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  
+  // Status and ownership
+  status          PropertyStatus @default(AVAILABLE)
+  ownerId         String?        // Property owner/agent ID
+  
+  // Metadata
+  viewCount       Int            @default(0)
+  featured        Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relations
+  sales           Sale[]
+  
+  @@index([propertyType])
+  @@index([transactionType])
+  @@index([wilaya])
+  @@index([city])
+  @@index([status])
+  @@index([price])
+  @@index([area])
+  @@index([rooms])
+  @@index([geohash])
+  @@index([geohashPrecision5])
+  @@index([geohashPrecision6])
+  @@index([geohashPrecision7])
+  @@index([latitude, longitude])
+}
+
+// Sales table - learning data for improving recommendations
+model Sale {
+  id            String      @id @default(cuid())
+  contactId     String
+  propertyId    String
+  
+  // Sale details
+  salePrice     Float       // Final sale/rent price in DZD
+  saleDate      DateTime    @default(now())
+  successScore  Float       // How satisfied was the customer (0-1)
+  
+  // Learning data
+  timeToDecision Int?       // Days from first contact to sale
+  viewCount      Int?       // How many times contact viewed this property
+  
+  // Metadata
+  notes         String?
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  contact       Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  @@index([saleDate])
+  @@index([successScore])
+}
+
+// Settings table - system configuration
+model Setting {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  value       String
+  type        SettingType @default(STRING)
+  category    String      // algorithm, system, business, ui
+  description String?
+  isPublic    Boolean     @default(false) // Can non-admin users see this setting?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([category])
+  @@index([isPublic])
+}
+
+// Enums
+enum ContactType {
+  BUYER
+  TENANT
+  INVESTOR
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  HOUSE
+  OFFICE
+  SHOP
+  WAREHOUSE
+  LAND
+  GARAGE
+}
+
+enum TransactionType {
+  RENT
+  SALE
+}
+
+enum FurnishingType {
+  FURNISHED
+  SEMI_FURNISHED
+  UNFURNISHED
+}
+
+enum PropertyCondition {
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+  NEW
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  RENTED
+  INACTIVE
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+} 
