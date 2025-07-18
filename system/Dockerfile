@@ -1,15 +1,18 @@
 FROM oven/bun:1.1.13
 
-# لتفادي مشاكل libssl مع Prisma (استخدم نسخة محدثة)
-RUN apt-get update && apt-get install -y libssl-dev
-
 WORKDIR /app
+
+# لو تستخدم libssl1.1 أضفه فقط إذا كان فعلاً ضروري:
+RUN apt-get update && apt-get install -y libssl1.1
 
 COPY . .
 
+# تثبيت الحزم
 RUN bun install
-RUN bunx prisma generate
-RUN bun run build
 
-# نشغّل الملف النهائي مباشرةً (وليس عبر "bun run")
-CMD ["bun", "run", "start"]
+# توليد Prisma
+RUN bunx prisma generate
+
+# لا تستخدم bun build
+# شغل السيرفر مباشرة من TypeScript
+CMD ["bun", "src/index.ts"]
