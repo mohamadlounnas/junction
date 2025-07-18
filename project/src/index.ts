@@ -12,6 +12,10 @@ import { Elysia, t } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { PrismaClient, UserType, PropertyType, FurnishingType, ConditionType, TransactionType, PropertyStatus } from '../generated/prisma';
+import { adminSettingsController } from './controllers/admin-settings';
+import settingsService from './services/settings';
+import redis from './services/redis';
+import algerianVectorGenerator from './services/vector-generator';
 
 const app = new Elysia();
 const prisma = new PrismaClient();
@@ -113,7 +117,16 @@ const UserCreateSchema = t.Object({
   name: t.String({ minLength: 2, maxLength: 100 }),
   phone: t.Optional(t.String({ pattern: '^\\+?[0-9\\s-]+$' })),
   userType: t.Union([t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('AGENT')]),
-  scoreVector: t.Optional(t.Array(t.Number(), { minItems: 8, maxItems: 8 }))
+  scoreVector: t.Optional(t.Array(t.Number(), { minItems: 12, maxItems: 12 })),
+  // Algeria-specific preference fields
+  budget: t.Optional(t.Number()),
+  preferredLocation: t.Optional(t.String()),
+  roomsNeeded: t.Optional(t.Number()),
+  familySize: t.Optional(t.Number()),
+  hasChildren: t.Optional(t.Boolean()),
+  workLocation: t.Optional(t.String()),
+  transportNeeded: t.Optional(t.Boolean()),
+  isFirstTimeBuyer: t.Optional(t.Boolean())
 });
 
 const UserUpdateSchema = t.Object({
@@ -121,7 +134,7 @@ const UserUpdateSchema = t.Object({
   name: t.Optional(t.String({ minLength: 2, maxLength: 100 })),
   phone: t.Optional(t.String({ pattern: '^\\+?[0-9\\s-]+$' })),
   userType: t.Optional(t.Union([t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('AGENT')])),
-  scoreVector: t.Optional(t.Array(t.Number(), { minItems: 8, maxItems: 8 }))
+  scoreVector: t.Optional(t.Array(t.Number(), { minItems: 12, maxItems: 12 }))
 });
 
 const PropertyCreateSchema = t.Object({
@@ -138,7 +151,12 @@ const PropertyCreateSchema = t.Object({
   agentId: t.Optional(t.String()),
   isResidentialComplex: t.Optional(t.Boolean()),
   hasParking: t.Optional(t.Boolean()),
-  hasSecurity: t.Optional(t.Boolean())
+  hasSecurity: t.Optional(t.Boolean()),
+  // Algeria-specific location features
+  hasElevator: t.Optional(t.Boolean()),
+  nearMosque: t.Optional(t.Boolean()),
+  nearSchool: t.Optional(t.Boolean()),
+  nearTransport: t.Optional(t.Boolean())
 });
 
 const PropertyUpdateSchema = t.Object({
@@ -207,7 +225,19 @@ server.get('/api/health', () => ({
 server.group('/api/users', app => app
   // Get all users with pagination and filters
   .get('/', ({ query }) => {
-    const { page = 1, limit = 10, userType, search } = query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      userType, 
+      search,
+      // Score-based search parameters
+      similarityVector,
+      minSimilarity = 0.3,
+      scoreIndex,
+      scoreMin,
+      scoreMax
+    } = query;
+    
     const skip = (Number(page) - 1) * Number(limit);
     
     const where: any = {};
@@ -223,6 +253,8 @@ server.group('/api/users', app => app
       ];
     }
     
+    // Score range filtering will be applied after fetching data
+    
     return prisma.user.findMany({
       where,
       select: {
@@ -231,6 +263,7 @@ server.group('/api/users', app => app
         name: true,
         phone: true,
         userType: true,
+        scoreVector: true,
         createdAt: true,
         updatedAt: true
       },
@@ -238,16 +271,90 @@ server.group('/api/users', app => app
       take: Number(limit),
       orderBy: { createdAt: 'desc' }
     }).then(async (users) => {
-      const total = await prisma.user.count({ where });
+      let filteredUsers = users;
+      let total = await prisma.user.count({ where });
+      
+      // Apply score-based filtering if scoreIndex is provided
+      if (scoreIndex !== undefined && (scoreMin !== undefined || scoreMax !== undefined)) {
+        const scoreIndexNum = Number(scoreIndex);
+        if (scoreIndexNum >= 0 && scoreIndexNum < 12) {
+          filteredUsers = filteredUsers.filter(user => {
+            const score = user.scoreVector[scoreIndexNum];
+            if (scoreMin !== undefined && scoreMax !== undefined) {
+              return score >= Number(scoreMin) && score <= Number(scoreMax);
+            } else if (scoreMin !== undefined) {
+              return score >= Number(scoreMin);
+            } else if (scoreMax !== undefined) {
+              return score <= Number(scoreMax);
+            }
+            return true;
+          });
+          
+          // Recalculate total for pagination
+          const allUsers = await prisma.user.findMany({ where });
+          const allFilteredUsers = allUsers.filter(user => {
+            const score = user.scoreVector[scoreIndexNum];
+            if (scoreMin !== undefined && scoreMax !== undefined) {
+              return score >= Number(scoreMin) && score <= Number(scoreMax);
+            } else if (scoreMin !== undefined) {
+              return score >= Number(scoreMin);
+            } else if (scoreMax !== undefined) {
+              return score <= Number(scoreMax);
+            }
+            return true;
+          });
+          
+          total = allFilteredUsers.length;
+        }
+      }
+      
+      // Apply similarity filtering if similarityVector is provided
+      if (similarityVector) {
+        try {
+          const targetVector = JSON.parse(similarityVector as string);
+          if (Array.isArray(targetVector) && targetVector.length === 12) {
+            // Calculate similarity for each user and filter
+            filteredUsers = filteredUsers
+              .map(user => ({
+                ...user,
+                similarity: cosineSimilarity(targetVector, user.scoreVector)
+              }))
+              .filter(user => user.similarity >= Number(minSimilarity))
+              .sort((a, b) => b.similarity - a.similarity);
+            
+            // Recalculate total for pagination
+            const allUsers = await prisma.user.findMany({ where });
+            const allFilteredUsers = allUsers
+              .map(user => ({
+                ...user,
+                similarity: cosineSimilarity(targetVector, user.scoreVector)
+              }))
+              .filter(user => user.similarity >= Number(minSimilarity));
+            
+            total = allFilteredUsers.length;
+          }
+        } catch (error) {
+          console.error('Error parsing similarity vector:', error);
+        }
+      }
       
       return {
         success: true,
-        data: users,
+        data: filteredUsers,
         pagination: {
           page: Number(page),
           limit: Number(limit),
           total,
           pages: Math.ceil(total / Number(limit))
+        },
+        filters: {
+          userType,
+          search,
+          similarityVector: similarityVector ? 'provided' : undefined,
+          minSimilarity: similarityVector ? Number(minSimilarity) : undefined,
+          scoreIndex: scoreIndex ? Number(scoreIndex) : undefined,
+          scoreMin: scoreMin ? Number(scoreMin) : undefined,
+          scoreMax: scoreMax ? Number(scoreMax) : undefined
         }
       };
     });
@@ -256,7 +363,13 @@ server.group('/api/users', app => app
       page: t.Optional(t.String()),
       limit: t.Optional(t.String()),
       userType: t.Optional(t.Union([t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('AGENT')])),
-      search: t.Optional(t.String())
+      search: t.Optional(t.String()),
+      // Score-based search parameters
+      similarityVector: t.Optional(t.String()),
+      minSimilarity: t.Optional(t.String()),
+      scoreIndex: t.Optional(t.String()),
+      scoreMin: t.Optional(t.String()),
+      scoreMax: t.Optional(t.String())
     })
   })
 
@@ -292,8 +405,18 @@ server.group('/api/users', app => app
   })
 
   // Create new user
-  .post('/', ({ body }) => {
-    const scoreVector = body.scoreVector || Array.from({ length: 8 }, () => Math.random());
+  .post('/', async ({ body }) => {
+    const scoreVector = body.scoreVector || await algerianVectorGenerator.generateUserVector({
+      userType: body.userType,
+      budget: body.budget,
+      preferredLocation: body.preferredLocation,
+      roomsNeeded: body.roomsNeeded,
+      familySize: body.familySize,
+      hasChildren: body.hasChildren,
+      workLocation: body.workLocation,
+      transportNeeded: body.transportNeeded,
+      isFirstTimeBuyer: body.isFirstTimeBuyer
+    });
     
     return prisma.user.create({
       data: {
@@ -420,7 +543,7 @@ server.group('/api/users', app => app
       id: t.String()
     }),
     body: t.Object({
-      scoreVector: t.Array(t.Number(), { minItems: 8, maxItems: 8 })
+      scoreVector: t.Array(t.Number(), { minItems: 12, maxItems: 12 })
     })
   })
 );
@@ -577,16 +700,22 @@ server.group('/api/properties', app => app
 
   // Create new property
   .post('/', ({ body }) => {
-    const scoreVector = generatePropertyScoreVector(
-      body.price,
-      body.area,
-      body.rooms,
-      body.location,
-      body.propertyType,
-      body.furnishing,
-      body.condition,
-      body.transactionType
-    );
+    const scoreVector = algerianVectorGenerator.generatePropertyVector({
+      price: body.price,
+      area: body.area,
+      rooms: body.rooms,
+      location: body.location,
+      propertyType: body.propertyType,
+      furnishing: body.furnishing,
+      condition: body.condition,
+      transactionType: body.transactionType,
+      hasParking: body.hasParking,
+      hasSecurity: body.hasSecurity,
+      hasElevator: body.hasElevator || false,
+      nearMosque: body.nearMosque || false,
+      nearSchool: body.nearSchool || false,
+      nearTransport: body.nearTransport || false
+    });
     
     return prisma.property.create({
       data: {
@@ -647,16 +776,22 @@ server.group('/api/properties', app => app
         
         const updatedData = {
           ...body,
-          scoreVector: generatePropertyScoreVector(
-            body.price ?? currentProperty.price,
-            body.area ?? currentProperty.area,
-            body.rooms ?? currentProperty.rooms,
-            body.location ?? currentProperty.location,
-            body.propertyType ?? currentProperty.propertyType,
-            body.furnishing ?? currentProperty.furnishing,
-            body.condition ?? currentProperty.condition,
-            body.transactionType ?? currentProperty.transactionType
-          )
+          scoreVector: algerianVectorGenerator.generatePropertyVector({
+            price: body.price ?? currentProperty.price,
+            area: body.area ?? currentProperty.area,
+            rooms: body.rooms ?? currentProperty.rooms,
+            location: body.location ?? currentProperty.location,
+            propertyType: body.propertyType ?? currentProperty.propertyType,
+            furnishing: body.furnishing ?? currentProperty.furnishing,
+            condition: body.condition ?? currentProperty.condition,
+            transactionType: body.transactionType ?? currentProperty.transactionType,
+            hasParking: body.hasParking ?? currentProperty.hasParking,
+            hasSecurity: body.hasSecurity ?? currentProperty.hasSecurity,
+            hasElevator: false, // Default for existing properties
+            nearMosque: false,  // Default for existing properties
+            nearSchool: false,  // Default for existing properties
+            nearTransport: false // Default for existing properties
+          })
         };
         
         return prisma.property.update({
@@ -756,16 +891,22 @@ server.group('/api/properties', app => app
         throw new Error('Property not found');
       }
       
-      const newScoreVector = generatePropertyScoreVector(
-        property.price,
-        property.area,
-        property.rooms,
-        property.location,
-        property.propertyType,
-        property.furnishing,
-        property.condition,
-        property.transactionType
-      );
+      const newScoreVector = algerianVectorGenerator.generatePropertyVector({
+        price: property.price,
+        area: property.area,
+        rooms: property.rooms,
+        location: property.location,
+        propertyType: property.propertyType,
+        furnishing: property.furnishing,
+        condition: property.condition,
+        transactionType: property.transactionType,
+        hasParking: property.hasParking,
+        hasSecurity: property.hasSecurity,
+        hasElevator: false, // Default for existing properties
+        nearMosque: false,  // Default for existing properties
+        nearSchool: false,  // Default for existing properties
+        nearTransport: false // Default for existing properties
+      });
       
       return prisma.property.update({
         where: { id },
@@ -1014,15 +1155,43 @@ server.get('/api/stats', async () => {
   };
 });
 
-// Start server
+// Admin Settings API
+server.use(adminSettingsController);
+
+// Initialize settings and start server
 const PORT = process.env.PORT || 3001;
 
-server.listen(PORT, () => {
-  console.log(`🚀 Smart Contact API server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`👥 Users: http://localhost:${PORT}/api/users`);
-  console.log(`🏠 Properties: http://localhost:${PORT}/api/properties`);
-  console.log(`📈 Stats: http://localhost:${PORT}/api/stats`);
-});
+// Initialize default settings and start server
+async function initializeServer() {
+  try {
+    console.log('🔄 Initializing default settings...');
+    await settingsService.initializeDefaults();
+    console.log('✅ Default settings initialized');
+    
+    console.log('🔄 Testing Redis connection...');
+    await redis.set('test', 'connection', 60);
+    const testValue = await redis.get('test');
+    if (testValue === 'connection') {
+      console.log('✅ Redis connection successful');
+    } else {
+      console.log('⚠️ Redis connection test failed');
+    }
+    
+    server.listen(PORT, () => {
+      console.log(`🚀 Smart Contact API server running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`👥 Users: http://localhost:${PORT}/api/users`);
+      console.log(`🏠 Properties: http://localhost:${PORT}/api/properties`);
+      console.log(`📈 Stats: http://localhost:${PORT}/api/stats`);
+      console.log(`⚙️ Admin Settings: http://localhost:${PORT}/api/admin/settings`);
+      console.log(`📚 Swagger Docs: http://localhost:${PORT}/swagger`);
+    });
+  } catch (error) {
+    console.error('❌ Server initialization failed:', error);
+    process.exit(1);
+  }
+}
+
+initializeServer();
 
 export default server; 

@@ -1,0 +1,41 @@
+$ bun run --watch src/index.ts
+🔄 Initializing default settings...
+Started development server: http://localhost:3000
+✅ Redis connected successfully
+✅ Default settings initialized
+🔄 Testing Redis connection...
+✅ Redis connection successful
+🚀 Smart Contact API server running on port 3001
+📊 Health check: http://localhost:3001/api/health
+👥 Users: http://localhost:3001/api/users
+🏠 Properties: http://localhost:3001/api/properties
+📈 Stats: http://localhost:3001/api/stats
+⚙️ Admin Settings: http://localhost:3001/api/admin/settings
+📚 Swagger Docs: http://localhost:3001/swagger
+🔄 Initializing default settings...
+Started development server: http://localhost:3000
+✅ Redis connected successfully
+✅ Default settings initialized
+🔄 Testing Redis connection...
+✅ Redis connection successful
+🚀 Smart Contact API server running on port 3001
+📊 Health check: http://localhost:3001/api/health
+👥 Users: http://localhost:3001/api/users
+🏠 Properties: http://localhost:3001/api/properties
+📈 Stats: http://localhost:3001/api/stats
+⚙️ Admin Settings: http://localhost:3001/api/admin/settings
+📚 Swagger Docs: http://localhost:3001/swagger
+🔄 Initializing default settings...
+Started development server: http://localhost:3000
+✅ Redis connected successfully
+✅ Default settings initialized
+🔄 Testing Redis connection...
+✅ Redis connection successful
+🚀 Smart Contact API server running on port 3001
+📊 Health check: http://localhost:3001/api/health
+👥 Users: http://localhost:3001/api/users
+🏠 Properties: http://localhost:3001/api/properties
+📈 Stats: http://localhost:3001/api/stats
+⚙️ Admin Settings: http://localhost:3001/api/admin/settings
+📚 Swagger Docs: http://localhost:3001/swagger
+error: script "dev" was terminated by signal SIGTERM (Polite quit request)

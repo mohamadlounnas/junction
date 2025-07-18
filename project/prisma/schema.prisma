@@ -21,7 +21,7 @@ model User {
   name        String
   phone       String?
   userType    UserType @default(BUYER)
-  scoreVector Float[]  @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 8-dimensional vector
+  scoreVector Float[]  @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 12-dimensional Algeria-optimized vector
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -44,7 +44,7 @@ model Property {
   furnishing            FurnishingType
   condition             ConditionType
   transactionType       TransactionType
-  scoreVector           Float[]          @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 8-dimensional vector
+  scoreVector           Float[]          @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 12-dimensional Algeria-optimized vector
   status                PropertyStatus   @default(ACTIVE)
   isResidentialComplex  Boolean          @default(false)
   hasParking            Boolean          @default(false)
@@ -57,6 +57,21 @@ model Property {
   agent                 User?            @relation("AgentProperties", fields: [agentId], references: [id])
 
   @@map("properties")
+}
+
+// Settings model - admin-configurable system settings
+model Setting {
+  id          String       @id @default(cuid())
+  key         String       @unique
+  value       String       // JSON string for complex values
+  type        SettingType  @default(STRING)
+  category    String       // algorithm, system, business, ui
+  description String?
+  isPublic    Boolean      @default(false) // Whether non-admin users can read this setting
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("settings")
 }
 
 // Enums
@@ -95,4 +110,11 @@ enum PropertyStatus {
   ACTIVE
   INACTIVE
   SOLD
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }
