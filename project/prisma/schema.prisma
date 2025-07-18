@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - represents all users (buyers, tenants, agents)
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  userType    UserType @default(BUYER)
+  scoreVector Float[]  @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 8-dimensional vector
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  properties Property[] @relation("AgentProperties") // Properties managed by this agent
+
+  @@map("users")
+}
+
+// Property model - represents real estate properties
+model Property {
+  id                    String           @id @default(cuid())
+  title                 String
+  description           String?
+  price                 Float
+  area                  Float
+  rooms                 Int
+  location              String
+  propertyType          PropertyType
+  furnishing            FurnishingType
+  condition             ConditionType
+  transactionType       TransactionType
+  scoreVector           Float[]          @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) // 8-dimensional vector
+  status                PropertyStatus   @default(ACTIVE)
+  isResidentialComplex  Boolean          @default(false)
+  hasParking            Boolean          @default(false)
+  hasSecurity           Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  // Relations
+  agentId               String?
+  agent                 User?            @relation("AgentProperties", fields: [agentId], references: [id])
+
+  @@map("properties")
+}
+
+// Enums
+enum UserType {
+  BUYER
+  TENANT
+  AGENT
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  OFFICE
+  LAND
+}
+
+enum FurnishingType {
+  FURNISHED
+  UNFURNISHED
+  SEMI_FURNISHED
+}
+
+enum ConditionType {
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+}
+
+enum TransactionType {
+  RENT
+  SALE
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+}
