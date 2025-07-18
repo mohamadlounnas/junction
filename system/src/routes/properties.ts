@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../config/database';
-import { generateScoresFromProperty, validateScoreVector } from '../services/score-generator';
+import { generateScoresFromProperty, validateScoreVector, calculateSimilarity } from '../services/score-generator';
 import { 
   generateRadiusQuery, 
   calculateDistance, 
@@ -1263,4 +1263,233 @@ Use \`multipart/form-data\` for file uploads with \`imageFile\` or \`imageFiles\
       summary: 'Advanced property search',
       description: 'Search properties with comprehensive filtering and sorting options'
     }
+  })
+
+  // Vector-based property search
+  .post('/vector-search', async ({ body }) => {
+    try {
+      const {
+        vector,
+        minSimilarity = 0.3,
+        limit = 10,
+        // Optional traditional filters
+        propertyType,
+        transactionType,
+        wilaya,
+        city,
+        priceMin,
+        priceMax,
+        areaMin,
+        areaMax,
+        status = 'AVAILABLE'
+      } = body;
+
+      // Validate vector
+      if (!Array.isArray(vector) || vector.length !== 12) {
+        return {
+          success: false,
+          error: 'Vector must be an array of 12 numbers'
+        };
+      }
+
+      // Validate vector values
+      if (!vector.every(v => typeof v === 'number' && v >= 0 && v <= 1)) {
+        return {
+          success: false,
+          error: 'All vector values must be numbers between 0 and 1'
+        };
+      }
+
+      const limitNum = Math.min(50, Math.max(1, Number(limit)));
+      const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
+
+      // Build optional filters
+      const where: any = {};
+      if (status) where.status = status;
+      if (propertyType) where.propertyType = propertyType;
+      if (transactionType) where.transactionType = transactionType;
+      if (wilaya) where.wilaya = wilaya;
+      if (city) where.city = city;
+
+      if (priceMin || priceMax) {
+        where.price = {};
+        if (priceMin) where.price.gte = Number(priceMin);
+        if (priceMax) where.price.lte = Number(priceMax);
+      }
+
+      if (areaMin || areaMax) {
+        where.area = {};
+        if (areaMin) where.area.gte = Number(areaMin);
+        if (areaMax) where.area.lte = Number(areaMax);
+      }
+
+      // Get properties with optional filters (get more for vector filtering)
+      const properties = await prisma.property.findMany({
+        where,
+        take: limitNum * 5, // Get more to allow for similarity filtering
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Calculate similarities and filter
+      const results = properties
+        .map((property: any) => ({
+          property: {
+            id: property.id,
+            title: property.title,
+            description: property.description,
+            price: property.price,
+            area: property.area,
+            rooms: property.rooms,
+            wilaya: property.wilaya,
+            city: property.city,
+            propertyType: property.propertyType,
+            transactionType: property.transactionType,
+            condition: property.condition,
+            hasParking: property.hasParking,
+            hasSecurity: property.hasSecurity,
+            featured: property.featured,
+            createdAt: property.createdAt
+          },
+          similarity: calculateSimilarity(vector, property.scores),
+          propertyVector: property.scores
+        }))
+        .filter((result: any) => result.similarity >= minSim)
+        .sort((a: any, b: any) => b.similarity - a.similarity)
+        .slice(0, limitNum)
+        .map((result: any) => ({
+          ...result.property,
+          similarity: Math.round(result.similarity * 1000) / 1000,
+          matchExplanation: generateVectorMatchExplanation(vector, result.propertyVector, result.similarity)
+        }));
+
+      return {
+        success: true,
+        data: results,
+        metadata: {
+          searchVector: vector,
+          resultsFound: results.length,
+          totalPropertiesScanned: properties.length,
+          minSimilarity: minSim,
+          searchType: 'vector-similarity',
+          algorithm: '12D Cosine Similarity'
+        }
+      };
+    } catch (error) {
+      console.error('Vector search error:', error);
+      return {
+        success: false,
+        error: 'Failed to perform vector search'
+      };
+    }
+  }, {
+    body: t.Object({
+      vector: t.Array(t.Number({ minimum: 0, maximum: 1 }), {
+        minItems: 12,
+        maxItems: 12,
+        description: '12D preference vector: [budget, area, rooms, location, propertyType, condition, features, family, modern, investment, urgency, transaction]'
+      }),
+      minSimilarity: t.Optional(t.Number({ minimum: 0, maximum: 1, default: 0.3 })),
+      limit: t.Optional(t.Number({ minimum: 1, maximum: 50, default: 10 })),
+      // Optional traditional filters
+      propertyType: t.Optional(t.Union([
+        t.Literal('APARTMENT'), t.Literal('VILLA'), t.Literal('HOUSE'),
+        t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
+        t.Literal('LAND'), t.Literal('GARAGE')
+      ])),
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      wilaya: t.Optional(t.String()),
+      city: t.Optional(t.String()),
+      priceMin: t.Optional(t.Number({ minimum: 0 })),
+      priceMax: t.Optional(t.Number({ minimum: 0 })),
+      areaMin: t.Optional(t.Number({ minimum: 0 })),
+      areaMax: t.Optional(t.Number({ minimum: 0 })),
+      status: t.Optional(t.Union([
+        t.Literal('AVAILABLE'), t.Literal('SOLD'), t.Literal('RENTED'), t.Literal('RESERVED')
+      ]))
+    }),
+    detail: {
+      tags: ['Properties'],
+      summary: 'Vector-based property search',
+      description: `
+## AI-Powered Vector Property Search
+
+Search properties using a 12-dimensional preference vector for intelligent matching.
+
+### 🤖 Vector Format
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0]
+}
+\`\`\`
+
+### 📊 Vector Dimensions (0.0-1.0)
+0. **Budget**: Price level preference
+1. **Area**: Size requirements 
+2. **Rooms**: Room count preference
+3. **Location**: Geographic desirability (Algeria-optimized)
+4. **Property Type**: Villa, apartment, etc.
+5. **Condition**: Property condition importance
+6. **Features**: Amenities importance
+7. **Family**: Family-friendliness needs
+8. **Modern**: Modernity preference
+9. **Investment**: Investment potential interest
+10. **Urgency**: Decision timeline
+11. **Transaction**: RENT (0.0) vs SALE (1.0)
+
+### 🎯 Use Cases
+- **AI Assistant Integration**: Convert user preferences to vector
+- **Similarity Search**: Find properties matching a preference profile
+- **Recommendation Testing**: Test vectors before creating contacts
+- **Preference Analysis**: Understand what makes properties similar
+
+### 💡 Advantages
+- **Semantic Matching**: Goes beyond keyword filtering
+- **Cultural Awareness**: Algeria-optimized scoring
+- **Flexible Filtering**: Combine vector search with traditional filters
+- **Explainable AI**: Get similarity scores and explanations
+
+### 📝 Example Request
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0],
+  "minSimilarity": 0.7,
+  "limit": 20,
+  "wilaya": "Algiers",
+  "transactionType": "SALE"
+}
+\`\`\`
+      `
+    }
   }); 
+
+// Helper function to generate match explanation
+function generateVectorMatchExplanation(searchVector: number[], propertyVector: number[], similarity: number): string {
+  const dimensions = [
+    'Budget', 'Area', 'Rooms', 'Location', 'Property Type',
+    'Condition', 'Features', 'Family', 'Modern', 'Investment', 'Urgency', 'Transaction'
+  ];
+
+  const strongMatches = [];
+  const weakMatches = [];
+
+  for (let i = 0; i < 12; i++) {
+    const diff = Math.abs(searchVector[i] - propertyVector[i]);
+    if (diff < 0.2) {
+      strongMatches.push(dimensions[i]);
+    } else if (diff > 0.5) {
+      weakMatches.push(dimensions[i]);
+    }
+  }
+
+  let explanation = `${Math.round(similarity * 100)}% match. `;
+  
+  if (strongMatches.length > 0) {
+    explanation += `Strong alignment: ${strongMatches.slice(0, 3).join(', ')}. `;
+  }
+  
+  if (weakMatches.length > 0) {
+    explanation += `Differences in: ${weakMatches.slice(0, 2).join(', ')}.`;
+  }
+
+  return explanation.trim();
+} 

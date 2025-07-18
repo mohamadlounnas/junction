@@ -6650,7 +6650,11 @@ var require_client = __commonJS((exports) => {
     isActive: "isActive",
     notes: "notes",
     createdAt: "createdAt",
-    updatedAt: "updatedAt"
+    updatedAt: "updatedAt",
+    primaryTransactionType: "primaryTransactionType",
+    transactionFlexibility: "transactionFlexibility",
+    transactionScores: "transactionScores",
+    transactionTypes: "transactionTypes"
   };
   exports.Prisma.PropertyScalarFieldEnum = {
     id: "id",
@@ -6665,10 +6669,6 @@ var require_client = __commonJS((exports) => {
     address: "address",
     latitude: "latitude",
     longitude: "longitude",
-    geohash: "geohash",
-    geohashPrecision5: "geohashPrecision5",
-    geohashPrecision6: "geohashPrecision6",
-    geohashPrecision7: "geohashPrecision7",
     propertyType: "propertyType",
     transactionType: "transactionType",
     furnishing: "furnishing",
@@ -6682,13 +6682,19 @@ var require_client = __commonJS((exports) => {
     buildingAge: "buildingAge",
     floor: "floor",
     totalFloors: "totalFloors",
+    image_url: "image_url",
+    images: "images",
     scores: "scores",
     status: "status",
     ownerId: "ownerId",
     viewCount: "viewCount",
     featured: "featured",
     createdAt: "createdAt",
-    updatedAt: "updatedAt"
+    updatedAt: "updatedAt",
+    geohash: "geohash",
+    geohashPrecision5: "geohashPrecision5",
+    geohashPrecision6: "geohashPrecision6",
+    geohashPrecision7: "geohashPrecision7"
   };
   exports.Prisma.SaleScalarFieldEnum = {
     id: "id",
@@ -6819,10 +6825,7 @@ var require_client = __commonJS((exports) => {
         }
       }
     },
-    inlineSchema: `// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
+    inlineSchema: `generator client {
   provider = "prisma-client-js"
 }
 
@@ -6831,113 +6834,87 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Contacts table - potential buyers/tenants
 model Contact {
-  id    String  @id @default(cuid())
-  email String  @unique
-  name  String
-  phone String?
-
-  // Contact type and preferences
-  type            ContactType
-  budgetMin       Float? // Minimum budget in DZD
-  budgetMax       Float? // Maximum budget in DZD
-  locationWilayas String[] // Preferred wilayas (array of wilaya names)
-  locationCities  String[] // Preferred cities within wilayas
-  propertyTypes   PropertyType[] // Preferred property types
-  transactionType TransactionType // RENT or BUY
-
-  // Family context
-  familySize  Int? // Number of family members
-  hasChildren Boolean @default(false)
-  minRooms    Int? // Minimum number of rooms
-  maxRooms    Int? // Maximum number of rooms
-  minArea     Float? // Minimum area in m\xB2
-  maxArea     Float? // Maximum area in m\xB2
-
-  // Preferences
-  furnishingType     FurnishingType?
-  preferredCondition PropertyCondition?
-  requiresParking    Boolean            @default(false)
-  requiresSecurity   Boolean            @default(false)
-
-  // 12D Score Vector (automatically generated)
-  scores Float[] @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-
-  // Metadata
-  isActive  Boolean  @default(true)
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  sales Sale[]
+  id                     String             @id @default(cuid())
+  email                  String             @unique
+  name                   String
+  phone                  String?
+  type                   ContactType
+  budgetMin              Float?
+  budgetMax              Float?
+  locationWilayas        String[]
+  locationCities         String[]
+  propertyTypes          PropertyType[]
+  transactionType        TransactionType
+  familySize             Int?
+  hasChildren            Boolean            @default(false)
+  minRooms               Int?
+  maxRooms               Int?
+  minArea                Float?
+  maxArea                Float?
+  furnishingType         FurnishingType?
+  preferredCondition     PropertyCondition?
+  requiresParking        Boolean            @default(false)
+  requiresSecurity       Boolean            @default(false)
+  scores                 Float[]            @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  isActive               Boolean            @default(true)
+  notes                  String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  primaryTransactionType TransactionType?
+  transactionFlexibility Float?             @default(0.5)
+  transactionScores      Float[]            @default([0.5, 0.5])
+  transactionTypes       TransactionType[]
+  sales                  Sale[]
 
   @@index([type])
   @@index([locationWilayas])
   @@index([transactionType])
+  @@index([transactionTypes])
+  @@index([primaryTransactionType])
   @@index([isActive])
 }
 
-// Properties table - available properties
 model Property {
-  id          String  @id @default(cuid())
-  title       String
-  description String?
-
-  // Basic property info
-  price     Float // Price in DZD
-  area      Float // Area in m\xB2
-  rooms     Int // Number of rooms
-  bathrooms Int? // Number of bathrooms
-
-  // Location
-  wilaya    String // Wilaya name
-  city      String // City/commune name
-  address   String? // Full address
-  latitude  Float? // GPS coordinates
-  longitude Float? // GPS coordinates
-
-  // Geospatial search optimization
-  geohash           String? // Geohash for efficient proximity queries
-  geohashPrecision5 String? // ~2.4km precision for neighborhood search
-  geohashPrecision6 String? // ~610m precision for local search
-  geohashPrecision7 String? // ~76m precision for street-level search
-
-  // Property details
-  propertyType    PropertyType
-  transactionType TransactionType
-  furnishing      FurnishingType
-  condition       PropertyCondition
-
-  // Features and amenities
-  hasParking      Boolean @default(false)
-  hasSecurity     Boolean @default(false)
-  hasElevator     Boolean @default(false)
-  hasGarden       Boolean @default(false)
-  hasBalcony      Boolean @default(false)
-  hasSwimmingPool Boolean @default(false)
-
-  // Building info
-  buildingAge Int? // Age in years
-  floor       Int? // Floor number
-  totalFloors Int? // Total floors in building
-
-  // 12D Score Vector (automatically generated)
-  scores Float[] @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-
-  // Status and ownership
-  status  PropertyStatus @default(AVAILABLE)
-  ownerId String? // Property owner/agent ID
-
-  // Metadata
-  viewCount Int      @default(0)
-  featured  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  sales Sale[]
+  id                String            @id @default(cuid())
+  title             String
+  description       String?
+  price             Float
+  area              Float
+  rooms             Int
+  bathrooms         Int?
+  wilaya            String
+  city              String
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  propertyType      PropertyType
+  transactionType   TransactionType
+  furnishing        FurnishingType
+  condition         PropertyCondition
+  hasParking        Boolean           @default(false)
+  hasSecurity       Boolean           @default(false)
+  hasElevator       Boolean           @default(false)
+  hasGarden         Boolean           @default(false)
+  hasBalcony        Boolean           @default(false)
+  hasSwimmingPool   Boolean           @default(false)
+  buildingAge       Int?
+  floor             Int?
+  totalFloors       Int?
+  image_url         String?
+  images            String[]          @default([])
+  scores            Float[]           @default([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+  status            PropertyStatus    @default(AVAILABLE)
+  ownerId           String?
+  viewCount         Int               @default(0)
+  featured          Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  geohash           String?
+  geohashPrecision5 String?
+  geohashPrecision6 String?
+  geohashPrecision7 String?
+  sales             Sale[]
 
   @@index([propertyType])
   @@index([transactionType])
@@ -6954,51 +6931,39 @@ model Property {
   @@index([latitude, longitude])
 }
 
-// Sales table - learning data for improving recommendations
 model Sale {
-  id         String @id @default(cuid())
-  contactId  String
-  propertyId String
-
-  // Sale details
-  salePrice    Float // Final sale/rent price in DZD
-  saleDate     DateTime @default(now())
-  successScore Float // How satisfied was the customer (0-1)
-
-  // Learning data
-  timeToDecision Int? // Days from first contact to sale
-  viewCount      Int? // How many times contact viewed this property
-
-  // Metadata
-  notes     String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  contactId      String
+  propertyId     String
+  salePrice      Float
+  saleDate       DateTime @default(now())
+  successScore   Float
+  timeToDecision Int?
+  viewCount      Int?
+  notes          String?
+  createdAt      DateTime @default(now())
+  contact        Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([saleDate])
   @@index([successScore])
 }
 
-// Settings table - system configuration
 model Setting {
   id          String      @id @default(cuid())
   key         String      @unique
   value       String
   type        SettingType @default(STRING)
-  category    String // algorithm, system, business, ui
+  category    String
   description String?
-  isPublic    Boolean     @default(false) // Can non-admin users see this setting?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isPublic    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([category])
   @@index([isPublic])
 }
 
-// Enums
 enum ContactType {
   BUYER
   TENANT
@@ -7050,7 +7015,7 @@ enum SettingType {
   JSON
 }
 `,
-    inlineSchemaHash: "eedcca0f6bb03af7320621727a873ec9582f7883ae9b42a4480589d9d51a35a3",
+    inlineSchemaHash: "e0c27558c745dc0a712e7c4684b1c5c03789de95a9237e0ef8cfaab3e3c2477a",
     copyEngine: true
   };
   var fs = __require("fs");
@@ -7066,7 +7031,7 @@ enum SettingType {
     config2.dirname = path.join(process.cwd(), alternativePath);
     config2.isBundled = true;
   }
-  config2.runtimeDataModel = JSON.parse('{"models":{"Contact":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"ContactType","isGenerated":false,"isUpdatedAt":false},{"name":"budgetMin","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"budgetMax","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"locationWilayas","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"locationCities","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"propertyTypes","kind":"enum","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyType","isGenerated":false,"isUpdatedAt":false},{"name":"transactionType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"familySize","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"hasChildren","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"minRooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"maxRooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"minArea","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"maxArea","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"furnishingType","kind":"enum","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"FurnishingType","isGenerated":false,"isUpdatedAt":false},{"name":"preferredCondition","kind":"enum","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyCondition","isGenerated":false,"isUpdatedAt":false},{"name":"requiresParking","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"requiresSecurity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"scores","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],"isGenerated":false,"isUpdatedAt":false},{"name":"isActive","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":true,"isGenerated":false,"isUpdatedAt":false},{"name":"notes","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"ContactToSale","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Property":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"title","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"area","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"rooms","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"bathrooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"wilaya","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"city","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"latitude","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"longitude","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"geohash","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision5","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision6","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision7","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"propertyType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyType","isGenerated":false,"isUpdatedAt":false},{"name":"transactionType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"furnishing","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"FurnishingType","isGenerated":false,"isUpdatedAt":false},{"name":"condition","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyCondition","isGenerated":false,"isUpdatedAt":false},{"name":"hasParking","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasSecurity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasElevator","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasGarden","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasBalcony","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasSwimmingPool","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"buildingAge","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"floor","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"totalFloors","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"scores","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],"isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"PropertyStatus","default":"AVAILABLE","isGenerated":false,"isUpdatedAt":false},{"name":"ownerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"viewCount","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"featured","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"PropertyToSale","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"contactId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"propertyId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"salePrice","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"saleDate","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"successScore","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"timeToDecision","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"viewCount","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"notes","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"contact","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Contact","relationName":"ContactToSale","relationFromFields":["contactId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"property","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Property","relationName":"PropertyToSale","relationFromFields":["propertyId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Setting":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"key","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"value","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"SettingType","default":"STRING","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"isPublic","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{"ContactType":{"values":[{"name":"BUYER","dbName":null},{"name":"TENANT","dbName":null},{"name":"INVESTOR","dbName":null}],"dbName":null},"PropertyType":{"values":[{"name":"APARTMENT","dbName":null},{"name":"VILLA","dbName":null},{"name":"HOUSE","dbName":null},{"name":"OFFICE","dbName":null},{"name":"SHOP","dbName":null},{"name":"WAREHOUSE","dbName":null},{"name":"LAND","dbName":null},{"name":"GARAGE","dbName":null}],"dbName":null},"TransactionType":{"values":[{"name":"RENT","dbName":null},{"name":"SALE","dbName":null}],"dbName":null},"FurnishingType":{"values":[{"name":"FURNISHED","dbName":null},{"name":"SEMI_FURNISHED","dbName":null},{"name":"UNFURNISHED","dbName":null}],"dbName":null},"PropertyCondition":{"values":[{"name":"POOR","dbName":null},{"name":"FAIR","dbName":null},{"name":"GOOD","dbName":null},{"name":"EXCELLENT","dbName":null},{"name":"NEW","dbName":null}],"dbName":null},"PropertyStatus":{"values":[{"name":"AVAILABLE","dbName":null},{"name":"RESERVED","dbName":null},{"name":"SOLD","dbName":null},{"name":"RENTED","dbName":null},{"name":"INACTIVE","dbName":null}],"dbName":null},"SettingType":{"values":[{"name":"STRING","dbName":null},{"name":"NUMBER","dbName":null},{"name":"BOOLEAN","dbName":null},{"name":"JSON","dbName":null}],"dbName":null}},"types":{}}');
+  config2.runtimeDataModel = JSON.parse('{"models":{"Contact":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"ContactType","isGenerated":false,"isUpdatedAt":false},{"name":"budgetMin","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"budgetMax","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"locationWilayas","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"locationCities","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"propertyTypes","kind":"enum","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyType","isGenerated":false,"isUpdatedAt":false},{"name":"transactionType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"familySize","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"hasChildren","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"minRooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"maxRooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"minArea","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"maxArea","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"furnishingType","kind":"enum","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"FurnishingType","isGenerated":false,"isUpdatedAt":false},{"name":"preferredCondition","kind":"enum","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyCondition","isGenerated":false,"isUpdatedAt":false},{"name":"requiresParking","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"requiresSecurity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"scores","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],"isGenerated":false,"isUpdatedAt":false},{"name":"isActive","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":true,"isGenerated":false,"isUpdatedAt":false},{"name":"notes","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true},{"name":"primaryTransactionType","kind":"enum","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"transactionFlexibility","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":0.5,"isGenerated":false,"isUpdatedAt":false},{"name":"transactionScores","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":[0.5,0.5],"isGenerated":false,"isUpdatedAt":false},{"name":"transactionTypes","kind":"enum","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"ContactToSale","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Property":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"title","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"area","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"rooms","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"bathrooms","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"wilaya","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"city","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"latitude","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"longitude","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"propertyType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyType","isGenerated":false,"isUpdatedAt":false},{"name":"transactionType","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TransactionType","isGenerated":false,"isUpdatedAt":false},{"name":"furnishing","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"FurnishingType","isGenerated":false,"isUpdatedAt":false},{"name":"condition","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"PropertyCondition","isGenerated":false,"isUpdatedAt":false},{"name":"hasParking","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasSecurity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasElevator","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasGarden","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasBalcony","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"hasSwimmingPool","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"buildingAge","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"floor","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"totalFloors","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"image_url","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"images","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":[],"isGenerated":false,"isUpdatedAt":false},{"name":"scores","kind":"scalar","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Float","default":[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],"isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"PropertyStatus","default":"AVAILABLE","isGenerated":false,"isUpdatedAt":false},{"name":"ownerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"viewCount","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"featured","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true},{"name":"geohash","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision5","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision6","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"geohashPrecision7","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"PropertyToSale","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"contactId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"propertyId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"salePrice","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"saleDate","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"successScore","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"timeToDecision","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"viewCount","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"notes","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"contact","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Contact","relationName":"ContactToSale","relationFromFields":["contactId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"property","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Property","relationName":"PropertyToSale","relationFromFields":["propertyId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Setting":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"key","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"value","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"enum","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"SettingType","default":"STRING","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"isPublic","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{"ContactType":{"values":[{"name":"BUYER","dbName":null},{"name":"TENANT","dbName":null},{"name":"INVESTOR","dbName":null}],"dbName":null},"PropertyType":{"values":[{"name":"APARTMENT","dbName":null},{"name":"VILLA","dbName":null},{"name":"HOUSE","dbName":null},{"name":"OFFICE","dbName":null},{"name":"SHOP","dbName":null},{"name":"WAREHOUSE","dbName":null},{"name":"LAND","dbName":null},{"name":"GARAGE","dbName":null}],"dbName":null},"TransactionType":{"values":[{"name":"RENT","dbName":null},{"name":"SALE","dbName":null}],"dbName":null},"FurnishingType":{"values":[{"name":"FURNISHED","dbName":null},{"name":"SEMI_FURNISHED","dbName":null},{"name":"UNFURNISHED","dbName":null}],"dbName":null},"PropertyCondition":{"values":[{"name":"POOR","dbName":null},{"name":"FAIR","dbName":null},{"name":"GOOD","dbName":null},{"name":"EXCELLENT","dbName":null},{"name":"NEW","dbName":null}],"dbName":null},"PropertyStatus":{"values":[{"name":"AVAILABLE","dbName":null},{"name":"RESERVED","dbName":null},{"name":"SOLD","dbName":null},{"name":"RENTED","dbName":null},{"name":"INACTIVE","dbName":null}],"dbName":null},"SettingType":{"values":[{"name":"STRING","dbName":null},{"name":"NUMBER","dbName":null},{"name":"BOOLEAN","dbName":null},{"name":"JSON","dbName":null}],"dbName":null}},"types":{}}');
   defineDmmfProperty2(exports.Prisma, config2.runtimeDataModel);
   config2.engineWasm = undefined;
   var { warnEnvConflicts: warnEnvConflicts2 } = require_library();
@@ -33593,6 +33558,12 @@ var CACHE_TTL = {
   SEARCH: 300
 };
 
+// src/index.ts
+import { mkdir as mkdir2 } from "fs/promises";
+import { existsSync as existsSync2 } from "fs";
+import { stat } from "fs/promises";
+import path2 from "path";
+
 // src/services/score-generator.ts
 var ALGERIA_WILAYAS = {
   Algiers: 0.95,
@@ -33673,8 +33644,42 @@ var VECTOR_DIMENSIONS = {
   URGENCY: 10,
   TRANSACTION: 11
 };
+function generateTransactionScores(contact) {
+  const rentScore = 0;
+  const saleScore = 0;
+  if (contact.transactionType && !contact.transactionTypes?.length) {
+    if (contact.transactionType === "RENT") {
+      return [1, 0];
+    } else {
+      return [0, 1];
+    }
+  }
+  if (contact.transactionTypes?.length) {
+    const hasRent = contact.transactionTypes.includes("RENT");
+    const hasSale = contact.transactionTypes.includes("SALE");
+    if (hasRent && hasSale) {
+      const primary = contact.primaryTransactionType || contact.transactionTypes[0];
+      const flexibility = contact.transactionFlexibility || 0.5;
+      if (primary === "RENT") {
+        return [1, flexibility];
+      } else {
+        return [flexibility, 1];
+      }
+    } else if (hasRent) {
+      return [1, 0];
+    } else if (hasSale) {
+      return [0, 1];
+    }
+  }
+  if (contact.transactionType === "RENT") {
+    return [1, 0];
+  } else if (contact.transactionType === "SALE") {
+    return [0, 1];
+  }
+  return [0.5, 0.5];
+}
 function generateScoresFromContact(contact) {
-  const scores = new Array(12).fill(0.5);
+  const scores = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
   if (contact.budgetMin && contact.budgetMax) {
     const avgBudget = (contact.budgetMin + contact.budgetMax) / 2;
     scores[VECTOR_DIMENSIONS.BUDGET] = Math.min(1, Math.max(0.1, (avgBudget - 2000000) / 48000000));
@@ -33734,8 +33739,16 @@ function generateScoresFromContact(contact) {
   } else {
     scores[VECTOR_DIMENSIONS.URGENCY] = 0.3;
   }
-  scores[VECTOR_DIMENSIONS.TRANSACTION] = contact.transactionType === "SALE" ? 1 : 0;
+  const transactionScores = generateTransactionScores(contact);
+  const primaryTransaction = contact.primaryTransactionType || contact.transactionType;
+  scores[VECTOR_DIMENSIONS.TRANSACTION] = primaryTransaction === "SALE" ? 1 : 0;
   return scores;
+}
+function generateAllScoresFromContact(contact) {
+  return {
+    scores: generateScoresFromContact(contact),
+    transactionScores: generateTransactionScores(contact)
+  };
 }
 function generateScoresFromProperty(property) {
   const scores = new Array(12).fill(0.5);
@@ -33854,6 +33867,8 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
       search,
       wilaya,
       transactionType,
+      transactionTypes,
+      primaryTransactionType,
       budgetMin,
       budgetMax,
       hasChildren,
@@ -33873,6 +33888,11 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
       where.type = type3;
     if (transactionType)
       where.transactionType = transactionType;
+    if (primaryTransactionType)
+      where.primaryTransactionType = primaryTransactionType;
+    if (transactionTypes) {
+      where.transactionTypes = { hasSome: Array.isArray(transactionTypes) ? transactionTypes : [transactionTypes] };
+    }
     if (hasChildrenBool !== undefined)
       where.hasChildren = hasChildrenBool;
     if (search) {
@@ -33884,22 +33904,19 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
     if (wilaya) {
       where.locationWilayas = { has: wilaya };
     }
-    if (budgetMinNum !== undefined || budgetMaxNum !== undefined) {
-      where.AND = [];
-      if (budgetMinNum !== undefined)
-        where.AND.push({ budgetMin: { gte: budgetMinNum } });
-      if (budgetMaxNum !== undefined)
-        where.AND.push({ budgetMax: { lte: budgetMaxNum } });
+    if (budgetMinNum !== undefined) {
+      where.budgetMin = { gte: budgetMinNum };
     }
-    const [contacts, total] = await Promise.all([
-      prisma.contact.findMany({
-        where,
-        skip: skip2,
-        take: limitNum,
-        orderBy: { createdAt: "desc" }
-      }),
-      prisma.contact.count({ where })
-    ]);
+    if (budgetMaxNum !== undefined) {
+      where.budgetMax = { lte: budgetMaxNum };
+    }
+    const total = await prisma.contact.count({ where });
+    const contacts = await prisma.contact.findMany({
+      where,
+      skip: skip2,
+      take: limitNum,
+      orderBy: { createdAt: "desc" }
+    });
     return {
       success: true,
       data: contacts,
@@ -33909,7 +33926,17 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
         total,
         pages: Math.ceil(total / limitNum)
       },
-      filters: { type: type3, search, wilaya, transactionType, budgetMin: budgetMinNum, budgetMax: budgetMaxNum, hasChildren: hasChildrenBool }
+      filters: {
+        type: type3,
+        search,
+        wilaya,
+        transactionType,
+        transactionTypes,
+        primaryTransactionType,
+        budgetMin: budgetMinNum,
+        budgetMax: budgetMaxNum,
+        hasChildren: hasChildrenBool
+      }
     };
   } catch (error3) {
     console.error("Get contacts error:", error3);
@@ -33938,7 +33965,15 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
     transactionType: C.Optional(C.Union([
       C.Literal("RENT"),
       C.Literal("SALE")
-    ], { description: "Filter by transaction preference" })),
+    ], { description: "Filter by transaction preference (legacy)" })),
+    transactionTypes: C.Optional(C.Union([
+      C.Array(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+      C.String({ description: "Filter by multiple transaction types" })
+    ], { description: "Filter by multiple transaction types" })),
+    primaryTransactionType: C.Optional(C.Union([
+      C.Literal("RENT"),
+      C.Literal("SALE")
+    ], { description: "Filter by primary transaction type" })),
     budgetMin: C.Optional(C.Union([
       C.Number({ minimum: 0, description: "Minimum budget in DZD" }),
       C.String({ description: "Minimum budget as string" })
@@ -33958,147 +33993,30 @@ var contactsRoutes = new r({ prefix: "/contacts" }).get("/", async ({ query }) =
   }),
   detail: {
     tags: ["Contacts"],
-    summary: "List contacts with advanced filtering",
+    summary: "List contacts with enhanced filtering",
     description: `
-## Get All Contacts with Filtering and Pagination
+## Enhanced Contact Listing with Dual Transaction Support
 
-Retrieve contacts with comprehensive filtering options for efficient searching and browsing.
+List contacts with comprehensive filtering options including the new dual transaction type support.
 
-### \uD83D\uDD0D Filter Options
+### \uD83D\uDD04 Dual Transaction Support
+- **Legacy**: Filter by single transactionType (RENT/SALE)
+- **Enhanced**: Filter by multiple transactionTypes or primaryTransactionType
+- **Flexibility**: Support for contacts interested in both RENT and SALE
+
+### \uD83D\uDCCB Filter Options
 - **Type**: BUYER, TENANT, INVESTOR
-- **Search**: Name and email text search
-- **Location**: Filter by Algerian wilayas
-- **Budget**: Min/max price range in DZD
-- **Transaction**: RENT or SALE preference
-- **Family**: Has children or not
-- **Status**: Active/inactive contacts
+- **Transaction**: Single or multiple transaction types
+- **Location**: Wilaya-based filtering
+- **Budget**: Min/max budget ranges
+- **Family**: Children status
+- **Search**: Name and email search
 
-### \uD83D\uDCC4 Pagination
-- Default: 10 results per page
-- Maximum: 50 results per page
-- Returns total count and page info
-
-### \uD83C\uDDE9\uD83C\uDDFF Algeria-Specific Features
-- All 48 wilayas supported
-- DZD currency ranges
-- Cultural family preferences
-      `,
-    responses: {
-      "200": {
-        description: "Successful response with filtered contacts",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: true },
-                data: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      id: { type: "string", example: "cmd8bvuwy0009m5y8bqjlgepr" },
-                      email: { type: "string", example: "ahmed.benali@email.dz" },
-                      name: { type: "string", example: "Ahmed Benali" },
-                      type: { type: "string", example: "BUYER" },
-                      budgetMin: { type: "number", example: 15000000 },
-                      budgetMax: { type: "number", example: 25000000 },
-                      locationWilayas: { type: "array", items: { type: "string" }, example: ["Algiers", "Boumerd\xE8s"] },
-                      transactionType: { type: "string", example: "SALE" },
-                      hasChildren: { type: "boolean", example: true },
-                      scores: { type: "array", items: { type: "number" }, example: [0.1, 0.1, 0.1, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1] }
-                    }
-                  }
-                },
-                pagination: {
-                  type: "object",
-                  properties: {
-                    page: { type: "number", example: 1 },
-                    limit: { type: "number", example: 10 },
-                    total: { type: "number", example: 5 },
-                    pages: { type: "number", example: 1 }
-                  }
-                },
-                filters: {
-                  type: "object",
-                  example: { type: "BUYER", wilaya: "Algiers", budgetMin: 15000000 }
-                }
-              }
-            },
-            examples: {
-              all_contacts: {
-                summary: "All active contacts",
-                value: {
-                  success: true,
-                  data: [
-                    {
-                      id: "cmd8bvuwy0009m5y8bqjlgepr",
-                      email: "ahmed.benali@email.dz",
-                      name: "Ahmed Benali",
-                      type: "BUYER",
-                      budgetMin: 15000000,
-                      budgetMax: 25000000,
-                      locationWilayas: ["Algiers"],
-                      transactionType: "SALE",
-                      hasChildren: true,
-                      scores: [0.1, 0.1, 0.1, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1]
-                    }
-                  ],
-                  pagination: { page: 1, limit: 10, total: 5, pages: 1 },
-                  filters: {}
-                }
-              },
-              filtered_buyers: {
-                summary: "Buyers in Algiers",
-                value: {
-                  success: true,
-                  data: [
-                    {
-                      id: "cmd8bvuwy0009m5y8bqjlgepr",
-                      name: "Ahmed Benali",
-                      type: "BUYER",
-                      locationWilayas: ["Algiers"],
-                      budgetMin: 15000000,
-                      budgetMax: 25000000
-                    }
-                  ],
-                  pagination: { page: 1, limit: 10, total: 2, pages: 1 },
-                  filters: { type: "BUYER", wilaya: "Algiers" }
-                }
-              }
-            }
-          }
-        }
-      },
-      "400": {
-        description: "Bad request - invalid parameters",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                error: { type: "string", example: "Invalid page number" }
-              }
-            }
-          }
-        }
-      },
-      "500": {
-        description: "Internal server error",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                error: { type: "string", example: "Failed to fetch contacts" }
-              }
-            }
-          }
-        }
-      }
-    }
+### \uD83C\uDFAF Use Cases
+- Find flexible buyers open to both renting and buying
+- Target investors with specific transaction preferences
+- Segment contacts by primary vs secondary transaction interests
+        `
   }
 }).get("/:id", async ({ params: { id } }) => {
   try {
@@ -34147,17 +34065,20 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
         message: "Please provide a valid email address"
       };
     }
-    const scores = generateScoresFromContact(body);
+    const allScores = generateAllScoresFromContact(body);
+    const contactData = {
+      ...body,
+      scores: allScores.scores,
+      transactionScores: allScores.transactionScores,
+      transactionType: body.primaryTransactionType || body.transactionTypes?.[0] || body.transactionType
+    };
     const contact = await prisma.contact.create({
-      data: {
-        ...body,
-        scores
-      }
+      data: contactData
     });
     return {
       success: true,
       data: contact,
-      message: "Contact created successfully"
+      message: "Contact created successfully with enhanced transaction support"
     };
   } catch (error3) {
     console.error("Create contact error:", error3);
@@ -34187,7 +34108,10 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
       C.Literal("LAND"),
       C.Literal("GARAGE")
     ])),
-    transactionType: C.Union([C.Literal("RENT"), C.Literal("SALE")]),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    transactionTypes: C.Optional(C.Array(C.Union([C.Literal("RENT"), C.Literal("SALE")]))),
+    primaryTransactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    transactionFlexibility: C.Optional(C.Number({ minimum: 0, maximum: 1 })),
     familySize: C.Optional(C.Number({ minimum: 1 })),
     hasChildren: C.Boolean(),
     minRooms: C.Optional(C.Number({ minimum: 1 })),
@@ -34212,182 +34136,50 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
   }),
   detail: {
     tags: ["Contacts"],
-    summary: "Create new contact with AI scoring",
+    summary: "Create new contact with enhanced dual transaction support",
     description: `
-## Create New Contact with Automatic 12D Vector Generation
+## Create New Contact with Enhanced Dual Transaction Support
 
-Creates a new contact and automatically generates a 12-dimensional preference vector for AI recommendations.
+Creates a new contact with support for multiple transaction types and automatic AI scoring.
+
+### \uD83D\uDD04 Enhanced Transaction Support
+- **Legacy**: Single transactionType (RENT/SALE)
+- **Enhanced**: Multiple transactionTypes with primary preference
+- **Flexibility**: Transaction flexibility score (0-1)
+- **Backward Compatible**: Works with existing single transaction type
 
 ### \uD83E\uDD16 AI Features
-- **Automatic Scoring**: Generates 12D vector from preferences
-- **Algeria Optimization**: Considers cultural and geographic factors
-- **Budget Normalization**: Converts DZD amounts to 0-1 scale
-- **Location Scoring**: Optimized for 48 Algerian wilayas
+- **Dual Scoring**: Generates both main 12D vector and transaction scores
+- **Flexibility Scoring**: Considers transaction flexibility in recommendations
+- **Primary Preference**: Prioritizes primary transaction type in matching
 
 ### \uD83D\uDCCB Required Fields
-- **email**: Valid email address (validated)
+- **email**: Valid email address
 - **name**: Full name (minimum 2 characters)
 - **type**: BUYER, TENANT, or INVESTOR
-- **transactionType**: RENT or SALE
 - **hasChildren**: Family status (boolean)
 - **requiresParking**: Parking preference (boolean)
 - **requiresSecurity**: Security preference (boolean)
 
-### \uD83C\uDFAF 12D Vector Dimensions
-The system automatically generates scores for:
-1. **Budget** - Price preference level
-2. **Area** - Size requirements  
-3. **Rooms** - Room count preference
-4. **Location** - Wilaya desirability
-5. **Property Type** - Villa, apartment, etc.
-6. **Condition** - Property condition preference
-7. **Features** - Amenities importance
-8. **Family** - Family-friendliness needs
-9. **Modern** - Modernity preference
-10. **Investment** - Investment potential interest
-11. **Urgency** - Decision timeline
-12. **Transaction** - RENT (0) or SALE (1)
-      `,
-    responses: {
-      "200": {
-        description: "Contact created successfully with AI scores",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: true },
-                data: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string", example: "cmd8bvuwy0009m5y8bqjlgepr" },
-                    email: { type: "string", example: "ahmed.benali@email.dz" },
-                    name: { type: "string", example: "Ahmed Benali" },
-                    type: { type: "string", example: "BUYER" },
-                    budgetMin: { type: "number", example: 15000000 },
-                    budgetMax: { type: "number", example: 25000000 },
-                    locationWilayas: { type: "array", items: { type: "string" }, example: ["Algiers"] },
-                    propertyTypes: { type: "array", items: { type: "string" }, example: ["VILLA", "APARTMENT"] },
-                    transactionType: { type: "string", example: "SALE" },
-                    hasChildren: { type: "boolean", example: true },
-                    requiresParking: { type: "boolean", example: true },
-                    requiresSecurity: { type: "boolean", example: true },
-                    scores: {
-                      type: "array",
-                      items: { type: "number", minimum: 0, maximum: 1 },
-                      example: [0.38, 0.5, 0.5, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1],
-                      description: "12D preference vector (Budget, Area, Rooms, Location, PropertyType, Condition, Features, Family, Modern, Investment, Urgency, Transaction)"
-                    },
-                    createdAt: { type: "string", format: "date-time", example: "2025-07-18T04:37:51.306Z" }
-                  }
-                },
-                message: { type: "string", example: "Contact created successfully" }
-              }
-            },
-            examples: {
-              algerian_buyer: {
-                summary: "Algerian Family Buyer",
-                description: "Successful creation of a family buyer looking for a villa in Algiers",
-                value: {
-                  success: true,
-                  data: {
-                    id: "cmd8bvuwy0009m5y8bqjlgepr",
-                    email: "ahmed.benali@email.dz",
-                    name: "Ahmed Benali",
-                    phone: "+213 555 123 456",
-                    type: "BUYER",
-                    budgetMin: 15000000,
-                    budgetMax: 25000000,
-                    locationWilayas: ["Algiers"],
-                    locationCities: ["Hydra"],
-                    propertyTypes: ["VILLA", "APARTMENT"],
-                    transactionType: "SALE",
-                    familySize: 4,
-                    hasChildren: true,
-                    requiresParking: true,
-                    requiresSecurity: true,
-                    scores: [0.38, 0.5, 0.5, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1],
-                    isActive: true,
-                    createdAt: "2025-07-18T04:37:51.306Z"
-                  },
-                  message: "Contact created successfully"
-                }
-              },
-              student_tenant: {
-                summary: "Student Tenant",
-                description: "Student looking for a rental apartment in Oran",
-                value: {
-                  success: true,
-                  data: {
-                    id: "cmd8bvuwy0009m5y8bqjlgepr",
-                    email: "sara.student@univ-oran.dz",
-                    name: "Sara Koui",
-                    type: "TENANT",
-                    budgetMin: 20000,
-                    budgetMax: 50000,
-                    locationWilayas: ["Oran"],
-                    propertyTypes: ["APARTMENT"],
-                    transactionType: "RENT",
-                    hasChildren: false,
-                    requiresParking: false,
-                    requiresSecurity: true,
-                    scores: [0.15, 0.2, 0.3, 0.85, 0.9, 0.5, 0.4, 0.1, 0.8, 0.2, 0.8, 0]
-                  },
-                  message: "Contact created successfully"
-                }
-              }
-            }
-          }
-        }
-      },
-      "400": {
-        description: "Validation error - invalid input data",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                error: { type: "string", example: "Invalid email format" },
-                message: { type: "string", example: "Please provide a valid email address" }
-              }
-            },
-            examples: {
-              invalid_email: {
-                summary: "Invalid Email Format",
-                value: {
-                  success: false,
-                  error: "Invalid email format",
-                  message: "Please provide a valid email address"
-                }
-              },
-              missing_required: {
-                summary: "Missing Required Fields",
-                value: {
-                  success: false,
-                  error: "Validation failed",
-                  message: "Missing required fields: name, type, transactionType"
-                }
-              }
-            }
-          }
-        }
-      },
-      "500": {
-        description: "Internal server error",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                error: { type: "string", example: "Failed to create contact" }
-              }
-            }
-          }
-        }
-      }
-    }
+### \uD83C\uDFAF Transaction Configuration
+- **transactionTypes**: Array of interested transaction types ['RENT', 'SALE']
+- **primaryTransactionType**: Main preference (optional, defaults to first in array)
+- **transactionFlexibility**: 0-1 score for flexibility (optional, defaults to 0.5)
+
+### \uD83D\uDCA1 Example Usage
+\`\`\`json
+{
+  "email": "flexible.buyer@example.dz",
+  "name": "Ahmed Flexible",
+  "type": "BUYER",
+  "transactionTypes": ["SALE", "RENT"],
+  "primaryTransactionType": "SALE",
+  "transactionFlexibility": 0.7,
+  "budgetMin": 10000000,
+  "budgetMax": 20000000
+}
+\`\`\`
+        `
   }
 }).put("/:id", async ({ params: { id }, body }) => {
   try {
@@ -34637,7 +34429,547 @@ Each dimension is scored 0.0 to 1.0:
     summary: "Update contact scores",
     description: "Manually update the 12D preference vector"
   }
+}).post("/bulk", async ({ body }) => {
+  try {
+    const { contacts } = body;
+    if (!Array.isArray(contacts) || contacts.length === 0) {
+      return {
+        success: false,
+        error: "Contacts array is required and cannot be empty"
+      };
+    }
+    if (contacts.length > 100) {
+      return {
+        success: false,
+        error: "Maximum 100 contacts can be created at once"
+      };
+    }
+    const createdContacts = [];
+    const errors2 = [];
+    for (const contactData of contacts) {
+      try {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactData.email)) {
+          errors2.push({ email: contactData.email, error: "Invalid email format" });
+          continue;
+        }
+        const scores = generateScoresFromContact(contactData);
+        const contact = await prisma.contact.create({
+          data: {
+            ...contactData,
+            scores
+          }
+        });
+        createdContacts.push(contact);
+      } catch (error3) {
+        errors2.push({ email: contactData.email, error: error3 instanceof Error ? error3.message : String(error3) });
+      }
+    }
+    return {
+      success: true,
+      data: {
+        created: createdContacts,
+        errors: errors2,
+        summary: {
+          total: contacts.length,
+          created: createdContacts.length,
+          failed: errors2.length
+        }
+      },
+      message: `Bulk operation completed. ${createdContacts.length} contacts created, ${errors2.length} failed.`
+    };
+  } catch (error3) {
+    console.error("Bulk create contacts error:", error3);
+    return {
+      success: false,
+      error: "Failed to create contacts in bulk"
+    };
+  }
+}, {
+  body: C.Object({
+    contacts: C.Array(C.Object({
+      email: C.String({ minLength: 5 }),
+      name: C.String({ minLength: 2 }),
+      phone: C.Optional(C.String()),
+      type: C.Union([C.Literal("BUYER"), C.Literal("TENANT"), C.Literal("INVESTOR")]),
+      budgetMin: C.Optional(C.Number({ minimum: 0 })),
+      budgetMax: C.Optional(C.Number({ minimum: 0 })),
+      locationWilayas: C.Array(C.String()),
+      locationCities: C.Array(C.String()),
+      propertyTypes: C.Array(C.Union([
+        C.Literal("APARTMENT"),
+        C.Literal("VILLA"),
+        C.Literal("HOUSE"),
+        C.Literal("OFFICE"),
+        C.Literal("SHOP"),
+        C.Literal("WAREHOUSE"),
+        C.Literal("LAND"),
+        C.Literal("GARAGE")
+      ])),
+      transactionType: C.Union([C.Literal("RENT"), C.Literal("SALE")]),
+      familySize: C.Optional(C.Number({ minimum: 1 })),
+      hasChildren: C.Boolean(),
+      minRooms: C.Optional(C.Number({ minimum: 1 })),
+      maxRooms: C.Optional(C.Number({ minimum: 1 })),
+      minArea: C.Optional(C.Number({ minimum: 1 })),
+      maxArea: C.Optional(C.Number({ minimum: 1 })),
+      furnishingType: C.Optional(C.Union([
+        C.Literal("FURNISHED"),
+        C.Literal("SEMI_FURNISHED"),
+        C.Literal("UNFURNISHED")
+      ])),
+      preferredCondition: C.Optional(C.Union([
+        C.Literal("POOR"),
+        C.Literal("FAIR"),
+        C.Literal("GOOD"),
+        C.Literal("EXCELLENT"),
+        C.Literal("NEW")
+      ])),
+      requiresParking: C.Boolean(),
+      requiresSecurity: C.Boolean(),
+      notes: C.Optional(C.String())
+    }), { minItems: 1, maxItems: 100 })
+  }),
+  detail: {
+    tags: ["Contacts"],
+    summary: "Bulk create contacts",
+    description: "Create multiple contacts at once with automatic AI scoring"
+  }
+}).get("/export", async ({ query }) => {
+  try {
+    const { format = "json", type: type3, wilaya, transactionType } = query;
+    const where = { isActive: true };
+    if (type3)
+      where.type = type3;
+    if (wilaya)
+      where.locationWilayas = { has: wilaya };
+    if (transactionType)
+      where.transactionType = transactionType;
+    const contacts = await prisma.contact.findMany({
+      where,
+      orderBy: { createdAt: "desc" }
+    });
+    if (format === "csv") {
+      const csvHeaders = [
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Type",
+        "Budget Min",
+        "Budget Max",
+        "Wilayas",
+        "Cities",
+        "Property Types",
+        "Transaction Type",
+        "Family Size",
+        "Has Children",
+        "Min Rooms",
+        "Max Rooms",
+        "Min Area",
+        "Max Area",
+        "Requires Parking",
+        "Requires Security",
+        "Created At"
+      ];
+      const csvRows = contacts.map((contact) => [
+        contact.id,
+        contact.name,
+        contact.email,
+        contact.phone || "",
+        contact.type,
+        contact.budgetMin || "",
+        contact.budgetMax || "",
+        contact.locationWilayas.join(";"),
+        contact.locationCities.join(";"),
+        contact.propertyTypes.join(";"),
+        contact.transactionType,
+        contact.familySize || "",
+        contact.hasChildren ? "Yes" : "No",
+        contact.minRooms || "",
+        contact.maxRooms || "",
+        contact.minArea || "",
+        contact.maxArea || "",
+        contact.requiresParking ? "Yes" : "No",
+        contact.requiresSecurity ? "Yes" : "No",
+        contact.createdAt
+      ]);
+      const csvContent = [csvHeaders, ...csvRows].map((row) => row.map((field) => `"${field}"`).join(",")).join(`
+`);
+      return {
+        success: true,
+        data: {
+          format: "csv",
+          content: csvContent,
+          count: contacts.length,
+          filename: `contacts_export_${new Date().toISOString().split("T")[0]}.csv`
+        }
+      };
+    }
+    return {
+      success: true,
+      data: {
+        format: "json",
+        contacts,
+        count: contacts.length,
+        exportedAt: new Date().toISOString()
+      }
+    };
+  } catch (error3) {
+    console.error("Export contacts error:", error3);
+    return {
+      success: false,
+      error: "Failed to export contacts"
+    };
+  }
+}, {
+  query: C.Object({
+    format: C.Optional(C.Union([C.Literal("json"), C.Literal("csv")])),
+    type: C.Optional(C.Union([C.Literal("BUYER"), C.Literal("TENANT"), C.Literal("INVESTOR")])),
+    wilaya: C.Optional(C.String()),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")]))
+  }),
+  detail: {
+    tags: ["Contacts"],
+    summary: "Export contacts",
+    description: "Export contacts in JSON or CSV format with optional filtering"
+  }
+}).get("/analytics", async () => {
+  try {
+    const [
+      totalContacts,
+      contactsByType,
+      contactsByWilaya,
+      contactsByTransactionType,
+      recentContacts,
+      topWilayas
+    ] = await Promise.all([
+      prisma.contact.count({ where: { isActive: true } }),
+      prisma.contact.groupBy({
+        by: ["type"],
+        _count: { type: true },
+        where: { isActive: true }
+      }),
+      prisma.contact.groupBy({
+        by: ["locationWilayas"],
+        _count: { locationWilayas: true },
+        where: { isActive: true }
+      }),
+      prisma.contact.groupBy({
+        by: ["transactionType"],
+        _count: { transactionType: true },
+        where: { isActive: true }
+      }),
+      prisma.contact.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          createdAt: true
+        }
+      }),
+      prisma.contact.findMany({
+        where: { isActive: true },
+        select: { locationWilayas: true }
+      })
+    ]);
+    const wilayaCounts = {};
+    contactsByWilaya.forEach((item) => {
+      item.locationWilayas.forEach((wilaya) => {
+        wilayaCounts[wilaya] = (wilayaCounts[wilaya] || 0) + item._count.locationWilayas;
+      });
+    });
+    const topWilayasList = Object.entries(wilayaCounts).sort(([, a2], [, b2]) => b2 - a2).slice(0, 10).map(([wilaya, count]) => ({ wilaya, count }));
+    return {
+      success: true,
+      data: {
+        overview: {
+          totalContacts,
+          activeContacts: totalContacts,
+          inactiveContacts: await prisma.contact.count({ where: { isActive: false } })
+        },
+        distribution: {
+          byType: contactsByType,
+          byTransactionType: contactsByTransactionType,
+          byWilaya: topWilayasList
+        },
+        recent: {
+          newContacts: recentContacts,
+          lastWeek: await prisma.contact.count({
+            where: {
+              isActive: true,
+              createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+            }
+          }),
+          lastMonth: await prisma.contact.count({
+            where: {
+              isActive: true,
+              createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+            }
+          })
+        }
+      }
+    };
+  } catch (error3) {
+    console.error("Contact analytics error:", error3);
+    return {
+      success: false,
+      error: "Failed to generate contact analytics"
+    };
+  }
+}, {
+  detail: {
+    tags: ["Contacts"],
+    summary: "Contact analytics and insights",
+    description: "Get comprehensive analytics about contacts including distribution and trends"
+  }
+}).post("/vector-search", async ({ body }) => {
+  try {
+    const {
+      vector,
+      minSimilarity = 0.3,
+      limit = 10,
+      type: type3,
+      transactionType,
+      transactionTypes,
+      primaryTransactionType,
+      wilaya,
+      budgetMin,
+      budgetMax,
+      hasChildren,
+      isActive = true
+    } = body;
+    if (!Array.isArray(vector) || vector.length !== 12) {
+      return {
+        success: false,
+        error: "Vector must be an array of 12 numbers"
+      };
+    }
+    if (!vector.every((v2) => typeof v2 === "number" && v2 >= 0 && v2 <= 1)) {
+      return {
+        success: false,
+        error: "All vector values must be numbers between 0 and 1"
+      };
+    }
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
+    const where = {};
+    if (isActive !== undefined)
+      where.isActive = Boolean(isActive);
+    if (type3)
+      where.type = type3;
+    if (transactionType)
+      where.transactionType = transactionType;
+    if (primaryTransactionType)
+      where.primaryTransactionType = primaryTransactionType;
+    if (transactionTypes) {
+      where.transactionTypes = { hasSome: Array.isArray(transactionTypes) ? transactionTypes : [transactionTypes] };
+    }
+    if (wilaya) {
+      where.locationWilayas = { has: wilaya };
+    }
+    if (budgetMin || budgetMax) {
+      where.AND = [];
+      if (budgetMin) {
+        where.AND.push({
+          OR: [
+            { budgetMin: { gte: Number(budgetMin) } },
+            { budgetMin: null }
+          ]
+        });
+      }
+      if (budgetMax) {
+        where.AND.push({
+          OR: [
+            { budgetMax: { lte: Number(budgetMax) } },
+            { budgetMax: null }
+          ]
+        });
+      }
+    }
+    if (hasChildren !== undefined) {
+      where.hasChildren = Boolean(hasChildren);
+    }
+    const contacts = await prisma.contact.findMany({
+      where,
+      take: limitNum * 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        sales: {
+          select: { successScore: true }
+        }
+      }
+    });
+    const results = contacts.map((contact) => {
+      const similarity = calculateSimilarity(vector, contact.scores);
+      const avgSuccessScore = contact.sales.length > 0 ? contact.sales.reduce((sum, sale) => sum + sale.successScore, 0) / contact.sales.length : 0.5;
+      return {
+        contact: {
+          id: contact.id,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          type: contact.type,
+          budgetMin: contact.budgetMin,
+          budgetMax: contact.budgetMax,
+          locationWilayas: contact.locationWilayas,
+          transactionType: contact.transactionType,
+          transactionTypes: contact.transactionTypes,
+          primaryTransactionType: contact.primaryTransactionType,
+          transactionFlexibility: contact.transactionFlexibility,
+          familySize: contact.familySize,
+          hasChildren: contact.hasChildren,
+          isActive: contact.isActive,
+          createdAt: contact.createdAt
+        },
+        similarity,
+        avgSuccessScore,
+        combinedScore: similarity * 0.8 + avgSuccessScore * 0.2,
+        contactVector: contact.scores
+      };
+    }).filter((result) => result.similarity >= minSim).sort((a2, b2) => b2.combinedScore - a2.combinedScore).slice(0, limitNum).map((result) => ({
+      ...result.contact,
+      similarity: Math.round(result.similarity * 1000) / 1000,
+      combinedScore: Math.round(result.combinedScore * 1000) / 1000,
+      matchExplanation: generateContactVectorMatchExplanation(vector, result.contactVector, result.similarity)
+    }));
+    return {
+      success: true,
+      data: results,
+      metadata: {
+        searchVector: vector,
+        resultsFound: results.length,
+        totalContactsScanned: contacts.length,
+        minSimilarity: minSim,
+        searchType: "vector-similarity",
+        algorithm: "12D Cosine Similarity with Success History"
+      }
+    };
+  } catch (error3) {
+    console.error("Contact vector search error:", error3);
+    return {
+      success: false,
+      error: "Failed to perform contact vector search"
+    };
+  }
+}, {
+  body: C.Object({
+    vector: C.Array(C.Number({ minimum: 0, maximum: 1 }), {
+      minItems: 12,
+      maxItems: 12,
+      description: "12D preference vector: [budget, area, rooms, location, propertyType, condition, features, family, modern, investment, urgency, transaction]"
+    }),
+    minSimilarity: C.Optional(C.Number({ minimum: 0, maximum: 1, default: 0.3 })),
+    limit: C.Optional(C.Number({ minimum: 1, maximum: 50, default: 10 })),
+    type: C.Optional(C.Union([
+      C.Literal("BUYER"),
+      C.Literal("TENANT"),
+      C.Literal("INVESTOR")
+    ])),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    transactionTypes: C.Optional(C.Array(C.Union([C.Literal("RENT"), C.Literal("SALE")]))),
+    primaryTransactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    wilaya: C.Optional(C.String()),
+    budgetMin: C.Optional(C.Number({ minimum: 0 })),
+    budgetMax: C.Optional(C.Number({ minimum: 0 })),
+    hasChildren: C.Optional(C.Boolean()),
+    isActive: C.Optional(C.Boolean({ default: true }))
+  }),
+  detail: {
+    tags: ["Contacts"],
+    summary: "Vector-based contact search",
+    description: `
+## AI-Powered Vector Contact Search
+
+Search contacts using a 12-dimensional preference vector for intelligent matching.
+
+### \uD83E\uDD16 Vector Format
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0]
+}
+\`\`\`
+
+### \uD83D\uDCCA Vector Dimensions (0.0-1.0)
+0. **Budget**: Price level preference
+1. **Area**: Size requirements 
+2. **Rooms**: Room count preference
+3. **Location**: Geographic desirability (Algeria-optimized)
+4. **Property Type**: Villa, apartment, etc.
+5. **Condition**: Property condition importance
+6. **Features**: Amenities importance
+7. **Family**: Family-friendliness needs
+8. **Modern**: Modernity preference
+9. **Investment**: Investment potential interest
+10. **Urgency**: Decision timeline
+11. **Transaction**: RENT (0.0) vs SALE (1.0)
+
+### \uD83C\uDFAF Use Cases
+- **Property Reverse Search**: Find contacts interested in a specific property profile
+- **Market Analysis**: Identify potential buyers/tenants for property types
+- **Lead Generation**: Find contacts with similar preferences to successful clients
+- **Preference Matching**: Match contacts to property listing patterns
+
+### \uD83D\uDCA1 Enhanced Features
+- **Success History**: Combines vector similarity with past success scores
+- **Transaction Flexibility**: Supports dual transaction type filtering
+- **Cultural Factors**: Algeria-specific family and cultural preferences
+- **Explainable Results**: Detailed match explanations
+
+### \uD83D\uDCDD Example Request
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0],
+  "minSimilarity": 0.7,
+  "limit": 20,
+  "type": "BUYER",
+  "wilaya": "Algiers",
+  "isActive": true
+}
+\`\`\`
+
+### \uD83D\uDD04 Combined Scoring
+- **80%** Vector similarity (preference alignment)
+- **20%** Success history (past performance)
+      `
+  }
 });
+function generateContactVectorMatchExplanation(searchVector, contactVector, similarity) {
+  const dimensions = [
+    "Budget",
+    "Area",
+    "Rooms",
+    "Location",
+    "Property Type",
+    "Condition",
+    "Features",
+    "Family",
+    "Modern",
+    "Investment",
+    "Urgency",
+    "Transaction"
+  ];
+  const strongMatches = [];
+  const weakMatches = [];
+  for (let i = 0;i < 12; i++) {
+    const diff = Math.abs(searchVector[i] - contactVector[i]);
+    if (diff < 0.2) {
+      strongMatches.push(dimensions[i]);
+    } else if (diff > 0.5) {
+      weakMatches.push(dimensions[i]);
+    }
+  }
+  let explanation = `${Math.round(similarity * 100)}% preference match. `;
+  if (strongMatches.length > 0) {
+    explanation += `Strong alignment: ${strongMatches.slice(0, 3).join(", ")}. `;
+  }
+  if (weakMatches.length > 0) {
+    explanation += `Different preferences: ${weakMatches.slice(0, 2).join(", ")}.`;
+  }
+  return explanation.trim();
+}
 
 // src/services/geospatial.ts
 var BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
@@ -34767,6 +35099,35 @@ function updatePropertyGeohash(property) {
 }
 
 // src/routes/properties.ts
+import { existsSync } from "fs";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
+async function saveUploadedFile(file) {
+  try {
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
+    const fileExtension = path.extname(file.name);
+    const fileName = `${randomUUID()}${fileExtension}`;
+    const filePath = path.join(uploadsDir, fileName);
+    const buffer = await file.arrayBuffer();
+    await writeFile(filePath, new Uint8Array(buffer));
+    return `/uploads/${fileName}`;
+  } catch (error3) {
+    console.error("File upload error:", error3);
+    throw new Error("Failed to save uploaded file");
+  }
+}
+async function saveUploadedFiles(files) {
+  const urls = [];
+  for (const file of files) {
+    const url = await saveUploadedFile(file);
+    urls.push(url);
+  }
+  return urls;
+}
 var propertiesRoutes = new r({ prefix: "/properties" }).get("/", async ({ query }) => {
   try {
     const {
@@ -35116,11 +35477,30 @@ Quick search for properties near famous Algeria landmarks.
   }
 }).post("/", async ({ body }) => {
   try {
-    const scores = generateScoresFromProperty(body);
-    const geohashData = updatePropertyGeohash(body);
+    let imageUrl;
+    let imageUrls = [];
+    if (body.imageFile) {
+      imageUrl = await saveUploadedFile(body.imageFile);
+    } else if (body.image_url) {
+      imageUrl = body.image_url;
+    }
+    if (body.imageFiles && Array.isArray(body.imageFiles)) {
+      imageUrls = await saveUploadedFiles(body.imageFiles);
+    } else if (body.images && Array.isArray(body.images)) {
+      imageUrls = body.images;
+    }
+    const propertyData = { ...body };
+    delete propertyData.imageFile;
+    delete propertyData.imageFiles;
+    if (imageUrl)
+      propertyData.image_url = imageUrl;
+    if (imageUrls.length > 0)
+      propertyData.images = imageUrls;
+    const scores = generateScoresFromProperty(propertyData);
+    const geohashData = updatePropertyGeohash(propertyData);
     const property = await prisma.property.create({
       data: {
-        ...body,
+        ...propertyData,
         scores,
         ...geohashData
       }
@@ -35182,13 +35562,93 @@ Quick search for properties near famous Algeria landmarks.
     buildingAge: C.Optional(C.Number({ minimum: 0 })),
     floor: C.Optional(C.Number({ minimum: 0 })),
     totalFloors: C.Optional(C.Number({ minimum: 1 })),
+    image_url: C.Optional(C.String({ description: "Direct image URL" })),
+    images: C.Optional(C.Array(C.String(), { description: "Array of image URLs" })),
+    imageFile: C.Optional(C.File({ description: "Single image file to upload" })),
+    imageFiles: C.Optional(C.Array(C.File(), { description: "Multiple image files to upload" })),
     ownerId: C.Optional(C.String()),
     featured: C.Optional(C.Boolean())
   }),
   detail: {
     tags: ["Properties"],
-    summary: "Create property",
-    description: "Create a new property with automatic score generation"
+    summary: "Create property with image upload support",
+    description: `
+## Create Property with Images
+
+Create a new property with automatic AI scoring and optional image uploads.
+
+### \uD83D\uDDBC\uFE0F Image Upload Options
+- **Direct URL**: Use \`image_url\` field for single image
+- **URL Array**: Use \`images\` field for multiple image URLs  
+- **File Upload**: Use \`imageFile\` for single file upload
+- **Multiple Files**: Use \`imageFiles\` for multiple file uploads
+
+### \uD83D\uDCDD Examples
+
+**With Direct Image URL:**
+\`\`\`json
+{
+  "title": "Beautiful Villa in Algiers",
+  "price": 25000000,
+  "area": 200,
+  "rooms": 4,
+  "wilaya": "Algiers",
+  "city": "Hydra",
+  "image_url": "https://example.com/villa.jpg"
+}
+\`\`\`
+
+**With Multiple Image URLs:**
+\`\`\`json
+{
+  "title": "Modern Apartment",
+  "price": 15000000,
+  "area": 120,
+  "rooms": 3,
+  "wilaya": "Algiers", 
+  "city": "Bab Ezzouar",
+  "images": ["https://example.com/apt1.jpg", "https://example.com/apt2.jpg"]
+}
+\`\`\`
+
+### \uD83D\uDCE4 File Upload
+Use \`multipart/form-data\` for file uploads with \`imageFile\` or \`imageFiles\` fields.
+
+### \u2728 Features
+- **Auto AI Scoring**: 12D vector generated automatically
+- **Geospatial Index**: Location-based search optimization
+- **Image Processing**: Secure upload with UUID naming
+- **URL Generation**: Automatic image URL generation
+      `,
+    responses: {
+      "200": {
+        description: "Property created successfully with images",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean", example: true },
+                data: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string", example: "cuid123..." },
+                    title: { type: "string", example: "Beautiful Villa in Algiers" },
+                    image_url: { type: "string", example: "/uploads/uuid-image.jpg" },
+                    images: {
+                      type: "array",
+                      items: { type: "string" },
+                      example: ["/uploads/uuid-img1.jpg", "/uploads/uuid-img2.jpg"]
+                    }
+                  }
+                },
+                message: { type: "string", example: "Property created successfully" }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }).put("/:id", async ({ params: { id }, body }) => {
   try {
@@ -35332,7 +35792,741 @@ Quick search for properties near famous Algeria landmarks.
     summary: "Sync property scores",
     description: "Regenerate scores from current property data"
   }
+}).post("/bulk", async ({ body }) => {
+  try {
+    const { properties } = body;
+    if (!Array.isArray(properties) || properties.length === 0) {
+      return {
+        success: false,
+        error: "Properties array is required and cannot be empty"
+      };
+    }
+    if (properties.length > 50) {
+      return {
+        success: false,
+        error: "Maximum 50 properties can be created at once"
+      };
+    }
+    const createdProperties = [];
+    const errors2 = [];
+    for (const propertyData of properties) {
+      try {
+        const scores = generateScoresFromProperty(propertyData);
+        const property = await prisma.property.create({
+          data: {
+            ...propertyData,
+            scores
+          }
+        });
+        createdProperties.push(property);
+      } catch (error3) {
+        errors2.push({ title: propertyData.title, error: error3 instanceof Error ? error3.message : String(error3) });
+      }
+    }
+    return {
+      success: true,
+      data: {
+        created: createdProperties,
+        errors: errors2,
+        summary: {
+          total: properties.length,
+          created: createdProperties.length,
+          failed: errors2.length
+        }
+      },
+      message: `Bulk operation completed. ${createdProperties.length} properties created, ${errors2.length} failed.`
+    };
+  } catch (error3) {
+    console.error("Bulk create properties error:", error3);
+    return {
+      success: false,
+      error: "Failed to create properties in bulk"
+    };
+  }
+}, {
+  body: C.Object({
+    properties: C.Array(C.Object({
+      title: C.String({ minLength: 5 }),
+      description: C.Optional(C.String()),
+      price: C.Number({ minimum: 0 }),
+      area: C.Number({ minimum: 1 }),
+      rooms: C.Number({ minimum: 0 }),
+      bathrooms: C.Optional(C.Number({ minimum: 0 })),
+      wilaya: C.String({ minLength: 2 }),
+      city: C.String({ minLength: 2 }),
+      address: C.Optional(C.String()),
+      latitude: C.Optional(C.Number()),
+      longitude: C.Optional(C.Number()),
+      propertyType: C.Union([
+        C.Literal("APARTMENT"),
+        C.Literal("VILLA"),
+        C.Literal("HOUSE"),
+        C.Literal("OFFICE"),
+        C.Literal("SHOP"),
+        C.Literal("WAREHOUSE"),
+        C.Literal("LAND"),
+        C.Literal("GARAGE")
+      ]),
+      transactionType: C.Union([C.Literal("RENT"), C.Literal("SALE")]),
+      furnishing: C.Union([
+        C.Literal("FURNISHED"),
+        C.Literal("SEMI_FURNISHED"),
+        C.Literal("UNFURNISHED")
+      ]),
+      condition: C.Union([
+        C.Literal("POOR"),
+        C.Literal("FAIR"),
+        C.Literal("GOOD"),
+        C.Literal("EXCELLENT"),
+        C.Literal("NEW")
+      ]),
+      hasParking: C.Boolean(),
+      hasSecurity: C.Boolean(),
+      hasElevator: C.Boolean(),
+      hasGarden: C.Boolean(),
+      hasBalcony: C.Boolean(),
+      hasSwimmingPool: C.Boolean(),
+      buildingAge: C.Optional(C.Number({ minimum: 0 })),
+      floor: C.Optional(C.Number({ minimum: 0 })),
+      totalFloors: C.Optional(C.Number({ minimum: 1 })),
+      image_url: C.Optional(C.String()),
+      images: C.Optional(C.Array(C.String())),
+      ownerId: C.Optional(C.String()),
+      featured: C.Optional(C.Boolean())
+    }), { minItems: 1, maxItems: 50 })
+  }),
+  detail: {
+    tags: ["Properties"],
+    summary: "Bulk create properties",
+    description: "Create multiple properties at once with automatic AI scoring"
+  }
+}).get("/export", async ({ query }) => {
+  try {
+    const { format = "json", propertyType, wilaya, transactionType, status } = query;
+    const where = {};
+    if (propertyType)
+      where.propertyType = propertyType;
+    if (wilaya)
+      where.wilaya = wilaya;
+    if (transactionType)
+      where.transactionType = transactionType;
+    if (status)
+      where.status = status;
+    const properties = await prisma.property.findMany({
+      where,
+      orderBy: { createdAt: "desc" }
+    });
+    if (format === "csv") {
+      const csvHeaders = [
+        "ID",
+        "Title",
+        "Description",
+        "Price",
+        "Area",
+        "Rooms",
+        "Bathrooms",
+        "Wilaya",
+        "City",
+        "Address",
+        "Property Type",
+        "Transaction Type",
+        "Furnishing",
+        "Condition",
+        "Has Parking",
+        "Has Security",
+        "Has Elevator",
+        "Has Garden",
+        "Has Balcony",
+        "Has Swimming Pool",
+        "Building Age",
+        "Floor",
+        "Total Floors",
+        "Status",
+        "Featured",
+        "Created At"
+      ];
+      const csvRows = properties.map((property) => [
+        property.id,
+        property.title,
+        property.description || "",
+        property.price,
+        property.area,
+        property.rooms,
+        property.bathrooms || "",
+        property.wilaya,
+        property.city,
+        property.address || "",
+        property.propertyType,
+        property.transactionType,
+        property.furnishing,
+        property.condition,
+        property.hasParking ? "Yes" : "No",
+        property.hasSecurity ? "Yes" : "No",
+        property.hasElevator ? "Yes" : "No",
+        property.hasGarden ? "Yes" : "No",
+        property.hasBalcony ? "Yes" : "No",
+        property.hasSwimmingPool ? "Yes" : "No",
+        property.buildingAge || "",
+        property.floor || "",
+        property.totalFloors || "",
+        property.status,
+        property.featured ? "Yes" : "No",
+        property.createdAt
+      ]);
+      const csvContent = [csvHeaders, ...csvRows].map((row) => row.map((field) => `"${field}"`).join(",")).join(`
+`);
+      return {
+        success: true,
+        data: {
+          format: "csv",
+          content: csvContent,
+          count: properties.length,
+          filename: `properties_export_${new Date().toISOString().split("T")[0]}.csv`
+        }
+      };
+    }
+    return {
+      success: true,
+      data: {
+        format: "json",
+        properties,
+        count: properties.length,
+        exportedAt: new Date().toISOString()
+      }
+    };
+  } catch (error3) {
+    console.error("Export properties error:", error3);
+    return {
+      success: false,
+      error: "Failed to export properties"
+    };
+  }
+}, {
+  query: C.Object({
+    format: C.Optional(C.Union([C.Literal("json"), C.Literal("csv")])),
+    propertyType: C.Optional(C.Union([
+      C.Literal("APARTMENT"),
+      C.Literal("VILLA"),
+      C.Literal("HOUSE"),
+      C.Literal("OFFICE"),
+      C.Literal("SHOP"),
+      C.Literal("WAREHOUSE"),
+      C.Literal("LAND"),
+      C.Literal("GARAGE")
+    ])),
+    wilaya: C.Optional(C.String()),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    status: C.Optional(C.Union([C.Literal("AVAILABLE"), C.Literal("SOLD"), C.Literal("RENTED"), C.Literal("RESERVED")]))
+  }),
+  detail: {
+    tags: ["Properties"],
+    summary: "Export properties",
+    description: "Export properties in JSON or CSV format with optional filtering"
+  }
+}).get("/analytics", async () => {
+  try {
+    const [
+      totalProperties,
+      propertiesByType,
+      propertiesByWilaya,
+      propertiesByTransactionType,
+      propertiesByStatus,
+      recentProperties,
+      priceStats
+    ] = await Promise.all([
+      prisma.property.count(),
+      prisma.property.groupBy({
+        by: ["propertyType"],
+        _count: { propertyType: true }
+      }),
+      prisma.property.groupBy({
+        by: ["wilaya"],
+        _count: { wilaya: true }
+      }),
+      prisma.property.groupBy({
+        by: ["transactionType"],
+        _count: { transactionType: true }
+      }),
+      prisma.property.groupBy({
+        by: ["status"],
+        _count: { status: true }
+      }),
+      prisma.property.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          propertyType: true,
+          price: true,
+          wilaya: true,
+          createdAt: true
+        }
+      }),
+      prisma.property.aggregate({
+        _avg: { price: true },
+        _min: { price: true },
+        _max: { price: true },
+        _count: { price: true }
+      })
+    ]);
+    return {
+      success: true,
+      data: {
+        overview: {
+          totalProperties,
+          availableProperties: await prisma.property.count({ where: { status: "AVAILABLE" } }),
+          soldProperties: await prisma.property.count({ where: { status: "SOLD" } }),
+          rentedProperties: await prisma.property.count({ where: { status: "RENTED" } })
+        },
+        distribution: {
+          byType: propertiesByType,
+          byWilaya: propertiesByWilaya,
+          byTransactionType: propertiesByTransactionType,
+          byStatus: propertiesByStatus
+        },
+        pricing: {
+          averagePrice: priceStats._avg.price,
+          minPrice: priceStats._min.price,
+          maxPrice: priceStats._max.price,
+          totalProperties: priceStats._count.price
+        },
+        recent: {
+          newProperties: recentProperties,
+          lastWeek: await prisma.property.count({
+            where: {
+              createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+            }
+          }),
+          lastMonth: await prisma.property.count({
+            where: {
+              createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+            }
+          })
+        }
+      }
+    };
+  } catch (error3) {
+    console.error("Property analytics error:", error3);
+    return {
+      success: false,
+      error: "Failed to generate property analytics"
+    };
+  }
+}, {
+  detail: {
+    tags: ["Properties"],
+    summary: "Property analytics and insights",
+    description: "Get comprehensive analytics about properties including distribution, pricing, and trends"
+  }
+}).get("/search", async ({ query }) => {
+  try {
+    const {
+      q: q2,
+      propertyType,
+      transactionType,
+      wilaya,
+      city,
+      priceMin,
+      priceMax,
+      areaMin,
+      areaMax,
+      rooms,
+      hasParking,
+      hasSecurity,
+      hasElevator,
+      hasGarden,
+      hasBalcony,
+      condition,
+      furnishing,
+      featured,
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc"
+    } = query;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const skip2 = (pageNum - 1) * limitNum;
+    const where = {};
+    if (q2) {
+      where.OR = [
+        { title: { contains: q2, mode: "insensitive" } },
+        { description: { contains: q2, mode: "insensitive" } },
+        { address: { contains: q2, mode: "insensitive" } }
+      ];
+    }
+    if (propertyType)
+      where.propertyType = propertyType;
+    if (transactionType)
+      where.transactionType = transactionType;
+    if (wilaya)
+      where.wilaya = wilaya;
+    if (city)
+      where.city = { contains: city, mode: "insensitive" };
+    if (condition)
+      where.condition = condition;
+    if (furnishing)
+      where.furnishing = furnishing;
+    if (featured !== undefined)
+      where.featured = featured === "true";
+    if (priceMin || priceMax) {
+      where.price = {};
+      if (priceMin)
+        where.price.gte = Number(priceMin);
+      if (priceMax)
+        where.price.lte = Number(priceMax);
+    }
+    if (areaMin || areaMax) {
+      where.area = {};
+      if (areaMin)
+        where.area.gte = Number(areaMin);
+      if (areaMax)
+        where.area.lte = Number(areaMax);
+    }
+    if (rooms)
+      where.rooms = Number(rooms);
+    if (hasParking !== undefined)
+      where.hasParking = hasParking === "true";
+    if (hasSecurity !== undefined)
+      where.hasSecurity = hasSecurity === "true";
+    if (hasElevator !== undefined)
+      where.hasElevator = hasElevator === "true";
+    if (hasGarden !== undefined)
+      where.hasGarden = hasGarden === "true";
+    if (hasBalcony !== undefined)
+      where.hasBalcony = hasBalcony === "true";
+    const orderBy = {};
+    orderBy[sortBy] = sortOrder;
+    const [properties, total] = await Promise.all([
+      prisma.property.findMany({
+        where,
+        skip: skip2,
+        take: limitNum,
+        orderBy
+      }),
+      prisma.property.count({ where })
+    ]);
+    return {
+      success: true,
+      data: properties,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
+      search: {
+        query: q2,
+        filters: {
+          propertyType,
+          transactionType,
+          wilaya,
+          city,
+          priceMin,
+          priceMax,
+          areaMin,
+          areaMax,
+          rooms,
+          hasParking,
+          hasSecurity,
+          hasElevator,
+          hasGarden,
+          hasBalcony,
+          condition,
+          furnishing,
+          featured
+        },
+        sortBy,
+        sortOrder
+      }
+    };
+  } catch (error3) {
+    console.error("Search properties error:", error3);
+    return {
+      success: false,
+      error: "Failed to search properties"
+    };
+  }
+}, {
+  query: C.Object({
+    q: C.Optional(C.String({ description: "Search query for title, description, or address" })),
+    propertyType: C.Optional(C.Union([
+      C.Literal("APARTMENT"),
+      C.Literal("VILLA"),
+      C.Literal("HOUSE"),
+      C.Literal("OFFICE"),
+      C.Literal("SHOP"),
+      C.Literal("WAREHOUSE"),
+      C.Literal("LAND"),
+      C.Literal("GARAGE")
+    ])),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    wilaya: C.Optional(C.String()),
+    city: C.Optional(C.String()),
+    priceMin: C.Optional(C.Union([C.Number(), C.String()])),
+    priceMax: C.Optional(C.Union([C.Number(), C.String()])),
+    areaMin: C.Optional(C.Union([C.Number(), C.String()])),
+    areaMax: C.Optional(C.Union([C.Number(), C.String()])),
+    rooms: C.Optional(C.Union([C.Number(), C.String()])),
+    hasParking: C.Optional(C.Union([C.Boolean(), C.String()])),
+    hasSecurity: C.Optional(C.Union([C.Boolean(), C.String()])),
+    hasElevator: C.Optional(C.Union([C.Boolean(), C.String()])),
+    hasGarden: C.Optional(C.Union([C.Boolean(), C.String()])),
+    hasBalcony: C.Optional(C.Union([C.Boolean(), C.String()])),
+    condition: C.Optional(C.Union([
+      C.Literal("POOR"),
+      C.Literal("FAIR"),
+      C.Literal("GOOD"),
+      C.Literal("EXCELLENT"),
+      C.Literal("NEW")
+    ])),
+    furnishing: C.Optional(C.Union([
+      C.Literal("FURNISHED"),
+      C.Literal("SEMI_FURNISHED"),
+      C.Literal("UNFURNISHED")
+    ])),
+    featured: C.Optional(C.Union([C.Boolean(), C.String()])),
+    page: C.Optional(C.Union([C.Number(), C.String()])),
+    limit: C.Optional(C.Union([C.Number(), C.String()])),
+    sortBy: C.Optional(C.Union([
+      C.Literal("createdAt"),
+      C.Literal("price"),
+      C.Literal("area"),
+      C.Literal("title")
+    ])),
+    sortOrder: C.Optional(C.Union([C.Literal("asc"), C.Literal("desc")]))
+  }),
+  detail: {
+    tags: ["Properties"],
+    summary: "Advanced property search",
+    description: "Search properties with comprehensive filtering and sorting options"
+  }
+}).post("/vector-search", async ({ body }) => {
+  try {
+    const {
+      vector,
+      minSimilarity = 0.3,
+      limit = 10,
+      propertyType,
+      transactionType,
+      wilaya,
+      city,
+      priceMin,
+      priceMax,
+      areaMin,
+      areaMax,
+      status = "AVAILABLE"
+    } = body;
+    if (!Array.isArray(vector) || vector.length !== 12) {
+      return {
+        success: false,
+        error: "Vector must be an array of 12 numbers"
+      };
+    }
+    if (!vector.every((v2) => typeof v2 === "number" && v2 >= 0 && v2 <= 1)) {
+      return {
+        success: false,
+        error: "All vector values must be numbers between 0 and 1"
+      };
+    }
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
+    const where = {};
+    if (status)
+      where.status = status;
+    if (propertyType)
+      where.propertyType = propertyType;
+    if (transactionType)
+      where.transactionType = transactionType;
+    if (wilaya)
+      where.wilaya = wilaya;
+    if (city)
+      where.city = city;
+    if (priceMin || priceMax) {
+      where.price = {};
+      if (priceMin)
+        where.price.gte = Number(priceMin);
+      if (priceMax)
+        where.price.lte = Number(priceMax);
+    }
+    if (areaMin || areaMax) {
+      where.area = {};
+      if (areaMin)
+        where.area.gte = Number(areaMin);
+      if (areaMax)
+        where.area.lte = Number(areaMax);
+    }
+    const properties = await prisma.property.findMany({
+      where,
+      take: limitNum * 5,
+      orderBy: { createdAt: "desc" }
+    });
+    const results = properties.map((property) => ({
+      property: {
+        id: property.id,
+        title: property.title,
+        description: property.description,
+        price: property.price,
+        area: property.area,
+        rooms: property.rooms,
+        wilaya: property.wilaya,
+        city: property.city,
+        propertyType: property.propertyType,
+        transactionType: property.transactionType,
+        condition: property.condition,
+        hasParking: property.hasParking,
+        hasSecurity: property.hasSecurity,
+        featured: property.featured,
+        createdAt: property.createdAt
+      },
+      similarity: calculateSimilarity(vector, property.scores),
+      propertyVector: property.scores
+    })).filter((result) => result.similarity >= minSim).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, limitNum).map((result) => ({
+      ...result.property,
+      similarity: Math.round(result.similarity * 1000) / 1000,
+      matchExplanation: generateVectorMatchExplanation(vector, result.propertyVector, result.similarity)
+    }));
+    return {
+      success: true,
+      data: results,
+      metadata: {
+        searchVector: vector,
+        resultsFound: results.length,
+        totalPropertiesScanned: properties.length,
+        minSimilarity: minSim,
+        searchType: "vector-similarity",
+        algorithm: "12D Cosine Similarity"
+      }
+    };
+  } catch (error3) {
+    console.error("Vector search error:", error3);
+    return {
+      success: false,
+      error: "Failed to perform vector search"
+    };
+  }
+}, {
+  body: C.Object({
+    vector: C.Array(C.Number({ minimum: 0, maximum: 1 }), {
+      minItems: 12,
+      maxItems: 12,
+      description: "12D preference vector: [budget, area, rooms, location, propertyType, condition, features, family, modern, investment, urgency, transaction]"
+    }),
+    minSimilarity: C.Optional(C.Number({ minimum: 0, maximum: 1, default: 0.3 })),
+    limit: C.Optional(C.Number({ minimum: 1, maximum: 50, default: 10 })),
+    propertyType: C.Optional(C.Union([
+      C.Literal("APARTMENT"),
+      C.Literal("VILLA"),
+      C.Literal("HOUSE"),
+      C.Literal("OFFICE"),
+      C.Literal("SHOP"),
+      C.Literal("WAREHOUSE"),
+      C.Literal("LAND"),
+      C.Literal("GARAGE")
+    ])),
+    transactionType: C.Optional(C.Union([C.Literal("RENT"), C.Literal("SALE")])),
+    wilaya: C.Optional(C.String()),
+    city: C.Optional(C.String()),
+    priceMin: C.Optional(C.Number({ minimum: 0 })),
+    priceMax: C.Optional(C.Number({ minimum: 0 })),
+    areaMin: C.Optional(C.Number({ minimum: 0 })),
+    areaMax: C.Optional(C.Number({ minimum: 0 })),
+    status: C.Optional(C.Union([
+      C.Literal("AVAILABLE"),
+      C.Literal("SOLD"),
+      C.Literal("RENTED"),
+      C.Literal("RESERVED")
+    ]))
+  }),
+  detail: {
+    tags: ["Properties"],
+    summary: "Vector-based property search",
+    description: `
+## AI-Powered Vector Property Search
+
+Search properties using a 12-dimensional preference vector for intelligent matching.
+
+### \uD83E\uDD16 Vector Format
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0]
+}
+\`\`\`
+
+### \uD83D\uDCCA Vector Dimensions (0.0-1.0)
+0. **Budget**: Price level preference
+1. **Area**: Size requirements 
+2. **Rooms**: Room count preference
+3. **Location**: Geographic desirability (Algeria-optimized)
+4. **Property Type**: Villa, apartment, etc.
+5. **Condition**: Property condition importance
+6. **Features**: Amenities importance
+7. **Family**: Family-friendliness needs
+8. **Modern**: Modernity preference
+9. **Investment**: Investment potential interest
+10. **Urgency**: Decision timeline
+11. **Transaction**: RENT (0.0) vs SALE (1.0)
+
+### \uD83C\uDFAF Use Cases
+- **AI Assistant Integration**: Convert user preferences to vector
+- **Similarity Search**: Find properties matching a preference profile
+- **Recommendation Testing**: Test vectors before creating contacts
+- **Preference Analysis**: Understand what makes properties similar
+
+### \uD83D\uDCA1 Advantages
+- **Semantic Matching**: Goes beyond keyword filtering
+- **Cultural Awareness**: Algeria-optimized scoring
+- **Flexible Filtering**: Combine vector search with traditional filters
+- **Explainable AI**: Get similarity scores and explanations
+
+### \uD83D\uDCDD Example Request
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0],
+  "minSimilarity": 0.7,
+  "limit": 20,
+  "wilaya": "Algiers",
+  "transactionType": "SALE"
+}
+\`\`\`
+      `
+  }
 });
+function generateVectorMatchExplanation(searchVector, propertyVector, similarity) {
+  const dimensions = [
+    "Budget",
+    "Area",
+    "Rooms",
+    "Location",
+    "Property Type",
+    "Condition",
+    "Features",
+    "Family",
+    "Modern",
+    "Investment",
+    "Urgency",
+    "Transaction"
+  ];
+  const strongMatches = [];
+  const weakMatches = [];
+  for (let i = 0;i < 12; i++) {
+    const diff = Math.abs(searchVector[i] - propertyVector[i]);
+    if (diff < 0.2) {
+      strongMatches.push(dimensions[i]);
+    } else if (diff > 0.5) {
+      weakMatches.push(dimensions[i]);
+    }
+  }
+  let explanation = `${Math.round(similarity * 100)}% match. `;
+  if (strongMatches.length > 0) {
+    explanation += `Strong alignment: ${strongMatches.slice(0, 3).join(", ")}. `;
+  }
+  if (weakMatches.length > 0) {
+    explanation += `Differences in: ${weakMatches.slice(0, 2).join(", ")}.`;
+  }
+  return explanation.trim();
+}
 
 // src/routes/recommendations.ts
 var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/:id", async ({ params: { id }, query }) => {
@@ -35356,7 +36550,11 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
         email: true,
         type: true,
         transactionType: true,
+        transactionTypes: true,
+        primaryTransactionType: true,
+        transactionFlexibility: true,
         scores: true,
+        transactionScores: true,
         budgetMin: true,
         budgetMax: true,
         locationWilayas: true
@@ -35371,7 +36569,9 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
     const where = {
       status: "AVAILABLE"
     };
-    if (contact.transactionType) {
+    if (contact.transactionTypes?.length) {
+      where.transactionType = { in: contact.transactionTypes };
+    } else if (contact.transactionType) {
       where.transactionType = contact.transactionType;
     }
     if (transactionType) {
@@ -35399,7 +36599,12 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
       }
     });
     const recommendations = properties.map((property) => {
-      const similarity = calculateSimilarity(contact.scores, property.scores);
+      let similarity = calculateSimilarity(contact.scores, property.scores);
+      if (contact.transactionScores?.length === 2) {
+        const [rentScore, saleScore] = contact.transactionScores;
+        const transactionBonus = property.transactionType === "RENT" ? rentScore : saleScore;
+        similarity = similarity * 0.8 + transactionBonus * 0.2;
+      }
       const avgSuccessScore = property.sales.length > 0 ? property.sales.reduce((sum, sale) => sum + sale.successScore, 0) / property.sales.length : 0.5;
       return {
         property,
@@ -35411,7 +36616,6 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
       property: {
         id: rec.property.id,
         title: rec.property.title,
-        description: rec.property.description,
         price: rec.property.price,
         area: rec.property.area,
         rooms: rec.property.rooms,
@@ -35419,10 +36623,7 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
         city: rec.property.city,
         propertyType: rec.property.propertyType,
         transactionType: rec.property.transactionType,
-        condition: rec.property.condition,
-        hasParking: rec.property.hasParking,
-        hasSecurity: rec.property.hasSecurity,
-        featured: rec.property.featured
+        condition: rec.property.condition
       },
       similarity: Math.round(rec.similarity * 1000) / 1000,
       combinedScore: Math.round(rec.combinedScore * 1000) / 1000,
@@ -35434,31 +36635,100 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
         contact: {
           id: contact.id,
           name: contact.name,
+          email: contact.email,
           type: contact.type,
-          transactionType: contact.transactionType
+          transactionType: contact.transactionType,
+          transactionTypes: contact.transactionTypes,
+          primaryTransactionType: contact.primaryTransactionType,
+          transactionFlexibility: contact.transactionFlexibility
         },
         recommendations,
-        metadata: {
-          totalProperties: properties.length,
-          recommendationsFound: recommendations.length,
+        total: recommendations.length,
+        filters: {
           minSimilarity: minSim,
-          algorithm: "12D Vector Similarity",
-          generatedAt: new Date().toISOString()
+          propertyType,
+          transactionType: where.transactionType,
+          wilaya,
+          priceMin: priceMin ? Number(priceMin) : undefined,
+          priceMax: priceMax ? Number(priceMax) : undefined
         }
       }
     };
   } catch (error3) {
-    console.error("Get contact recommendations error:", error3);
+    console.error("Get recommendations error:", error3);
     return {
       success: false,
-      error: "Failed to generate recommendations"
+      error: "Failed to get recommendations"
     };
   }
 }, {
+  params: C.Object({
+    id: C.String({ description: "Contact ID" })
+  }),
+  query: C.Object({
+    limit: C.Optional(C.Union([
+      C.Number({ minimum: 1, maximum: 50, default: 10 }),
+      C.String()
+    ])),
+    minSimilarity: C.Optional(C.Union([
+      C.Number({ minimum: 0, maximum: 1, default: 0.3 }),
+      C.String()
+    ])),
+    propertyType: C.Optional(C.Union([
+      C.Literal("APARTMENT"),
+      C.Literal("VILLA"),
+      C.Literal("HOUSE"),
+      C.Literal("OFFICE"),
+      C.Literal("SHOP"),
+      C.Literal("WAREHOUSE"),
+      C.Literal("LAND"),
+      C.Literal("GARAGE")
+    ])),
+    transactionType: C.Optional(C.Union([
+      C.Literal("RENT"),
+      C.Literal("SALE")
+    ])),
+    wilaya: C.Optional(C.String()),
+    priceMin: C.Optional(C.Union([
+      C.Number({ minimum: 0 }),
+      C.String()
+    ])),
+    priceMax: C.Optional(C.Union([
+      C.Number({ minimum: 0 }),
+      C.String()
+    ]))
+  }),
   detail: {
     tags: ["Recommendations"],
-    summary: "Get property recommendations for contact",
-    description: "Get AI-powered property recommendations for a specific contact"
+    summary: "Get property recommendations for contact with enhanced transaction support",
+    description: `
+## Enhanced Property Recommendations with Dual Transaction Support
+
+Get AI-powered property recommendations for a contact, now with support for multiple transaction types.
+
+### \uD83D\uDD04 Enhanced Transaction Support
+- **Legacy**: Matches single transactionType
+- **Enhanced**: Matches any transaction type from transactionTypes array
+- **Flexibility**: Considers transaction flexibility in scoring
+- **Primary Preference**: Prioritizes primary transaction type
+
+### \uD83E\uDD16 AI Features
+- **Dual Scoring**: Uses both main scores and transaction scores
+- **Transaction Bonus**: Boosts similarity for matching transaction types
+- **Flexibility Weighting**: Considers how flexible the contact is
+- **Success History**: Incorporates past successful transactions
+
+### \uD83D\uDCCA Scoring Algorithm
+1. **Base Similarity**: 12D vector similarity (80% weight)
+2. **Transaction Bonus**: Transaction type matching (20% weight)
+3. **Success History**: Past transaction success rates
+4. **Combined Score**: Weighted combination for final ranking
+
+### \uD83C\uDFAF Use Cases
+- Flexible buyers open to both renting and buying
+- Investors with multiple transaction strategies
+- Contacts with primary and secondary preferences
+        `
   }
 }).get("/property/:id", async ({ params: { id }, query }) => {
   try {
@@ -35600,33 +36870,100 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
     };
   }
 }, {
+  params: C.Object({
+    id: C.String({ description: "Property ID" })
+  }),
+  query: C.Object({
+    limit: C.Optional(C.Union([
+      C.Number({ minimum: 1, maximum: 50, default: 10 }),
+      C.String()
+    ])),
+    minSimilarity: C.Optional(C.Union([
+      C.Number({ minimum: 0, maximum: 1, default: 0.3 }),
+      C.String()
+    ])),
+    contactType: C.Optional(C.Union([
+      C.Literal("BUYER"),
+      C.Literal("TENANT"),
+      C.Literal("INVESTOR"),
+      C.Literal("SELLER"),
+      C.Literal("LANDLORD")
+    ])),
+    wilaya: C.Optional(C.String()),
+    budgetMin: C.Optional(C.Union([
+      C.Number({ minimum: 0 }),
+      C.String()
+    ])),
+    budgetMax: C.Optional(C.Union([
+      C.Number({ minimum: 0 }),
+      C.String()
+    ]))
+  }),
   detail: {
     tags: ["Recommendations"],
     summary: "Get contact recommendations for property",
-    description: "Get AI-powered contact recommendations for a specific property"
+    description: `
+## Property-to-Contact Recommendations
+
+Get AI-powered contact recommendations for a specific property using 12D vector similarity scoring.
+
+### \uD83D\uDD0D Available Filters
+
+#### **Basic Filters**
+- **limit**: Maximum number of recommendations (1-50, default: 10)
+- **minSimilarity**: Minimum similarity threshold (0-1, default: 0.3)
+
+#### **Contact Type Filter**
+- **contactType**: Filter by contact type
+  - \`BUYER\` - Property buyers
+  - \`TENANT\` - Property renters  
+  - \`INVESTOR\` - Real estate investors
+  - \`SELLER\` - Property sellers
+  - \`LANDLORD\` - Property owners
+
+#### **Location Filter**
+- **wilaya**: Filter contacts by preferred wilaya (Algeria administrative division)
+
+#### **Budget Filters**
+- **budgetMin**: Minimum budget requirement
+- **budgetMax**: Maximum budget limit
+
+### \uD83E\uDD16 AI Algorithm
+- **12D Vector Similarity**: Compares property and contact feature vectors
+- **Budget Compatibility**: Ensures property price fits contact budget
+- **Transaction Type Matching**: Matches property transaction type with contact preferences
+- **Success History**: Incorporates past transaction success rates
+
+### \uD83D\uDCCA Response Structure
+- **property**: Property details
+- **recommendations**: Array of matching contacts with similarity scores
+- **metadata**: Processing statistics and algorithm info
+
+### \uD83C\uDFAF Use Cases
+- Find potential buyers for a property
+- Identify interested tenants for rental properties
+- Market analysis and lead generation
+- Property valuation insights
+        `
   }
 }).post("/bulk", async ({ body }) => {
   try {
     const { propertyIds, minSimilarity = 0.3, limit = 10 } = body;
-    if (!propertyIds || propertyIds.length === 0) {
+    if (!Array.isArray(propertyIds) || propertyIds.length === 0) {
       return {
         success: false,
-        error: "Property IDs are required"
+        error: "Property IDs array is required and cannot be empty"
+      };
+    }
+    if (propertyIds.length > 100) {
+      return {
+        success: false,
+        error: "Maximum 100 properties can be processed at once"
       };
     }
     const limitNum = Math.min(50, Math.max(1, Number(limit)));
     const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
-    const properties = await prisma.property.findMany({
-      where: { id: { in: propertyIds } },
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        transactionType: true,
-        scores: true
-      }
-    });
-    const contacts = await prisma.contact.findMany({
+    const allContacts = await prisma.contact.findMany({
       where: { isActive: true },
       select: {
         id: true,
@@ -35634,43 +36971,90 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
         email: true,
         type: true,
         transactionType: true,
+        transactionTypes: true,
+        primaryTransactionType: true,
+        transactionFlexibility: true,
+        scores: true,
+        transactionScores: true,
         budgetMin: true,
         budgetMax: true,
-        scores: true
+        locationWilayas: true
       }
     });
-    const bulkRecommendations = properties.map((property) => {
-      const compatibleContacts = contacts.filter((contact) => {
-        if (contact.transactionType !== property.transactionType)
+    const results = [];
+    for (const propertyId of propertyIds) {
+      try {
+        const property = await prisma.property.findUnique({
+          where: { id: propertyId },
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            area: true,
+            rooms: true,
+            wilaya: true,
+            city: true,
+            propertyType: true,
+            transactionType: true,
+            condition: true,
+            scores: true
+          }
+        });
+        if (!property) {
+          results.push({
+            propertyId,
+            error: "Property not found"
+          });
+          continue;
+        }
+        const matchingContacts = allContacts.filter((contact) => {
+          if (contact.transactionTypes?.length) {
+            return contact.transactionTypes.includes(property.transactionType);
+          } else if (contact.transactionType) {
+            return contact.transactionType === property.transactionType;
+          }
           return false;
-        if (contact.budgetMin && property.price < contact.budgetMin)
-          return false;
-        if (contact.budgetMax && property.price > contact.budgetMax)
-          return false;
-        return true;
-      });
-      const recommendations = compatibleContacts.map((contact) => ({
-        contact: {
-          id: contact.id,
-          name: contact.name,
-          email: contact.email,
-          type: contact.type
-        },
-        similarity: calculateSimilarity(property.scores, contact.scores)
-      })).filter((rec) => rec.similarity >= minSim).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, limitNum);
-      return {
-        propertyId: property.id,
-        propertyTitle: property.title,
-        recommendationsCount: recommendations.length,
-        recommendations
-      };
-    });
+        });
+        const recommendations = matchingContacts.map((contact) => {
+          let similarity = calculateSimilarity(contact.scores, property.scores);
+          if (contact.transactionScores?.length === 2) {
+            const [rentScore, saleScore] = contact.transactionScores;
+            const transactionBonus = property.transactionType === "RENT" ? rentScore : saleScore;
+            similarity = similarity * 0.8 + transactionBonus * 0.2;
+          }
+          return { contact, similarity };
+        }).filter((rec) => rec.similarity >= minSim).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, limitNum).map((rec) => ({
+          contact: {
+            id: rec.contact.id,
+            name: rec.contact.name,
+            email: rec.contact.email,
+            type: rec.contact.type,
+            transactionType: rec.contact.transactionType,
+            transactionTypes: rec.contact.transactionTypes,
+            primaryTransactionType: rec.contact.primaryTransactionType,
+            transactionFlexibility: rec.contact.transactionFlexibility
+          },
+          similarity: Math.round(rec.similarity * 1000) / 1000
+        }));
+        results.push({
+          propertyId,
+          propertyTitle: property.title,
+          recommendationsCount: recommendations.length,
+          recommendations
+        });
+      } catch (error3) {
+        results.push({
+          propertyId,
+          error: error3 instanceof Error ? error3.message : String(error3)
+        });
+      }
+    }
     return {
       success: true,
-      data: bulkRecommendations,
+      data: results,
       metadata: {
-        propertiesProcessed: properties.length,
-        totalContactsPool: contacts.length,
+        propertiesProcessed: propertyIds.length,
+        totalContactsPool: allContacts.length,
         minSimilarity: minSim,
         generatedAt: new Date().toISOString()
       }
@@ -35690,8 +37074,687 @@ var recommendationsRoutes = new r({ prefix: "/recommendations" }).get("/contact/
   }),
   detail: {
     tags: ["Recommendations"],
-    summary: "Bulk property recommendations",
-    description: "Generate recommendations for multiple properties at once"
+    summary: "Bulk recommendations for properties with enhanced dual transaction support",
+    description: `
+## Bulk Property Recommendations with Enhanced Dual Transaction Support
+
+Get AI-powered contact recommendations for multiple properties at once, now with support for dual transaction types.
+
+### \uD83D\uDD04 Enhanced Transaction Support
+- **Legacy**: Matches single transactionType
+- **Enhanced**: Matches any transaction type from transactionTypes array
+- **Flexibility**: Considers transaction flexibility in scoring
+- **Primary Preference**: Prioritizes primary transaction type
+
+### \uD83D\uDCCA Similarity Thresholds
+- **0.0-0.2**: Very low similarity (rare matches)
+- **0.2-0.4**: Low similarity (some matches)
+- **0.4-0.6**: Medium similarity (good matches)
+- **0.6-0.8**: High similarity (excellent matches)
+- **0.8-1.0**: Very high similarity (perfect matches)
+
+### \uD83D\uDCA1 Recommended Settings
+- **minSimilarity: 0.3** - Good balance of quality and quantity
+- **minSimilarity: 0.5** - Higher quality matches
+- **minSimilarity: 0.7** - Premium matches only
+- **minSimilarity: 0.95** - Perfect matches only (very rare)
+
+### \uD83C\uDFAF Use Cases
+- Batch processing multiple properties
+- Market analysis and insights
+- Lead generation campaigns
+- Portfolio optimization
+        `
+  }
+}).get("/analytics", async () => {
+  try {
+    const [
+      totalContacts,
+      totalProperties,
+      recentRecommendations,
+      topSimilarityScores
+    ] = await Promise.all([
+      prisma.contact.count({ where: { isActive: true } }),
+      prisma.property.count({ where: { status: "AVAILABLE" } }),
+      prisma.sale.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          contact: { select: { name: true, type: true } },
+          property: { select: { title: true, propertyType: true } }
+        }
+      }),
+      prisma.sale.aggregate({
+        _avg: { successScore: true },
+        _max: { successScore: true },
+        _min: { successScore: true }
+      })
+    ]);
+    const successfulSales = recentRecommendations.filter((sale) => sale.successScore >= 0.7);
+    const effectivenessRate = recentRecommendations.length > 0 ? successfulSales.length / recentRecommendations.length * 100 : 0;
+    return {
+      success: true,
+      data: {
+        overview: {
+          totalContacts,
+          totalProperties,
+          potentialMatches: totalContacts * totalProperties,
+          averageSuccessScore: topSimilarityScores._avg.successScore
+        },
+        effectiveness: {
+          totalSales: recentRecommendations.length,
+          successfulSales: successfulSales.length,
+          effectivenessRate: Math.round(effectivenessRate * 100) / 100,
+          averageSuccessScore: topSimilarityScores._avg.successScore,
+          maxSuccessScore: topSimilarityScores._max.successScore,
+          minSuccessScore: topSimilarityScores._min.successScore
+        },
+        recentActivity: {
+          recentSales: recentRecommendations.map((sale) => ({
+            contactName: sale.contact.name,
+            contactType: sale.contact.type,
+            propertyTitle: sale.property.title,
+            propertyType: sale.property.propertyType,
+            successScore: sale.successScore,
+            saleDate: sale.saleDate
+          }))
+        },
+        algorithm: {
+          name: "12D Vector Similarity",
+          dimensions: 12,
+          optimization: "Algeria-specific",
+          learningEnabled: true
+        }
+      }
+    };
+  } catch (error3) {
+    console.error("Recommendation analytics error:", error3);
+    return {
+      success: false,
+      error: "Failed to generate recommendation analytics"
+    };
+  }
+}, {
+  detail: {
+    tags: ["Recommendations"],
+    summary: "Recommendation system analytics",
+    description: "Get comprehensive analytics about the recommendation system performance"
+  }
+}).get("/similarity-matrix/:contactId", async ({ params: { contactId }, query }) => {
+  try {
+    const { limit = 20 } = query;
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const contact = await prisma.contact.findUnique({
+      where: { id: contactId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        transactionType: true,
+        scores: true
+      }
+    });
+    if (!contact) {
+      return {
+        success: false,
+        error: "Contact not found"
+      };
+    }
+    const properties = await prisma.property.findMany({
+      where: {
+        status: "AVAILABLE",
+        transactionType: contact.transactionType
+      },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        area: true,
+        rooms: true,
+        wilaya: true,
+        city: true,
+        propertyType: true,
+        scores: true
+      }
+    });
+    const similarityMatrix = properties.map((property) => {
+      const similarity = calculateSimilarity(contact.scores, property.scores);
+      return {
+        property: {
+          id: property.id,
+          title: property.title,
+          price: property.price,
+          area: property.area,
+          rooms: property.rooms,
+          wilaya: property.wilaya,
+          city: property.city,
+          propertyType: property.propertyType
+        },
+        similarity: Math.round(similarity * 1000) / 1000,
+        explanation: generateExplanation(contact, property, similarity)
+      };
+    }).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, limitNum);
+    return {
+      success: true,
+      data: {
+        contact: {
+          id: contact.id,
+          name: contact.name,
+          type: contact.type,
+          transactionType: contact.transactionType
+        },
+        similarityMatrix,
+        metadata: {
+          totalProperties: properties.length,
+          matrixSize: similarityMatrix.length,
+          algorithm: "12D Vector Similarity",
+          generatedAt: new Date().toISOString()
+        }
+      }
+    };
+  } catch (error3) {
+    console.error("Similarity matrix error:", error3);
+    return {
+      success: false,
+      error: "Failed to generate similarity matrix"
+    };
+  }
+}, {
+  query: C.Object({
+    limit: C.Optional(C.Union([C.Number(), C.String()]))
+  }),
+  detail: {
+    tags: ["Recommendations"],
+    summary: "Generate similarity matrix for contact",
+    description: "Get a complete similarity matrix showing how well a contact matches all available properties"
+  }
+}).post("/batch-process", async ({ body }) => {
+  try {
+    const { contactIds, propertyIds, minSimilarity = 0.3, limit = 10 } = body;
+    if (!Array.isArray(contactIds) || contactIds.length === 0) {
+      return {
+        success: false,
+        error: "Contact IDs array is required and cannot be empty"
+      };
+    }
+    if (!Array.isArray(propertyIds) || propertyIds.length === 0) {
+      return {
+        success: false,
+        error: "Property IDs array is required and cannot be empty"
+      };
+    }
+    if (contactIds.length > 50 || propertyIds.length > 50) {
+      return {
+        success: false,
+        error: "Maximum 50 contacts and 50 properties can be processed at once"
+      };
+    }
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
+    const [contacts, properties] = await Promise.all([
+      prisma.contact.findMany({
+        where: {
+          id: { in: contactIds },
+          isActive: true
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          type: true,
+          transactionType: true,
+          scores: true
+        }
+      }),
+      prisma.property.findMany({
+        where: {
+          id: { in: propertyIds },
+          status: "AVAILABLE"
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          area: true,
+          rooms: true,
+          wilaya: true,
+          city: true,
+          propertyType: true,
+          transactionType: true,
+          scores: true
+        }
+      })
+    ]);
+    const results = [];
+    for (const contact of contacts) {
+      const contactResults = {
+        contactId: contact.id,
+        contactName: contact.name,
+        recommendations: []
+      };
+      const matchingProperties = properties.filter((property) => property.transactionType === contact.transactionType);
+      const recommendations = matchingProperties.map((property) => {
+        const similarity = calculateSimilarity(contact.scores, property.scores);
+        return { property, similarity };
+      }).filter((rec) => rec.similarity >= minSim).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, limitNum).map((rec) => ({
+        property: {
+          id: rec.property.id,
+          title: rec.property.title,
+          price: rec.property.price,
+          wilaya: rec.property.wilaya,
+          propertyType: rec.property.propertyType
+        },
+        similarity: Math.round(rec.similarity * 1000) / 1000
+      }));
+      contactResults.recommendations = recommendations;
+      results.push(contactResults);
+    }
+    return {
+      success: true,
+      data: results,
+      metadata: {
+        contactsProcessed: contacts.length,
+        propertiesProcessed: properties.length,
+        totalRecommendations: results.reduce((sum, result) => sum + result.recommendations.length, 0),
+        minSimilarity: minSim,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (error3) {
+    console.error("Batch recommendation processing error:", error3);
+    return {
+      success: false,
+      error: "Failed to process batch recommendations"
+    };
+  }
+}, {
+  body: C.Object({
+    contactIds: C.Array(C.String(), { minItems: 1, maxItems: 50 }),
+    propertyIds: C.Array(C.String(), { minItems: 1, maxItems: 50 }),
+    minSimilarity: C.Optional(C.Number({ minimum: 0, maximum: 1 })),
+    limit: C.Optional(C.Number({ minimum: 1, maximum: 50 }))
+  }),
+  detail: {
+    tags: ["Recommendations"],
+    summary: "Batch recommendation processing for multiple contacts and properties",
+    description: `
+## \uD83D\uDE80 Batch Recommendation Processing
+
+Process recommendations for **multiple contacts against multiple properties simultaneously**, creating a comprehensive matching matrix for bulk operations.
+
+### \uD83C\uDFAF What Is Batch Processing?
+
+Batch processing takes arrays of contact IDs and property IDs, then finds the best property matches for each contact using AI-powered similarity scoring. Perfect for lead generation, portfolio analysis, and market research.
+
+### \uD83D\uDCCA Key Features
+
+- **Many-to-Many Processing**: Multiple contacts \xD7 Multiple properties (up to 50\xD750 = 2,500 combinations)
+- **Contact-Centric Results**: Each contact gets their best property matches
+- **AI-Powered Matching**: Uses 12D vector similarity scoring with enhanced dual transaction support
+- **Transaction Type Filtering**: Only matches compatible transaction types
+- **Performance Optimized**: Efficient parallel processing
+
+### \uD83D\uDD04 Algorithm Flow
+
+1. **Input Validation**: Validate contact and property IDs arrays
+2. **Data Fetching**: Retrieve contacts and properties in parallel
+3. **For Each Contact**:
+   - Filter properties by compatible transaction types
+   - Calculate AI similarity scores using 12D vectors
+   - Apply transaction type bonuses for dual transaction contacts
+   - Filter by minimum similarity threshold
+   - Sort by similarity score and take top N results
+4. **Return Results**: Contact-centric recommendation matrix
+
+### \uD83C\uDFAF Use Cases
+
+#### **Lead Generation Campaigns**
+Generate targeted property recommendations for marketing segments:
+\`\`\`json
+{
+  "contactIds": ["segment_buyers_001", "segment_buyers_002"],
+  "propertyIds": ["new_listing_001", "new_listing_002"],
+  "minSimilarity": 0.4,
+  "limit": 3
+}
+\`\`\`
+
+#### **Portfolio Analysis**
+Analyze which properties match investor clients:
+\`\`\`json
+{
+  "contactIds": ["investor_001", "investor_002"],
+  "propertyIds": ["commercial_001", "office_001", "retail_001"],
+  "minSimilarity": 0.6,
+  "limit": 5
+}
+\`\`\`
+
+#### **Market Research**
+Broad market demand analysis:
+\`\`\`json
+{
+  "contactIds": ["sample_contacts_array"],
+  "propertyIds": ["market_properties_array"],
+  "minSimilarity": 0.2,
+  "limit": 10
+}
+\`\`\`
+
+#### **Sales Team Optimization**
+Daily property matches for active contacts:
+\`\`\`json
+{
+  "contactIds": ["active_contact_001", "active_contact_002"],
+  "propertyIds": ["available_property_001", "available_property_002"],
+  "minSimilarity": 0.35,
+  "limit": 4
+}
+\`\`\`
+
+### \uD83D\uDCCA Performance Guidelines
+
+| Batch Size | Contacts | Properties | Combinations | Response Time | Recommended Use |
+|------------|----------|------------|--------------|---------------|-----------------|
+| **Small** | 5-10 | 5-15 | 25-150 | < 500ms | Quick campaigns |
+| **Medium** | 15-25 | 20-30 | 300-750 | 500ms-2s | Regular operations |
+| **Large** | 30-50 | 35-50 | 1,050-2,500 | 2s-5s | Comprehensive analysis |
+
+### \uD83D\uDCA1 Similarity Threshold Guidelines
+
+- **0.2-0.3**: Broad matching for market research
+- **0.3-0.5**: Balanced quality/quantity for campaigns \u2705 **Recommended**
+- **0.5-0.7**: High-quality matches for premium clients
+- **0.7-1.0**: Exclusive matches (very selective)
+
+### \uD83D\uDD04 Enhanced Dual Transaction Support
+
+The batch processor now supports contacts with multiple transaction types:
+- **Legacy contacts**: Single transaction type (RENT or SALE)
+- **Enhanced contacts**: Multiple transaction types with primary preference
+- **Flexibility scoring**: Transaction flexibility weighting in recommendations
+- **Transaction bonuses**: Similarity boosts for matching transaction types
+
+### \u2699\uFE0F Request Parameters
+
+- **contactIds**: Array of contact IDs (1-50 required)
+- **propertyIds**: Array of property IDs (1-50 required)  
+- **minSimilarity**: Minimum similarity threshold (0-1, default: 0.3)
+- **limit**: Maximum recommendations per contact (1-50, default: 10)
+
+### \uD83D\uDCC8 Response Structure
+
+Each contact receives:
+- **contactId**: Contact identifier
+- **contactName**: Contact name for reference
+- **recommendations**: Array of matching properties with similarity scores
+- **metadata**: Processing statistics and performance info
+
+### \uD83D\uDEE1\uFE0F Error Handling
+
+Common validation errors:
+- Empty contact or property arrays
+- Arrays exceeding 50 items
+- Invalid similarity thresholds
+- Server processing errors
+
+### \uD83D\uDD17 Related Endpoints
+
+- **Individual**: \`/recommendations/contact/{id}\` - Single contact recommendations
+- **Property**: \`/recommendations/property/{id}\` - Single property marketing
+- **Bulk**: \`/recommendations/bulk\` - Multiple properties to contacts
+- **Batch**: \`/recommendations/batch-process\` - Multiple contacts to properties \u2B50
+
+### \uD83C\uDF89 Integration Examples
+
+Perfect for integrating with:
+- **CRM Systems**: Lead generation and contact management
+- **Email Marketing**: Personalized property recommendations  
+- **Analytics Dashboards**: Market insights and demand analysis
+- **Sales Tools**: Daily prospect matching and follow-up lists
+
+### \uD83C\uDDE9\uD83C\uDDFF Algeria Market Optimization
+
+- **48 Wilayas Support**: Geographic coverage across Algeria
+- **DZD Currency**: All prices in Algerian Dinar
+- **Cultural Preferences**: Family-oriented and investment patterns
+- **Property Types**: Villa, apartment, office, land, and commercial spaces
+        `,
+    responses: {
+      "200": {
+        description: "Batch processing completed successfully",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean", example: true },
+                data: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      contactId: { type: "string", example: "cmd92djy5000a14ollrdik8y8" },
+                      contactName: { type: "string", example: "Sara Benmoussa" },
+                      recommendations: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            property: {
+                              type: "object",
+                              properties: {
+                                id: { type: "string", example: "cmd92dk6q000d14ol3ervqga7" },
+                                title: { type: "string", example: "Bureau 120m\xB2 Centre d'Alger" },
+                                price: { type: "number", example: 45000000, description: "Price in DZD" },
+                                wilaya: { type: "string", example: "Algiers" },
+                                propertyType: { type: "string", example: "OFFICE" }
+                              }
+                            },
+                            similarity: { type: "number", minimum: 0, maximum: 1, example: 0.875, description: "AI similarity score" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                metadata: {
+                  type: "object",
+                  properties: {
+                    contactsProcessed: { type: "number", example: 2 },
+                    propertiesProcessed: { type: "number", example: 3 },
+                    totalRecommendations: { type: "number", example: 4 },
+                    minSimilarity: { type: "number", example: 0.3 },
+                    generatedAt: { type: "string", format: "date-time", example: "2025-07-18T17:37:34.820Z" }
+                  }
+                }
+              }
+            },
+            examples: {
+              lead_generation_campaign: {
+                summary: "Lead Generation Campaign Results",
+                description: "Batch processing results for a targeted marketing campaign with multiple contacts and new property listings",
+                value: {
+                  success: true,
+                  data: [
+                    {
+                      contactId: "cmd92djy5000a14ollrdik8y8",
+                      contactName: "Sara Benmoussa",
+                      recommendations: [
+                        {
+                          property: {
+                            id: "cmd92dk6q000d14ol3ervqga7",
+                            title: "Bureau 120m\xB2 Centre d'Alger",
+                            price: 45000000,
+                            wilaya: "Algiers",
+                            propertyType: "OFFICE"
+                          },
+                          similarity: 0.875
+                        },
+                        {
+                          property: {
+                            id: "cmd92dkfg000g14olx9jckmji",
+                            title: "Terrain constructible \xE0 Tipaza",
+                            price: 8000000,
+                            wilaya: "Tipaza",
+                            propertyType: "LAND"
+                          },
+                          similarity: 0.764
+                        }
+                      ]
+                    },
+                    {
+                      contactId: "cmd92djwf000914oljj04qcej",
+                      contactName: "Youcef Hamidi",
+                      recommendations: []
+                    }
+                  ],
+                  metadata: {
+                    contactsProcessed: 2,
+                    propertiesProcessed: 3,
+                    totalRecommendations: 2,
+                    minSimilarity: 0.3,
+                    generatedAt: "2025-07-18T17:37:34.820Z"
+                  }
+                }
+              },
+              portfolio_analysis: {
+                summary: "Investment Portfolio Analysis",
+                description: "High-quality matches for investor clients analyzing commercial properties",
+                value: {
+                  success: true,
+                  data: [
+                    {
+                      contactId: "investor_premium_001",
+                      contactName: "Karim Investment Group",
+                      recommendations: [
+                        {
+                          property: {
+                            id: "commercial_office_001",
+                            title: "Premium Office Complex Algiers",
+                            price: 150000000,
+                            wilaya: "Algiers",
+                            propertyType: "OFFICE"
+                          },
+                          similarity: 0.92
+                        },
+                        {
+                          property: {
+                            id: "retail_center_001",
+                            title: "Shopping Center Oran",
+                            price: 200000000,
+                            wilaya: "Oran",
+                            propertyType: "SHOP"
+                          },
+                          similarity: 0.87
+                        }
+                      ]
+                    }
+                  ],
+                  metadata: {
+                    contactsProcessed: 1,
+                    propertiesProcessed: 5,
+                    totalRecommendations: 2,
+                    minSimilarity: 0.6,
+                    generatedAt: "2025-07-18T17:37:34.820Z"
+                  }
+                }
+              },
+              market_research: {
+                summary: "Market Research Analysis",
+                description: "Broad market analysis for research purposes with lower similarity threshold",
+                value: {
+                  success: true,
+                  data: [
+                    {
+                      contactId: "research_segment_001",
+                      contactName: "Young Professionals Segment",
+                      recommendations: [
+                        {
+                          property: {
+                            id: "modern_apartment_001",
+                            title: "Modern F3 Apartment",
+                            price: 12000000,
+                            wilaya: "Algiers",
+                            propertyType: "APARTMENT"
+                          },
+                          similarity: 0.45
+                        }
+                      ]
+                    }
+                  ],
+                  metadata: {
+                    contactsProcessed: 3,
+                    propertiesProcessed: 10,
+                    totalRecommendations: 8,
+                    minSimilarity: 0.2,
+                    generatedAt: "2025-07-18T17:37:34.820Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        description: "Bad request - validation errors",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean", example: false },
+                error: { type: "string" }
+              }
+            },
+            examples: {
+              empty_contact_ids: {
+                summary: "Empty Contact IDs",
+                value: {
+                  success: false,
+                  error: "Contact IDs array is required and cannot be empty"
+                }
+              },
+              empty_property_ids: {
+                summary: "Empty Property IDs",
+                value: {
+                  success: false,
+                  error: "Property IDs array is required and cannot be empty"
+                }
+              },
+              too_many_items: {
+                summary: "Batch Size Limit Exceeded",
+                value: {
+                  success: false,
+                  error: "Maximum 50 contacts and 50 properties can be processed at once"
+                }
+              },
+              invalid_similarity: {
+                summary: "Invalid Similarity Threshold",
+                value: {
+                  success: false,
+                  error: "Minimum similarity must be between 0 and 1"
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        description: "Internal server error",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean", example: false },
+                error: { type: "string", example: "Failed to process batch recommendations" }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 });
 function generateExplanation(contact, property, similarity) {
@@ -36400,6 +38463,9 @@ var settingsRoutes = new r({ prefix: "/settings" }).get("/", async ({ query }) =
 
 // src/index.ts
 var PORT = process.env.PORT || 3000;
+var HOST = process.env.HOST || "localhost";
+var PROTOCOL = process.env.PROTOCOL || "http";
+var BASE_URL = process.env.BASE_URL || `${PROTOCOL}://${HOST}:${PORT}`;
 var app = new r().use(cors({
   origin: true,
   credentials: true
@@ -36444,8 +38510,16 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
     },
     servers: [
       {
+        url: BASE_URL,
+        description: "Production Server - Algeria Real Estate AI"
+      },
+      {
         url: `http://localhost:${PORT}`,
         description: "Development Server - Algeria Real Estate AI"
+      },
+      {
+        url: `https://api.smartcontact.dz`,
+        description: "Production API - Smart Contact Algeria"
       }
     ],
     tags: [
@@ -36561,6 +38635,18 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
               type: "string",
               enum: ["POOR", "FAIR", "GOOD", "EXCELLENT", "NEW"],
               description: "Property condition"
+            },
+            image_url: {
+              type: "string",
+              nullable: true,
+              description: "Main property image URL",
+              example: "/uploads/villa-12345.jpg"
+            },
+            images: {
+              type: "array",
+              items: { type: "string" },
+              description: "Additional property images",
+              example: ["/uploads/image1.jpg", "/uploads/image2.jpg"]
             },
             scores: {
               type: "array",
@@ -36870,6 +38956,45 @@ Real-time statistics and insights about the Algeria real estate platform perform
       }
     }
   }
+}).get("/uploads/*", async ({ params, set: set2 }) => {
+  try {
+    const filePath = params["*"];
+    const fullPath = path2.join(process.cwd(), "uploads", filePath);
+    const normalizedPath = path2.normalize(fullPath);
+    const uploadsDir = path2.join(process.cwd(), "uploads");
+    if (!normalizedPath.startsWith(uploadsDir)) {
+      set2.status = 403;
+      return { success: false, error: "Access denied" };
+    }
+    if (!existsSync2(fullPath)) {
+      set2.status = 404;
+      return { success: false, error: "File not found" };
+    }
+    const stats = await stat(fullPath);
+    if (!stats.isFile()) {
+      set2.status = 404;
+      return { success: false, error: "File not found" };
+    }
+    const ext = path2.extname(filePath).toLowerCase();
+    const contentTypes = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+      ".pdf": "application/pdf",
+      ".txt": "text/plain"
+    };
+    set2.headers["Content-Type"] = contentTypes[ext] || "application/octet-stream";
+    set2.headers["Content-Length"] = stats.size.toString();
+    set2.headers["Cache-Control"] = "public, max-age=31536000";
+    return Bun.file(fullPath);
+  } catch (error3) {
+    console.error("Static file serving error:", error3);
+    set2.status = 500;
+    return { success: false, error: "Failed to serve file" };
+  }
 }).group("/api", (app2) => app2.use(contactsRoutes).use(propertiesRoutes).use(recommendationsRoutes).use(salesRoutes).use(settingsRoutes)).onError(({ code, error: error3, set: set2 }) => {
   const errorMessage = error3 instanceof Error ? error3.message : String(error3);
   console.error(`[${code}] ${errorMessage}`);
@@ -36911,13 +39036,18 @@ process.on("SIGTERM", async () => {
 });
 var src_default = {
   port: Number(PORT),
-  hostname: "0.0.0.0",
+  hostname: HOST === "localhost" ? "0.0.0.0" : HOST,
   fetch: app.fetch,
-  development: false
+  development: true
 };
 (async () => {
   try {
     console.log("\uD83D\uDE80 Starting Smart Contact System...");
+    const uploadsDir = path2.join(process.cwd(), "uploads");
+    if (!existsSync2(uploadsDir)) {
+      await mkdir2(uploadsDir, { recursive: true });
+      console.log("\uD83D\uDCC1 Created uploads directory");
+    }
     initializeRedis();
     const dbConnected = await testDatabaseConnection();
     if (!dbConnected) {
@@ -36929,8 +39059,8 @@ var src_default = {
       console.warn("Redis connection failed, continuing without cache");
     }
     console.log("\u2705 Smart Contact System initialized successfully!");
-    console.log(`\uD83C\uDF10 Server will start on: http://localhost:${PORT}`);
-    console.log(`\uD83D\uDCDA Swagger: http://localhost:${PORT}/swagger`);
+    console.log(`\uD83C\uDF10 Server will start on: ${BASE_URL}`);
+    console.log(`\uD83D\uDCDA Swagger: ${BASE_URL}/swagger`);
     console.log(`\uD83C\uDDE9\uD83C\uDDFF Algeria Real Estate AI System Ready!`);
   } catch (error3) {
     console.error("\u274C Failed to initialize server:", error3);

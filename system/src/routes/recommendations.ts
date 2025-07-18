@@ -310,12 +310,6 @@ Get AI-powered property recommendations for a contact, now with support for mult
       where.AND = where.AND || [];
       where.AND.push({
         OR: [
-          { budgetMin: { lte: property.price } },
-          { budgetMin: null }
-        ]
-      });
-      where.AND.push({
-        OR: [
           { budgetMax: { gte: property.price } },
           { budgetMax: null }
         ]
@@ -401,10 +395,78 @@ Get AI-powered property recommendations for a contact, now with support for mult
       };
     }
   }, {
+    params: t.Object({
+      id: t.String({ description: 'Property ID' })
+    }),
+    query: t.Object({
+      limit: t.Optional(t.Union([
+        t.Number({ minimum: 1, maximum: 50, default: 10 }),
+        t.String()
+      ])),
+      minSimilarity: t.Optional(t.Union([
+        t.Number({ minimum: 0, maximum: 1, default: 0.3 }),
+        t.String()
+      ])),
+      contactType: t.Optional(t.Union([
+        t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('INVESTOR'),
+        t.Literal('SELLER'), t.Literal('LANDLORD')
+      ])),
+      wilaya: t.Optional(t.String()),
+      budgetMin: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ])),
+      budgetMax: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ]))
+    }),
     detail: {
       tags: ['Recommendations'],
       summary: 'Get contact recommendations for property',
-      description: 'Get AI-powered contact recommendations for a specific property'
+      description: `
+## Property-to-Contact Recommendations
+
+Get AI-powered contact recommendations for a specific property using 12D vector similarity scoring.
+
+### 🔍 Available Filters
+
+#### **Basic Filters**
+- **limit**: Maximum number of recommendations (1-50, default: 10)
+- **minSimilarity**: Minimum similarity threshold (0-1, default: 0.3)
+
+#### **Contact Type Filter**
+- **contactType**: Filter by contact type
+  - \`BUYER\` - Property buyers
+  - \`TENANT\` - Property renters  
+  - \`INVESTOR\` - Real estate investors
+  - \`SELLER\` - Property sellers
+  - \`LANDLORD\` - Property owners
+
+#### **Location Filter**
+- **wilaya**: Filter contacts by preferred wilaya (Algeria administrative division)
+
+#### **Budget Filters**
+- **budgetMin**: Minimum budget requirement
+- **budgetMax**: Maximum budget limit
+
+### 🤖 AI Algorithm
+- **12D Vector Similarity**: Compares property and contact feature vectors
+- **Budget Compatibility**: Ensures property price fits contact budget
+- **Transaction Type Matching**: Matches property transaction type with contact preferences
+- **Success History**: Incorporates past transaction success rates
+
+### 📊 Response Structure
+- **property**: Property details
+- **recommendations**: Array of matching contacts with similarity scores
+- **metadata**: Processing statistics and algorithm info
+
+### 🎯 Use Cases
+- Find potential buyers for a property
+- Identify interested tenants for rental properties
+- Market analysis and lead generation
+- Property valuation insights
+        `
     }
   })
 

@@ -2,7 +2,7 @@
 
 **AI-Powered Real Estate Recommendation System for Algeria**
 
-A sophisticated recommendation system using 12-dimensional vectors to match properties with potential buyers, tenants, and investors across all 48 Algerian wilayas.
+A sophisticated recommendation system using 12-dimensional vectors to match properties with potential buyers, tenants, and investors across all 58 Algerian wilayas.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Elysia](https://img.shields.io/badge/Elysia-FF6B35?style=flat&logo=bun&logoColor=white)](https://elysiajs.com/)
@@ -15,6 +15,7 @@ A sophisticated recommendation system using 12-dimensional vectors to match prop
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Bun** 1.0+ (recommended) or Node.js 18+
 - Access to provided PostgreSQL database
 - Access to provided Redis instance
@@ -22,12 +23,14 @@ A sophisticated recommendation system using 12-dimensional vectors to match prop
 ### Installation
 
 #### Option 1: Quick Start (Recommended)
+
 ```bash
 # One-command setup and start
 ./run.sh
 ```
 
 #### Option 2: Manual Setup
+
 ```bash
 # 1. Install dependencies
 bun install
@@ -49,6 +52,7 @@ bun src/index.ts
 ```
 
 #### Option 3: Development Mode
+
 ```bash
 # Start with hot reload
 bun run dev
@@ -70,6 +74,7 @@ PORT=3001
 ```
 
 **🌐 Access Points:**
+
 - **API Server**: `http://localhost:3001`
 - **Swagger Documentation**: `http://localhost:3001/swagger`
 - **Health Check**: `http://localhost:3001/health`
@@ -83,6 +88,7 @@ PORT=3001
 The system uses a streamlined approach with only **2 core tables** plus supporting tables:
 
 #### **Contacts Table**
+
 ```typescript
 {
   id: string,
@@ -123,6 +129,7 @@ The system uses a streamlined approach with only **2 core tables** plus supporti
 ```
 
 #### **Properties Table**
+
 ```typescript
 {
   id: string,
@@ -174,6 +181,7 @@ The system uses a streamlined approach with only **2 core tables** plus supporti
 ```
 
 #### **Supporting Tables**
+
 - **Sales**: Learning data for improving recommendations
 - **Settings**: System configuration and algorithm parameters
 
@@ -216,12 +224,14 @@ Each contact and property has a **12-dimensional vector** for perfect compatibil
 ### Core Endpoints
 
 #### **Health & System**
+
 ```http
 GET /health                    # System health check
 GET /api/stats                 # System statistics
 ```
 
 #### **Contacts Management**
+
 ```http
 GET    /api/contacts           # List contacts with filters
 POST   /api/contacts           # Create new contact
@@ -231,6 +241,7 @@ DELETE /api/contacts/:id       # Delete contact
 ```
 
 #### **Properties Management**
+
 ```http
 GET    /api/properties         # List properties with filters
 POST   /api/properties         # Create new property
@@ -240,12 +251,14 @@ DELETE /api/properties/:id     # Delete property
 ```
 
 #### **AI Recommendations**
+
 ```http
 GET /api/recommendations/contact/:id    # Get property recommendations for contact
 GET /api/recommendations/property/:id   # Get contact recommendations for property
 ```
 
 #### **Learning System**
+
 ```http
 GET    /api/sales              # List sales data
 POST   /api/sales              # Record new sale (triggers learning)
@@ -253,6 +266,7 @@ GET    /api/sales/:id          # Get sale details
 ```
 
 #### **Settings Management**
+
 ```http
 GET    /api/settings           # List all settings
 GET    /api/settings/:key      # Get setting by key
@@ -264,6 +278,7 @@ DELETE /api/settings/:key      # Delete setting
 ### Example API Usage
 
 #### Create a Contact
+
 ```bash
 curl -X POST http://localhost:3001/api/contacts \
   -H "Content-Type: application/json" \
@@ -284,6 +299,7 @@ curl -X POST http://localhost:3001/api/contacts \
 ```
 
 #### Get Recommendations
+
 ```bash
 curl "http://localhost:3001/api/recommendations/contact/{contactId}?limit=10&minSimilarity=0.7"
 ```
@@ -372,6 +388,7 @@ The system comes pre-seeded with realistic Algerian real estate data:
 - **5 System Settings**: Algorithm configuration
 
 ### Locations Covered
+
 - **Algiers**: Hydra, Bab Ezzouar, Ben Aknoun, Alger Centre
 - **Oran**: Es Senia, Oran Centre
 - **Constantine**: City center and surrounding areas
@@ -379,6 +396,7 @@ The system comes pre-seeded with realistic Algerian real estate data:
 - Other major wilayas
 
 ### Property Types
+
 - Villas with gardens
 - Modern apartments
 - Commercial offices
@@ -393,6 +411,7 @@ The system comes pre-seeded with realistic Algerian real estate data:
 ### ✅ **Implemented**
 
 #### **Core System**
+
 - ✅ **12D Vector System**: Perfect contact-property matching
 - ✅ **Auto-Score Generation**: Automatic vector calculation from data
 - ✅ **Algeria Optimization**: All 48 wilayas, DZD pricing, cultural factors
@@ -401,6 +420,7 @@ The system comes pre-seeded with realistic Algerian real estate data:
 - ✅ **API Documentation**: Swagger/OpenAPI integration
 
 #### **API Endpoints**
+
 - ✅ **CRUD Operations**: Complete contact and property management
 - ✅ **Recommendation Engine**: AI-powered matching
 - ✅ **Learning System**: Sales-based preference updates
@@ -408,6 +428,7 @@ The system comes pre-seeded with realistic Algerian real estate data:
 - ✅ **Health Monitoring**: System status and statistics
 
 #### **Algeria-Specific**
+
 - ✅ **Wilaya Support**: All 48 Algerian wilayas
 - ✅ **DZD Pricing**: Proper currency and range handling
 - ✅ **Cultural Factors**: Family size, children, security preferences
@@ -430,18 +451,21 @@ The system comes pre-seeded with realistic Algerian real estate data:
 ## 📞 Usage Examples
 
 ### Traditional Search
+
 ```bash
 # Find apartments in Algiers under 70K DZD/month
 GET /api/properties?wilaya=Algiers&propertyType=APARTMENT&transactionType=RENT&priceMax=70000
 ```
 
 ### AI-Powered Recommendations
+
 ```bash
 # Get AI recommendations for a specific contact
 GET /api/recommendations/contact/{id}?limit=10&minSimilarity=0.7
 ```
 
 ### Learning from Sales
+
 ```bash
 # Record a successful sale to improve recommendations
 POST /api/sales
