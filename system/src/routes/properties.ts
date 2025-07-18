@@ -174,17 +174,17 @@ export const propertiesRoutes = new Elysia({ prefix: '/properties' })
       } else {
         // Regular search without geospatial filtering
         [properties, total] = await Promise.all([
-          prisma.property.findMany({
-            where,
-            skip,
-            take: limitNum,
-            orderBy: [
-              { featured: 'desc' },
-              { createdAt: 'desc' }
-            ]
-          }),
-          prisma.property.count({ where })
-        ]);
+        prisma.property.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy: [
+            { featured: 'desc' },
+            { createdAt: 'desc' }
+          ]
+        }),
+        prisma.property.count({ where })
+      ]);
       }
 
       return {
@@ -207,7 +207,7 @@ export const propertiesRoutes = new Elysia({ prefix: '/properties' })
             searchCenter: { latitude: searchLat, longitude: searchLon },
             searchRadius: searchRadius,
             sortByDistance: Boolean(sortByDistance)
-          }
+        }
         })
       };
     } catch (error) {
