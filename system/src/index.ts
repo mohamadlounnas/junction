@@ -602,6 +602,17 @@ Real-time statistics and insights about the Algeria real estate platform perform
       }
     }
   )
+  // Health check endpoint
+  .get('/health', () => {
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'Smart Contact System - Algeria Real Estate AI',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
+    };
+  })
   // Static file serving for uploads
   .get('/uploads/*', async ({ params, set }: { params: Record<string, string>, set: any }) => {
     try {
