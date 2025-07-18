@@ -8,16 +8,21 @@
     "dev:watch": "bun --watch src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "start": "bun run dist/index.js",
+    "start:dev": "bun src/index.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "bun run src/scripts/seed.ts",
     "test": "bun test src/tests/api.test.ts",
     "test:watch": "bun test --watch src/tests/api.test.ts",
     "test:vector": "bun run src/tests/vector.test.ts",
+    "test:accuracy": "bun run src/scripts/test-accuracy-and-learning.ts",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src/**/*.ts",
     "deploy": "bun run build && bun run start",
-    "health": "curl -s http://localhost:3001/health"
+    "health": "curl -s http://localhost:3000/health || exit 1",
+    "docker:build": "docker build -t smart-contact-system .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env smart-contact-system",
+    "clean": "rm -rf dist node_modules/.cache && find . -name '*.log' -delete"
   },
   "keywords": [
     "real-estate",

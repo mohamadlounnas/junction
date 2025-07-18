@@ -1526,6 +1526,20 @@ Perfect for integrating with:
       };
     }
   }, {
+    // default
+    // {
+    //   "mode": "recent_sales",
+    //   "salesLimit": 1,
+    //   "saleId": "",
+    //   "config": {
+    //     "userSimilarityThreshold": 1,
+    //     "propertySimilarityThreshold": 1,
+    //     "baseLearningRate": 1,
+    //     "enableTimeWeighting": true,
+    //     "enableSuccessWeighting": true,
+    //     "enableCollaborativeLearning": true
+    //   }
+    // }
     body: t.Object({
       mode: t.Optional(t.Union([
         t.Literal('recent_sales'),

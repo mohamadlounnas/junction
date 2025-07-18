@@ -576,7 +576,7 @@ async function main() {
 async function seedContacts() {
   console.log('📝 Seeding contacts...');
   
-  for (const contactData of sampleContacts) {
+  for (const contactData of sampleContacts as any[]) {
     try {
       // Generate enhanced scores with dual transaction support
       const allScores = generateAllScoresFromContact(contactData);
@@ -588,7 +588,7 @@ async function seedContacts() {
           scores: allScores.scores,
           transactionScores: allScores.transactionScores,
           // Ensure legacy field is set for backward compatibility
-          transactionType: (contactData.primaryTransactionType || contactData.transactionTypes?.[0] || contactData.transactionType) as 'RENT' | 'SALE'
+          transactionType: (contactData.primaryTransactionType || contactData.transactionTypes?.[0] || contactData.transactionType || 'SALE') as 'RENT' | 'SALE'
         }
       });
       

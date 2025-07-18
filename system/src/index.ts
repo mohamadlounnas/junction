@@ -132,6 +132,14 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
             description: 'Configuration Guide',
             url: 'https://github.com/smart-contact/docs/config'
           }
+        },
+        {
+          name: 'Quotes',
+          description: 'Professional quote generation and PDF reports',
+          externalDocs: {
+            description: 'Quote System Guide',
+            url: 'https://github.com/smart-contact/docs/quotes'
+          }
         }
       ],
       components: {
@@ -226,6 +234,70 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
               property: { $ref: '#/components/schemas/Property' },
               similarity: { type: 'number', minimum: 0, maximum: 1, description: 'Similarity score' },
               explanation: { type: 'string', description: 'Human-readable explanation' }
+            }
+          },
+          PropertyQuote: {
+            type: 'object',
+            properties: {
+              quoteNumber: { type: 'string', description: 'Unique quote identifier' },
+              property: { $ref: '#/components/schemas/Property' },
+              client: { $ref: '#/components/schemas/Contact' },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    description: { type: 'string' },
+                    quantity: { type: 'number' },
+                    unitPrice: { type: 'number' },
+                    total: { type: 'number' }
+                  }
+                }
+              },
+              subtotal: { type: 'number' },
+              total: { type: 'number' },
+              currency: { type: 'string', default: 'DZD' },
+              language: { type: 'string', enum: ['ar', 'fr', 'en'] },
+              validityDays: { type: 'number' },
+              createdAt: { type: 'string', format: 'date-time' }
+            }
+          },
+          MarketAnalysis: {
+            type: 'object',
+            properties: {
+              priceAnalysis: {
+                type: 'object',
+                properties: {
+                  currentPricePerSqm: { type: 'number' },
+                  marketAveragePricePerSqm: { type: 'number' },
+                  pricePositioning: { type: 'string', enum: ['Below Market', 'Market Rate', 'Premium', 'Luxury'] },
+                  priceDeviation: { type: 'number' },
+                  competitiveAdvantage: { type: 'string' }
+                }
+              },
+              investmentAnalysis: {
+                type: 'object',
+                properties: {
+                  expectedROI: { type: 'number' },
+                  rentalYield: { type: 'number' },
+                  appreciationForecast: {
+                    type: 'object',
+                    properties: {
+                      oneYear: { type: 'number' },
+                      threeYear: { type: 'number' },
+                      fiveYear: { type: 'number' }
+                    }
+                  },
+                  investmentGrade: { type: 'string', enum: ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D'] }
+                }
+              },
+              locationIntelligence: {
+                type: 'object',
+                properties: {
+                  overallScore: { type: 'number' },
+                  neighborhoodRanking: { type: 'string', enum: ['Top 10%', 'Top 25%', 'Top 50%', 'Average', 'Below Average'] }
+                }
+              }
             }
           },
           ApiResponse: {
