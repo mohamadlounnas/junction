@@ -128,6 +128,7 @@ class _ModernSignupPageState extends State<ModernSignupPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

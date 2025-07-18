@@ -7,6 +7,7 @@ class PropertyListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -39,8 +40,8 @@ class PropertyListPage extends StatelessWidget {
             ),
           );
         },
-        backgroundColor: AppTheme.primaryGreen,
-        foregroundColor: AppTheme.textWhite,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         child: const Icon(Icons.add),
       ),
     );
@@ -59,7 +60,6 @@ class PropertyListPage extends StatelessWidget {
                 'قائمة العقارات',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textWhite,
                 ),
                 textAlign: TextAlign.right,
               ),
@@ -67,20 +67,16 @@ class PropertyListPage extends StatelessWidget {
                 onPressed: () {
                   // TODO: Show search/filter options
                 },
-                icon: const Icon(
-                  Icons.search,
-                  color: AppTheme.textWhite,
-                  size: 28,
-                ),
+                icon: const Icon(Icons.search, size: 28),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'Property List',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: AppTheme.textGrey),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -107,7 +103,9 @@ class PropertyListPage extends StatelessWidget {
       label: Text(
         labelAr,
         style: TextStyle(
-          color: isSelected ? AppTheme.textWhite : AppTheme.textGrey,
+          color: isSelected
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onPrimary,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
@@ -115,11 +113,13 @@ class PropertyListPage extends StatelessWidget {
       onSelected: (selected) {
         // TODO: Implement filter logic
       },
-      backgroundColor: AppTheme.cardBackground,
-      selectedColor: AppTheme.primaryGreen,
-      checkmarkColor: AppTheme.textWhite,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      selectedColor: Theme.of(context).primaryColor,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimary,
       side: BorderSide(
-        color: isSelected ? AppTheme.primaryGreen : AppTheme.borderColor,
+        color: isSelected
+            ? Theme.of(context).primaryColor
+            : Theme.of(context).primaryColor.withOpacity(0.5),
       ),
     );
   }
@@ -202,7 +202,7 @@ class PropertyListPage extends StatelessWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -217,11 +217,12 @@ class PropertyListPage extends StatelessWidget {
                       property['title']!,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textWhite,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
                   _buildStatusChip(
+                    context,
                     property['statusAr']!,
                     property['statusEn']!,
                   ),
@@ -232,13 +233,17 @@ class PropertyListPage extends StatelessWidget {
               // Property details
               Row(
                 children: [
-                  Icon(Icons.location_on, color: AppTheme.textGrey, size: 16),
+                  Icon(
+                    Icons.location_on,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    size: 16,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       property['location']!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textGrey,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -254,7 +259,7 @@ class PropertyListPage extends StatelessWidget {
                     property['price']!,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryGreen,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   Container(
@@ -263,16 +268,16 @@ class PropertyListPage extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppTheme.primaryGreen.withOpacity(0.3),
+                        color: Theme.of(context).primaryColor.withOpacity(0.3),
                       ),
                     ),
                     child: Text(
                       property['type']!,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -287,9 +292,9 @@ class PropertyListPage extends StatelessWidget {
                 children: [
                   Text(
                     property['date']!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
                   ),
                   Row(
                     children: [
@@ -297,9 +302,9 @@ class PropertyListPage extends StatelessWidget {
                         onPressed: () {
                           // TODO: Edit property
                         },
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.edit,
-                          color: AppTheme.textGrey,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           size: 20,
                         ),
                       ),
@@ -324,12 +329,16 @@ class PropertyListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(String statusAr, String statusEn) {
+  Widget _buildStatusChip(
+    BuildContext context,
+    String statusAr,
+    String statusEn,
+  ) {
     Color statusColor;
     switch (statusAr) {
       case 'إعلان جديد':
       case 'متاح':
-        statusColor = AppTheme.primaryGreen;
+        statusColor = Theme.of(context).primaryColor;
         break;
       case 'مباع':
         statusColor = Colors.blue;
@@ -338,7 +347,7 @@ class PropertyListPage extends StatelessWidget {
         statusColor = Colors.orange;
         break;
       default:
-        statusColor = AppTheme.textGrey;
+        statusColor = Theme.of(context).colorScheme.onPrimary;
     }
 
     return Container(

@@ -353,7 +353,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(
           children: [
@@ -391,7 +391,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       child: Container(
         margin: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: AppTheme.cardBackground.withOpacity(0.95),
+          color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -402,11 +402,15 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           ],
         ),
         child: ListTile(
-          leading: Icon(Iconsax.map, color: AppTheme.primaryGreen, size: 28),
-          title: Text('الخريطة', style: AppTheme.getSafeTextTheme().titleLarge),
+          leading: Icon(
+            Iconsax.map,
+            color: Theme.of(context).primaryColor,
+            size: 28,
+          ),
+          title: Text('الخريطة', style: Theme.of(context).textTheme.titleLarge),
           subtitle: Text(
             'استكشف المواقع والعقارات',
-            style: AppTheme.getSafeTextTheme().bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           trailing: _buildActionButtons(),
         ),
@@ -464,19 +468,19 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return Container(
       decoration: BoxDecoration(
         color: isActive
-            ? AppTheme.primaryGreen.withOpacity(0.2)
-            : AppTheme.primaryGreen.withOpacity(0.1),
+            ? Theme.of(context).primaryColor.withOpacity(0.2)
+            : Theme.of(context).primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
         border: isActive
-            ? Border.all(color: AppTheme.primaryGreen, width: 1)
+            ? Border.all(color: Theme.of(context).primaryColor, width: 1)
             : null,
       ),
       child: IconButton(
         icon: Icon(
           icon,
           color: isActive
-              ? AppTheme.primaryGreen
-              : AppTheme.primaryGreen.withOpacity(0.8),
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).primaryColor.withOpacity(0.8),
         ),
         onPressed: onPressed,
         tooltip: tooltip,
@@ -500,7 +504,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               opacity: _searchSlideAnimation.value,
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -513,21 +517,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
-                  style: AppTheme.getSafeTextTheme().bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium,
                   decoration: InputDecoration(
                     hintText: 'البحث عن عقار...',
-                    hintStyle: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                      color: AppTheme.textGrey,
+                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     prefixIcon: Icon(
                       Iconsax.search_normal,
-                      color: AppTheme.primaryGreen,
+                      color: Theme.of(context).primaryColor,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: Icon(
                               Iconsax.close_circle,
-                              color: AppTheme.textGrey,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                             onPressed: () {
                               _searchController.clear();
@@ -566,7 +570,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -584,13 +588,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       children: [
                         Icon(
                           Iconsax.filter,
-                          color: AppTheme.primaryGreen,
+                          color: Theme.of(context).primaryColor,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'الفلترة',
-                          style: AppTheme.getSafeTextTheme().titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const Spacer(),
@@ -598,8 +602,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           onPressed: _clearFilters,
                           child: Text(
                             'مسح الكل',
-                            style: AppTheme.getSafeTextTheme().bodySmall
-                                ?.copyWith(color: AppTheme.primaryGreen),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).primaryColor,
+                                ),
                           ),
                         ),
                       ],
@@ -609,7 +615,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     // Property Type Filter
                     Text(
                       'نوع العقار',
-                      style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -626,14 +632,18 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               _selectedPropertyType = selected ? type : null;
                             });
                           },
-                          backgroundColor: AppTheme.cardBackground,
-                          selectedColor: AppTheme.primaryGreen.withOpacity(0.2),
-                          checkmarkColor: AppTheme.primaryGreen,
-                          labelStyle: AppTheme.getSafeTextTheme().bodySmall
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surface,
+                          selectedColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.2),
+                          checkmarkColor: Theme.of(context).primaryColor,
+                          labelStyle: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: isSelected
-                                    ? AppTheme.primaryGreen
-                                    : AppTheme.textWhite,
+                                    ? Theme.of(context).primaryColor
+                                    : Theme.of(context).colorScheme.onPrimary,
                               ),
                         );
                       }).toList(),
@@ -644,7 +654,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     // Price Range Filter
                     Text(
                       'نطاق السعر (درهم)',
-                      style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -654,15 +664,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            style: AppTheme.getSafeTextTheme().bodySmall,
+                            style: Theme.of(context).textTheme.bodySmall,
                             decoration: InputDecoration(
                               hintText: 'من',
-                              hintStyle: AppTheme.getSafeTextTheme().bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                              hintStyle: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: AppTheme.borderColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -679,15 +695,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            style: AppTheme.getSafeTextTheme().bodySmall,
+                            style: Theme.of(context).textTheme.bodySmall,
                             decoration: InputDecoration(
                               hintText: 'إلى',
-                              hintStyle: AppTheme.getSafeTextTheme().bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                              hintStyle: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: AppTheme.borderColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -708,7 +730,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     // Bedrooms Filter
                     Text(
                       'عدد الغرف',
-                      style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -718,15 +740,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            style: AppTheme.getSafeTextTheme().bodySmall,
+                            style: Theme.of(context).textTheme.bodySmall,
                             decoration: InputDecoration(
                               hintText: 'من',
-                              hintStyle: AppTheme.getSafeTextTheme().bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                              hintStyle: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: AppTheme.borderColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -743,15 +771,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            style: AppTheme.getSafeTextTheme().bodySmall,
+                            style: Theme.of(context).textTheme.bodySmall,
                             decoration: InputDecoration(
                               hintText: 'إلى',
-                              hintStyle: AppTheme.getSafeTextTheme().bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                              hintStyle: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: AppTheme.borderColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -788,7 +822,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       child: Container(
         constraints: const BoxConstraints(maxHeight: 300),
         decoration: BoxDecoration(
-          color: AppTheme.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -806,9 +840,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               padding: const EdgeInsets.all(16),
               child: Text(
                 'نتائج البحث (${results.length})',
-                style: AppTheme.getSafeTextTheme().titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             Flexible(
@@ -822,32 +856,32 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _getPropertyIcon(property.type),
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         size: 24,
                       ),
                     ),
                     title: Text(
                       property.title,
-                      style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     subtitle: Text(
                       '${property.price} ${property.currency}',
-                      style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                        color: AppTheme.primaryGreen,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     trailing: IconButton(
                       icon: Icon(
                         Iconsax.location,
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         size: 20,
                       ),
                       onPressed: () => _navigateToProperty(property),
@@ -933,11 +967,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   child: Container(
                     decoration: BoxDecoration(
                       color: _selectedProperty?.id == property.id
-                          ? AppTheme.primaryGreen
+                          ? Theme.of(context).primaryColor
                           : Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         width: 3,
                       ),
                       boxShadow: [
@@ -952,7 +986,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       _getPropertyIcon(property.type),
                       color: _selectedProperty?.id == property.id
                           ? Colors.white
-                          : AppTheme.primaryGreen,
+                          : Theme.of(context).primaryColor,
                       size: 24,
                     ),
                   ),
@@ -974,14 +1008,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         children: [
           FloatingActionButton.small(
             onPressed: _showPropertyList,
-            backgroundColor: AppTheme.primaryGreen,
+            backgroundColor: Theme.of(context).primaryColor,
             child: const Icon(Iconsax.building, color: Colors.white),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: _toggleMapStyle,
-            backgroundColor: AppTheme.cardBackground,
-            child: const Icon(Iconsax.layer, color: AppTheme.primaryGreen),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Icon(Iconsax.layer, color: Theme.of(context).primaryColor),
           ),
         ],
       ),
@@ -1004,7 +1038,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             child: Container(
               margin: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: AppTheme.cardBackground,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -1081,7 +1115,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen,
+                color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1108,19 +1142,23 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         children: [
           Text(
             _selectedProperty!.title,
-            style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Iconsax.location, color: AppTheme.primaryGreen, size: 16),
+              Icon(
+                Iconsax.location,
+                color: Theme.of(context).primaryColor,
+                size: 16,
+              ),
               const SizedBox(width: 4),
               Text(
                 'دبي، الإمارات العربية المتحدة',
-                style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                  color: AppTheme.textGrey,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -1151,13 +1189,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               const SizedBox(width: 4),
               Text(
                 '${_selectedProperty!.rating}',
-                style: AppTheme.getSafeTextTheme().bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(width: 8),
               Text(
                 'تقييم ممتاز',
-                style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                  color: AppTheme.textGrey,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -1171,9 +1209,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Widget _buildPropertyFeature(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: AppTheme.primaryGreen, size: 16),
+        Icon(icon, color: Theme.of(context).primaryColor, size: 16),
         const SizedBox(width: 4),
-        Text(text, style: AppTheme.getSafeTextTheme().bodyMedium),
+        Text(text, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }
@@ -1186,7 +1224,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -1217,7 +1255,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppTheme.primaryGreen.withOpacity(0.3),
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.3),
                                 width: 2,
                               ),
                             ),
@@ -1261,12 +1301,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           height: 60,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.blue, AppTheme.primaryGreen],
+                              colors: [
+                                Colors.blue,
+                                Theme.of(context).primaryColor,
+                              ],
                             ),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primaryGreen.withOpacity(0.3),
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.3),
                                 blurRadius: 20,
                                 spreadRadius: 5,
                               ),
@@ -1294,7 +1339,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   final text = 'جاري البحث عن العملاء المحتملين...';
                   return Text(
                     text.substring(0, value.clamp(0, text.length)),
-                    style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
@@ -1310,8 +1355,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   final text = 'الذكاء الاصطناعي يحلل البيانات';
                   return Text(
                     text.substring(0, value.clamp(0, text.length)),
-                    style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                      color: AppTheme.textGrey,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     textAlign: TextAlign.center,
                   );
@@ -1322,9 +1367,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               SizedBox(
                 width: 200,
                 child: LinearProgressIndicator(
-                  backgroundColor: AppTheme.textGrey.withOpacity(0.2),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.2),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppTheme.primaryGreen,
+                    Theme.of(context).primaryColor,
                   ),
                   minHeight: 6,
                 ),
@@ -1346,7 +1393,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen,
+                              color: Theme.of(context).primaryColor,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -1402,7 +1449,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       children: [
                         Text(
                           'العملاء المحتملون',
-                          style: AppTheme.getSafeTextTheme().titleLarge
+                          style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1410,7 +1457,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         ),
                         Text(
                           '${_potentialClients.length} عميل مطابق',
-                          style: AppTheme.getSafeTextTheme().bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.white.withOpacity(0.8)),
                         ),
                       ],
@@ -1424,7 +1471,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               child: Container(
                 margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: AnimatedBuilder(
@@ -1482,7 +1529,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.darkBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: statusColors[client.status]!.withOpacity(0.3),
@@ -1516,7 +1563,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       child: Center(
                         child: Text(
                           client.name.split(' ').first[0],
-                          style: AppTheme.getSafeTextTheme().titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1531,13 +1578,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         children: [
                           Text(
                             client.name,
-                            style: AppTheme.getSafeTextTheme().titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             client.email,
-                            style: AppTheme.getSafeTextTheme().bodySmall
-                                ?.copyWith(color: AppTheme.textGrey),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
                           ),
                         ],
                       ),
@@ -1549,13 +1600,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${client.matchScore.toInt()}%',
-                        style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                          color: AppTheme.primaryGreen,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1568,7 +1619,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     _buildClientInfo(
                       Iconsax.money,
                       client.budget,
-                      AppTheme.primaryGreen,
+                      Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 16),
                     _buildClientInfo(Iconsax.call, client.phone, Colors.blue),
@@ -1592,13 +1643,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         interest,
-                        style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                          color: AppTheme.primaryGreen,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).primaryColor,
                           fontSize: 10,
                         ),
                       ),
@@ -1621,8 +1672,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         const SizedBox(width: 4),
         Text(
           text,
-          style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-            color: AppTheme.textGrey,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
       ],
@@ -1634,7 +1685,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('جاري الاتصال بـ ${client.name}'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -1654,7 +1705,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   icon: const Icon(Iconsax.message),
                   label: const Text('تواصل مع الوكيل'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryGreen,
+                    backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -1667,8 +1718,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   icon: const Icon(Iconsax.calendar),
                   label: const Text('حجز معاينة'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryGreen,
-                    side: const BorderSide(color: AppTheme.primaryGreen),
+                    foregroundColor: Theme.of(context).primaryColor,
+                    side: BorderSide(color: Theme.of(context).primaryColor),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -1768,10 +1819,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Shows property list
   void _showPropertyList() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('قائمة العقارات'),
-        backgroundColor: AppTheme.primaryGreen,
-        duration: Duration(seconds: 1),
+        backgroundColor: Theme.of(context).primaryColor,
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -1779,10 +1830,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Toggles map style
   void _toggleMapStyle() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('تغيير نمط الخريطة'),
-        backgroundColor: AppTheme.primaryGreen,
-        duration: Duration(seconds: 1),
+        backgroundColor: Theme.of(context).primaryColor,
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -1790,10 +1841,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Contact agent action
   void _contactAgent() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('جاري الاتصال بالوكيل...'),
-        backgroundColor: AppTheme.primaryGreen,
-        duration: Duration(seconds: 2),
+        backgroundColor: Theme.of(context).primaryColor,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -1801,10 +1852,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Schedule viewing action
   void _scheduleViewing() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('جاري فتح صفحة الحجز...'),
-        backgroundColor: AppTheme.primaryGreen,
-        duration: Duration(seconds: 2),
+        backgroundColor: Theme.of(context).primaryColor,
+        duration: const Duration(seconds: 2),
       ),
     );
   }

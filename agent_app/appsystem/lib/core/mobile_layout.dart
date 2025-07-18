@@ -88,28 +88,19 @@ class _MobileLayoutState extends State<MobileLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(child: widget.child),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        destinations: _destinations,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        elevation: 8,
         backgroundColor: Colors.transparent,
-        body: SafeArea(child: widget.child),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          destinations: _destinations,
-          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-          elevation: 8,
-          backgroundColor: AppTheme.cardBackground,
-          surfaceTintColor: Colors.transparent,
-          height: 64,
-          indicatorColor: AppTheme.primaryGreen.withOpacity(0.2),
-        ),
+        surfaceTintColor: Colors.transparent,
+        height: 64,
+        indicatorColor: Theme.of(context).primaryColor.withOpacity(0.2),
       ),
     );
   }

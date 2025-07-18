@@ -95,7 +95,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.8),
+      backgroundColor: Colors.transparent,
       body: SlideTransition(
         position: _slideAnimation,
         child: Container(
@@ -103,11 +103,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.darkBackground,
-                AppTheme.cardBackground,
-                AppTheme.darkBackground,
-              ],
+              colors: [],
             ),
           ),
           child: SafeArea(
@@ -148,14 +144,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
               children: [
                 Text(
                   'تفاصيل العميل',
-                  style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   widget.lead.name,
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withOpacity(0.8),
                   ),
                 ),
@@ -190,7 +186,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
           const SizedBox(width: 4),
           Text(
             _getUrgencyText(widget.lead.urgency),
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colors[widget.lead.urgency]!,
               fontWeight: FontWeight.w600,
             ),
@@ -226,11 +222,11 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -248,14 +244,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                   children: [
                     Text(
                       widget.lead.name,
-                      style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       widget.lead.email,
-                      style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                        color: AppTheme.textGrey,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -263,13 +259,13 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                       children: [
                         Icon(
                           Iconsax.call,
-                          color: AppTheme.primaryGreen,
+                          color: Theme.of(context).primaryColor,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           widget.lead.phone,
-                          style: AppTheme.getSafeTextTheme().bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
                     ),
@@ -294,14 +290,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryGreen,
-            AppTheme.primaryGreen.withOpacity(0.8),
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withOpacity(0.8),
           ],
         ),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -310,7 +306,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
       child: Center(
         child: Text(
           widget.lead.name.split(' ').first[0],
-          style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -324,22 +320,22 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withOpacity(0.1),
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
           Text(
             '${widget.lead.aiScore.toInt()}',
-            style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
-              color: AppTheme.primaryGreen,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Theme.of(context).primaryColor,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
             'AI Score',
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-              color: AppTheme.textGrey,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],
@@ -356,7 +352,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
             Iconsax.money,
             'الميزانية',
             '${widget.lead.budget} ${widget.lead.currency}',
-            AppTheme.primaryGreen,
+            Theme.of(context).primaryColor,
           ),
         ),
         const SizedBox(width: 16),
@@ -400,16 +396,16 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
           const SizedBox(height: 8),
           Text(
             label,
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-              color: AppTheme.textGrey,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -423,7 +419,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -438,14 +434,18 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isActive ? AppTheme.primaryGreen : Colors.transparent,
+                  color: isActive
+                      ? Theme.of(context).primaryColor
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                    color: isActive ? Colors.white : AppTheme.textGrey,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isActive
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onPrimary,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -476,7 +476,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -496,14 +496,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
           const SizedBox(height: 16),
           Text(
             'ملاحظات',
-            style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             widget.lead.notes,
-            style: AppTheme.getSafeTextTheme().bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),
@@ -515,7 +515,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -523,9 +523,9 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
         children: [
           Text(
             'الاهتمامات',
-            style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -538,14 +538,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.primaryGreen),
+                  border: Border.all(color: Theme.of(context).primaryColor),
                 ),
                 child: Text(
                   interest,
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                    color: AppTheme.primaryGreen,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).primaryColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -562,7 +562,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -570,9 +570,9 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
         children: [
           Text(
             'سجل التفاعل',
-            style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
           _buildInteractionItem(
@@ -631,14 +631,14 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
               children: [
                 Text(
                   title,
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   description,
-                  style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                    color: AppTheme.textGrey,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ],
@@ -646,8 +646,8 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
           ),
           Text(
             _formatDate(date),
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-              color: AppTheme.textGrey,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],
@@ -662,24 +662,30 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryGreen.withOpacity(0.1),
-            AppTheme.primaryGreen.withOpacity(0.05),
+            Theme.of(context).primaryColor.withOpacity(0.1),
+            Theme.of(context).primaryColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Iconsax.cpu, color: AppTheme.primaryGreen, size: 20),
+              Icon(
+                Iconsax.cpu,
+                color: Theme.of(context).primaryColor,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'رؤى الذكاء الاصطناعي',
-                style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
-                  color: AppTheme.primaryGreen,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -726,22 +732,22 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: AppTheme.getSafeTextTheme().bodyMedium),
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 value,
-                style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 description,
-                style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                  color: AppTheme.textGrey,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -765,7 +771,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                 icon: const Icon(Iconsax.call),
                 label: const Text('اتصال'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -778,8 +784,8 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                 icon: const Icon(Iconsax.calendar),
                 label: const Text('موعد'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primaryGreen,
-                  side: const BorderSide(color: AppTheme.primaryGreen),
+                  foregroundColor: Theme.of(context).primaryColor,
+                  side: BorderSide(color: Theme.of(context).primaryColor),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
@@ -791,8 +797,8 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
                 icon: const Icon(Iconsax.send),
                 label: const Text('عرض'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primaryGreen,
-                  side: const BorderSide(color: AppTheme.primaryGreen),
+                  foregroundColor: Theme.of(context).primaryColor,
+                  side: BorderSide(color: Theme.of(context).primaryColor),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
@@ -815,7 +821,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('جاري الاتصال بـ ${widget.lead.name}'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -826,7 +832,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('جدولة موعد مع ${widget.lead.name}'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -837,7 +843,7 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('إرسال عرض إلى ${widget.lead.name}'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -852,16 +858,16 @@ class _LeadDetailsDialogState extends State<LeadDetailsDialog>
           Expanded(
             child: Text(
               label,
-              style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                color: AppTheme.textGrey,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ),
           Text(
             value,
-            style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),

@@ -19,47 +19,37 @@ class ModernDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       floatingActionButton: _buildFloatingActionButton(context),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Section
-                _buildHeader(context),
-                const SizedBox(height: 32),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            _buildHeader(context),
+            const SizedBox(height: 32),
 
-                // Add Property Button
-                _buildAddPropertyButton(context),
-                const SizedBox(height: 32),
+            // Add Property Button
+            _buildAddPropertyButton(context),
+            const SizedBox(height: 32),
 
-                // Statistics Cards
-                _buildStatisticsSection(context),
-                const SizedBox(height: 32),
+            // Statistics Cards
+            _buildStatisticsSection(context),
+            const SizedBox(height: 32),
 
-                // Most Active Client Section
-                _buildMostActiveClientSection(context),
-                const SizedBox(height: 32),
+            // Most Active Client Section
+            _buildMostActiveClientSection(context),
+            const SizedBox(height: 32),
 
-                // ChatBot Section
-                _buildChatBotSection(context),
-                const SizedBox(height: 32),
+            // ChatBot Section
+            _buildChatBotSection(context),
+            const SizedBox(height: 32),
 
-                // Recent Properties Section
-                _buildRecentPropertiesSection(context),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
+            // Recent Properties Section
+            _buildRecentPropertiesSection(context),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
@@ -76,16 +66,13 @@ class ModernDashboardPage extends StatelessWidget {
                 'وكيل عقارات محترف',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textWhite,
                 ),
                 textAlign: TextAlign.right,
               ),
               const SizedBox(height: 4),
               Text(
                 'Professional Real Estate Agent',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: AppTheme.textGrey),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(),
               ),
             ],
           ),
@@ -93,14 +80,18 @@ class ModernDashboardPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.primaryGreen.withOpacity(0.3),
+              color: Theme.of(context).primaryColor.withOpacity(0.3),
               width: 1,
             ),
           ),
-          child: Icon(Icons.person, color: AppTheme.primaryGreen, size: 28),
+          child: Icon(
+            Icons.person,
+            color: Theme.of(context).primaryColor,
+            size: 28,
+          ),
         ),
       ],
     );
@@ -112,14 +103,14 @@ class ModernDashboardPage extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryGreen,
-            AppTheme.primaryGreen.withOpacity(0.8),
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withOpacity(0.8),
           ],
         ),
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -145,10 +136,10 @@ class ModernDashboardPage extends StatelessWidget {
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: AppTheme.textWhite,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
           shadowColor: Colors.transparent,
@@ -165,7 +156,7 @@ class ModernDashboardPage extends StatelessWidget {
           children: [
             Icon(
               Icons.analytics_outlined,
-              color: AppTheme.primaryGreen,
+              color: Theme.of(context).primaryColor,
               size: 24,
             ),
             const SizedBox(width: 8),
@@ -173,7 +164,7 @@ class ModernDashboardPage extends StatelessWidget {
               'إحصائيات العقارات',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textWhite,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ],
@@ -224,14 +215,14 @@ class ModernDashboardPage extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryGreen,
-            AppTheme.primaryGreen.withOpacity(0.8),
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withOpacity(0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -243,7 +234,11 @@ class ModernDashboardPage extends StatelessWidget {
         },
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: const Icon(Icons.smart_toy, color: AppTheme.textWhite, size: 28),
+        child: Icon(
+          Icons.smart_toy,
+          color: Theme.of(context).colorScheme.onPrimary,
+          size: 28,
+        ),
       ),
     );
   }
@@ -256,60 +251,26 @@ class ModernDashboardPage extends StatelessWidget {
     IconData icon,
     Color iconColor,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.borderColor.withOpacity(0.5),
-          width: 1,
+    return Column(
+      children: [
+        Icon(icon, size: 28, color: iconColor),
+        const SizedBox(height: 12),
+        Text(
+          count,
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 28, color: iconColor),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            count,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textWhite,
-              fontSize: 24,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            titleAr,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textWhite,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            titleEn,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        const SizedBox(height: 4),
+        Text(
+          titleAr,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -319,13 +280,17 @@ class ModernDashboardPage extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.star_outline, color: AppTheme.primaryGreen, size: 24),
+            Icon(
+              Icons.star_outline,
+              color: Theme.of(context).primaryColor,
+              size: 24,
+            ),
             const SizedBox(width: 8),
             Text(
               'أكثر العملاء نشاطاً',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textWhite,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ],
@@ -338,13 +303,13 @@ class ModernDashboardPage extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.cardBackground,
-                AppTheme.cardBackground.withOpacity(0.8),
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.surface.withOpacity(0.8),
               ],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.primaryGreen.withOpacity(0.3),
+              color: Theme.of(context).primaryColor.withOpacity(0.3),
               width: 1,
             ),
             boxShadow: [
@@ -363,22 +328,22 @@ class ModernDashboardPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppTheme.primaryGreen,
-                      AppTheme.primaryGreen.withOpacity(0.7),
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withOpacity(0.7),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryGreen.withOpacity(0.3),
+                      color: Theme.of(context).primaryColor.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person,
-                  color: AppTheme.textWhite,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   size: 30,
                 ),
               ),
@@ -391,14 +356,14 @@ class ModernDashboardPage extends StatelessWidget {
                       'أحمد محمد',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textWhite,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Ahmad Mohammed',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textGrey,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -410,14 +375,16 @@ class ModernDashboardPage extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.2),
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             '5 عقارات',
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
-                                  color: AppTheme.primaryGreen,
+                                  color: Theme.of(context).primaryColor,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -449,7 +416,7 @@ class ModernDashboardPage extends StatelessWidget {
               IconButton(
                 icon: Icon(
                   Icons.arrow_forward_ios,
-                  color: AppTheme.textGrey,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   size: 20,
                 ),
                 onPressed: () {
@@ -471,7 +438,7 @@ class ModernDashboardPage extends StatelessWidget {
           children: [
             Icon(
               Icons.chat_bubble_outline,
-              color: AppTheme.primaryGreen,
+              color: Theme.of(context).primaryColor,
               size: 24,
             ),
             const SizedBox(width: 8),
@@ -479,7 +446,7 @@ class ModernDashboardPage extends StatelessWidget {
               'المساعد الذكي',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textWhite,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ],
@@ -492,13 +459,13 @@ class ModernDashboardPage extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.cardBackground,
-                AppTheme.cardBackground.withOpacity(0.8),
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.surface.withOpacity(0.8),
               ],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.primaryGreen.withOpacity(0.3),
+              color: Theme.of(context).primaryColor.withOpacity(0.3),
               width: 1,
             ),
             boxShadow: [
@@ -519,23 +486,22 @@ class ModernDashboardPage extends StatelessWidget {
                     height: 50,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          AppTheme.primaryGreen,
-                          AppTheme.primaryGreen.withOpacity(0.7),
-                        ],
+                        colors: [Theme.of(context).primaryColor],
                       ),
                       borderRadius: BorderRadius.circular(25),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryGreen.withOpacity(0.3),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.smart_toy,
-                      color: AppTheme.textWhite,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       size: 24,
                     ),
                   ),
@@ -551,7 +517,9 @@ class ModernDashboardPage extends StatelessWidget {
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textWhite,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                             ),
                             const SizedBox(width: 8),
@@ -559,13 +527,13 @@ class ModernDashboardPage extends StatelessWidget {
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryGreen,
+                                color: Theme.of(context).primaryColor,
                                 borderRadius: BorderRadius.circular(4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.primaryGreen.withOpacity(
-                                      0.5,
-                                    ),
+                                    color: Theme.of(
+                                      context,
+                                    ).primaryColor.withOpacity(0.5),
                                     blurRadius: 4,
                                     spreadRadius: 1,
                                   ),
@@ -578,14 +546,16 @@ class ModernDashboardPage extends StatelessWidget {
                         Text(
                           'Your Smart Real Estate Assistant',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textGrey),
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'متصل - Online',
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: AppTheme.primaryGreen,
+                                color: Theme.of(context).primaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -598,7 +568,7 @@ class ModernDashboardPage extends StatelessWidget {
               Text(
                 'احصل على مساعدة فورية في:\n• البحث عن العقارات\n• معلومات السوق\n• النصائح الاستثمارية\n• إدارة العملاء',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textGrey,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   height: 1.5,
                 ),
               ),
@@ -679,13 +649,13 @@ class ModernDashboardPage extends StatelessWidget {
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryGreen,
-                        foregroundColor: AppTheme.textWhite,
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.borderRadius,
-                          ),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
@@ -695,16 +665,15 @@ class ModernDashboardPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.primaryGreen.withOpacity(0.8),
-                          AppTheme.primaryGreen,
+                          Theme.of(context).primaryColor.withOpacity(0.8),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(
-                        AppTheme.borderRadius,
-                      ),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryGreen.withOpacity(0.3),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -715,18 +684,12 @@ class ModernDashboardPage extends StatelessWidget {
                         // Navigate to chatbot page with voice input focus
                         context.go('/dashboard/chatbot');
                       },
-                      icon: const Icon(
-                        Icons.mic,
-                        color: AppTheme.textWhite,
-                        size: 24,
-                      ),
+                      icon: const Icon(Icons.mic, size: 24),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         padding: const EdgeInsets.all(12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.borderRadius,
-                          ),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
@@ -746,18 +709,13 @@ class ModernDashboardPage extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              Icons.real_estate_agent_outlined,
-              color: AppTheme.primaryGreen,
-              size: 24,
-            ),
+            Icon(Icons.real_estate_agent_outlined, size: 24),
             const SizedBox(width: 8),
             Text(
               'العقارات الحديثة',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textWhite,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -802,10 +760,10 @@ class ModernDashboardPage extends StatelessWidget {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.borderColor.withOpacity(0.5),
+          color: Theme.of(context).primaryColor.withOpacity(0.5),
           width: 1,
         ),
         boxShadow: [
@@ -822,7 +780,7 @@ class ModernDashboardPage extends StatelessWidget {
           Container(
             height: 160,
             decoration: BoxDecoration(
-              color: AppTheme.primaryGreen.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
@@ -833,7 +791,7 @@ class ModernDashboardPage extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 48,
-                    color: AppTheme.primaryGreen.withOpacity(0.5),
+                    color: Theme.of(context).primaryColor.withOpacity(0.5),
                   ),
                 ),
                 Positioned(
@@ -845,13 +803,13 @@ class ModernDashboardPage extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.9),
+                      color: Theme.of(context).primaryColor.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       statusAr,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.textWhite,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -872,7 +830,7 @@ class ModernDashboardPage extends StatelessWidget {
                     child: Text(
                       priceAr,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.textWhite,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -891,15 +849,15 @@ class ModernDashboardPage extends StatelessWidget {
                   titleAr,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textWhite,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   titleEn,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -907,20 +865,20 @@ class ModernDashboardPage extends StatelessWidget {
                     Icon(
                       Icons.calendar_today_outlined,
                       size: 16,
-                      color: AppTheme.textGrey,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       date,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
                     ),
                     const Spacer(),
                     Text(
                       priceEn,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -941,15 +899,16 @@ class ModernDashboardPage extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primaryGreen,
+                          foregroundColor: Theme.of(context).primaryColor,
                           side: BorderSide(
-                            color: AppTheme.primaryGreen.withOpacity(0.5),
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(0.5),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
@@ -962,8 +921,10 @@ class ModernDashboardPage extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryGreen,
-                          foregroundColor: AppTheme.textWhite,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),
@@ -987,10 +948,10 @@ class ModernDashboardPage extends StatelessWidget {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.primaryGreen.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -1003,12 +964,12 @@ class ModernDashboardPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             child: Column(
               children: [
-                Icon(icon, color: AppTheme.primaryGreen, size: 20),
+                Icon(icon, color: Theme.of(context).primaryColor, size: 20),
                 const SizedBox(height: 4),
                 Text(
                   titleAr,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textWhite,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
@@ -1016,7 +977,7 @@ class ModernDashboardPage extends StatelessWidget {
                 Text(
                   titleEn,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textGrey,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 10,
                   ),
                   textAlign: TextAlign.center,
