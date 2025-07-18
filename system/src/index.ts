@@ -18,6 +18,7 @@ import { propertiesRoutes } from './routes/properties';
 import { recommendationsRoutes } from './routes/recommendations';
 import { salesRoutes } from './routes/sales';
 import { settingsRoutes } from './routes/settings';
+import { quotesRoutes } from './routes/quotes';
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
@@ -582,10 +583,11 @@ Real-time statistics and insights about the Algeria real estate platform perform
   .group('/api', (app) => 
     app
       .use(contactsRoutes)
-      .use(propertiesRoutes)
-      .use(recommendationsRoutes)
-      .use(salesRoutes)
-      .use(settingsRoutes)
+.use(propertiesRoutes)
+.use(recommendationsRoutes)
+.use(salesRoutes)
+.use(settingsRoutes)
+.use(quotesRoutes)
   )
   // Error handler
   .onError(({ code, error, set }: { code: string; error: Error; set: any }) => {

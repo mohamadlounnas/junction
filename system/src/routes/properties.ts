@@ -1460,7 +1460,267 @@ Search properties using a 12-dimensional preference vector for intelligent match
 \`\`\`
       `
     }
-  }); 
+  })
+
+  // Property Comparison Endpoint - PROFESSIONAL VERSION
+  .post('/compare', async ({ body }) => {
+    try {
+      const { property1Id, property2Id, contactId } = body;
+
+      if (!property1Id || !property2Id) {
+        return {
+          success: false,
+          error: 'Both property1Id and property2Id are required'
+        };
+      }
+
+      if (property1Id === property2Id) {
+        return {
+          success: false,
+          error: 'Cannot compare property with itself'
+        };
+      }
+
+      // Use the new professional comparison system
+      const { generateProfessionalComparison } = await import('../services/market-analysis');
+      const professionalComparison = await generateProfessionalComparison(property1Id, property2Id, contactId);
+
+      return {
+        success: true,
+        comparison: {
+          property1: {
+            id: professionalComparison.property1.id,
+            title: professionalComparison.property1.title,
+            price: professionalComparison.property1.price,
+            area: professionalComparison.property1.area,
+            rooms: professionalComparison.property1.rooms,
+            wilaya: professionalComparison.property1.wilaya,
+            city: professionalComparison.property1.city,
+            condition: professionalComparison.property1.condition,
+            propertyType: professionalComparison.property1.propertyType,
+            transactionType: professionalComparison.property1.transactionType,
+            marketAnalysis: professionalComparison.property1.analysis
+          },
+          property2: {
+            id: professionalComparison.property2.id,
+            title: professionalComparison.property2.title,
+            price: professionalComparison.property2.price,
+            area: professionalComparison.property2.area,
+            rooms: professionalComparison.property2.rooms,
+            wilaya: professionalComparison.property2.wilaya,
+            city: professionalComparison.property2.city,
+            condition: professionalComparison.property2.condition,
+            propertyType: professionalComparison.property2.propertyType,
+            transactionType: professionalComparison.property2.transactionType,
+            marketAnalysis: professionalComparison.property2.analysis
+          },
+          
+          // Professional Analysis Sections
+          executiveSummary: professionalComparison.comparison.executiveSummary,
+          
+          financialAnalysis: professionalComparison.comparison.financialAnalysis,
+          
+          investmentAnalysis: professionalComparison.comparison.investmentAnalysis,
+          
+          locationAnalysis: professionalComparison.comparison.locationAnalysis,
+          
+          marketAnalysis: professionalComparison.comparison.marketAnalysis,
+          
+          riskAssessment: professionalComparison.comparison.riskAssessment,
+          
+          professionalRecommendation: professionalComparison.comparison.professionalRecommendation,
+          
+          // Generate comprehensive recommendation text
+          overallRecommendation: generateComprehensiveRecommendation(professionalComparison),
+          
+          // Metadata
+          generatedAt: new Date(),
+          analysisType: 'PROFESSIONAL',
+          confidenceLevel: professionalComparison.comparison.professionalRecommendation.confidenceLevel
+        }
+      };
+
+    } catch (error) {
+      console.error('Professional property comparison error:', error);
+      return {
+        success: false,
+        error: 'Failed to generate professional property comparison'
+      };
+    }
+  }, {
+    body: t.Object({
+      property1Id: t.String(),
+      property2Id: t.String(),
+      contactId: t.Optional(t.String())
+    }),
+    detail: {
+      tags: ['Properties'],
+      summary: 'Professional Property Comparison Analysis',
+      description: `
+## 🏆 Professional Property Comparison System
+
+**Advanced market analysis and investment intelligence for professional real estate agents**
+
+This endpoint provides comprehensive property comparison with professional-grade analytics including market intelligence, investment analysis, location scoring, and strategic recommendations.
+
+### 🎯 Professional Features
+
+#### **📊 Market Intelligence**
+- **Price Analysis**: Current pricing vs market averages with positioning analysis
+- **Market Trends**: Historical price movements and future forecasts
+- **Comparable Sales**: Recent transactions with similarity scoring
+- **Supply/Demand**: Market conditions and negotiation leverage assessment
+
+#### **💰 Investment Analysis**
+- **ROI Calculations**: Expected return on investment with multi-year projections
+- **Rental Yield**: Current rental market analysis and income potential
+- **Appreciation Forecasts**: 1, 3, and 5-year value projections
+- **Investment Grading**: Professional A+ to D rating system
+- **Total Cost Analysis**: Complete ownership cost including fees and taxes
+
+#### **📍 Location Intelligence**
+- **Neighborhood Scoring**: Comprehensive location factor analysis
+- **Amenity Assessment**: Schools, healthcare, transport, safety scoring
+- **Ranking Analysis**: Top 10%, 25%, 50% neighborhood classifications
+- **Future Development**: Infrastructure and growth potential
+
+#### **⚖️ Risk Assessment**
+- **Market Risk Factors**: Identified risks and mitigation strategies
+- **Liquidity Analysis**: Resale potential and market conditions
+- **Investment Risk Grading**: Professional risk assessment
+- **Opportunity Identification**: Market opportunities and advantages
+
+#### **🎯 Strategic Recommendations**
+- **Investment Strategy**: Buy/hold/pass recommendations with reasoning
+- **Negotiation Strategy**: Leverage analysis and pricing recommendations
+- **Action Plan**: Step-by-step implementation guidance
+- **Priority Scoring**: Confidence levels and decision matrices
+
+### 🇩🇿 Algeria Market Expertise
+
+#### **Local Market Intelligence**
+- **48 Wilayas Coverage**: Complete Algeria market data
+- **DZD Pricing Analysis**: Local currency with inflation adjustments
+- **Regional Variations**: Wilaya-specific growth rates and trends
+- **Cultural Factors**: Family preferences and local market dynamics
+
+#### **Professional Standards**
+- **Real Estate Law Compliance**: Algerian regulations and requirements
+- **Market Benchmarking**: Against regional and national averages
+- **Professional Terminology**: Industry-standard language and metrics
+- **Documentation Standards**: Suitable for client presentations
+
+### 📋 Analysis Sections
+
+#### **1. Executive Summary**
+- Key advantages of each property
+- Primary recommendation drivers
+- Critical decision factors
+
+#### **2. Financial Comparison**
+- Price per square meter analysis
+- Total cost of ownership
+- Market positioning assessment
+- Value-for-money calculations
+
+#### **3. Investment Analysis**
+- Expected ROI comparison
+- Rental yield potential
+- Long-term appreciation forecasts
+- Investment grade assignments
+
+#### **4. Location Intelligence**
+- Overall location scoring
+- Factor-by-factor comparison
+- Neighborhood ranking analysis
+- Amenity accessibility
+
+#### **5. Market Analysis**
+- Current market conditions
+- Negotiation leverage assessment
+- Market volume and liquidity
+- Timing considerations
+
+#### **6. Risk Assessment**
+- Identified risk factors for each property
+- Risk level comparison
+- Mitigation strategies
+- Market timing risks
+
+#### **7. Professional Recommendation**
+- Recommended property with confidence level
+- Detailed reasoning and justification
+- Action plan and next steps
+- Strategic implementation guidance
+
+### 📊 Response Structure
+
+\`\`\`json
+{
+  "success": true,
+  "comparison": {
+    "property1": {
+      "basic_info": "...",
+      "marketAnalysis": {
+        "priceAnalysis": { "currentPricePerSqm": 180000, "marketAveragePricePerSqm": 180000, "pricePositioning": "Market Rate" },
+        "investmentAnalysis": { "expectedROI": 0.11, "rentalYield": 0.05, "investmentGrade": "A" },
+        "locationIntelligence": { "overallScore": 0.85, "neighborhoodRanking": "Top 25%" },
+        "professionalInsights": { "marketPosition": "...", "recommendedStrategy": "..." }
+      }
+    },
+    "property2": { "..." },
+    "executiveSummary": { "property1Advantages": [], "property2Advantages": [] },
+    "financialAnalysis": { "pricePerSqm": { "advantage": "property1" } },
+    "investmentAnalysis": { "expectedROI": { "advantage": "property2" } },
+    "locationAnalysis": { "overallScore": { "advantage": "property1" } },
+    "riskAssessment": { "lowerRisk": "property1" },
+    "professionalRecommendation": {
+      "recommendedProperty": "property1",
+      "confidenceLevel": "High",
+      "reasoning": "...",
+      "actionPlan": ["...", "..."],
+      "nextSteps": "..."
+    }
+  }
+}
+\`\`\`
+
+### 🎯 Use Cases
+
+#### **For Real Estate Agents**
+- Client consultation materials
+- Investment advisory services
+- Market positioning analysis
+- Competitive intelligence
+- Professional presentations
+
+#### **For Property Investors**
+- Due diligence analysis
+- Portfolio optimization
+- Risk assessment
+- ROI maximization
+- Market timing decisions
+
+#### **For Property Developers**
+- Market research analysis
+- Competitive positioning
+- Pricing strategy development
+- Investment feasibility studies
+- Market opportunity identification
+
+### 🚀 Professional Advantages
+
+- **Time Saving**: Comprehensive analysis in seconds vs hours of manual research
+- **Data-Driven**: Objective analysis removes emotional bias
+- **Market Intelligence**: Access to Algeria-wide market data and trends
+- **Professional Credibility**: Industry-standard analysis and terminology
+- **Client Confidence**: Detailed justification for all recommendations
+- **Competitive Advantage**: Advanced analytics not available elsewhere
+
+This system transforms basic property comparison into professional market intelligence, giving agents the analytical power to provide expert-level advice and strategic guidance to their clients.
+      `
+    }
+  })
 
 // Helper function to generate match explanation
 function generateVectorMatchExplanation(searchVector: number[], propertyVector: number[], similarity: number): string {
@@ -1492,4 +1752,110 @@ function generateVectorMatchExplanation(searchVector: number[], propertyVector: 
   }
 
   return explanation.trim();
+} 
+
+// Helper functions for property comparison
+function getConditionScore(condition: string): number {
+  const scores = {
+    'POOR': 1,
+    'FAIR': 2,
+    'GOOD': 3,
+    'EXCELLENT': 4,
+    'NEW': 5
+  };
+  return scores[condition as keyof typeof scores] || 3;
+}
+
+function generateComparisonRecommendation(
+  comparison: any, 
+  property1Compatibility: number, 
+  property2Compatibility: number
+): string {
+  const reasons = [];
+  
+  if (property1Compatibility > property2Compatibility + 0.1) {
+    reasons.push('Property 1 better matches your preferences');
+  } else if (property2Compatibility > property1Compatibility + 0.1) {
+    reasons.push('Property 2 better matches your preferences');
+  }
+  
+  if (comparison.valueForMoney.advantage === 'property1') {
+    reasons.push('Property 1 offers better value per square meter');
+  } else if (comparison.valueForMoney.advantage === 'property2') {
+    reasons.push('Property 2 offers better value per square meter');
+  }
+  
+  if (comparison.features.property1FeatureCount > comparison.features.property2FeatureCount) {
+    reasons.push('Property 1 has more amenities');
+  } else if (comparison.features.property2FeatureCount > comparison.features.property1FeatureCount) {
+    reasons.push('Property 2 has more amenities');
+  }
+  
+  return reasons.length > 0 ? reasons.join(', ') : 'Both properties have similar suitability';
+}
+
+function generateOverallRecommendation(comparison: any): string {
+  const scores = {
+    property1: 0,
+    property2: 0
+  };
+  
+  // Price advantage
+  if (comparison.price.advantage === 'property1') scores.property1++;
+  else if (comparison.price.advantage === 'property2') scores.property2++;
+  
+  // Area advantage  
+  if (comparison.area.advantage === 'property1') scores.property1++;
+  else if (comparison.area.advantage === 'property2') scores.property2++;
+  
+  // Value for money
+  if (comparison.valueForMoney.advantage === 'property1') scores.property1++;
+  else if (comparison.valueForMoney.advantage === 'property2') scores.property2++;
+  
+  // Features
+  if (comparison.features.property1FeatureCount > comparison.features.property2FeatureCount) {
+    scores.property1++;
+  } else if (comparison.features.property2FeatureCount > comparison.features.property1FeatureCount) {
+    scores.property2++;
+  }
+  
+  // Condition
+  if (comparison.condition.advantage === 'property1') scores.property1++;
+  else if (comparison.condition.advantage === 'property2') scores.property2++;
+  
+  // Historical performance
+  if (comparison.historicalPerformance.advantage === 'property1') scores.property1++;
+  else if (comparison.historicalPerformance.advantage === 'property2') scores.property2++;
+  
+  if (scores.property1 > scores.property2) {
+    return 'Property 1 is recommended based on overall analysis';
+  } else if (scores.property2 > scores.property1) {
+    return 'Property 2 is recommended based on overall analysis';
+  } else {
+    return 'Both properties have similar overall value - decision depends on personal preferences';
+  }
+} 
+
+// Helper function for comprehensive recommendation
+function generateComprehensiveRecommendation(comparison: any): string {
+  const recommended = comparison.comparison.professionalRecommendation.recommendedProperty;
+  const confidence = comparison.comparison.professionalRecommendation.confidenceLevel;
+  const property = recommended === 'property1' ? comparison.property1 : comparison.property2;
+  const analysis = property.analysis;
+
+  let recommendation = `**${confidence} Confidence Recommendation: ${property.title}**\n\n`;
+  
+  recommendation += `**Investment Grade**: ${analysis.investmentAnalysis.investmentGrade} with ${(analysis.investmentAnalysis.expectedROI * 100).toFixed(1)}% expected ROI\n`;
+  recommendation += `**Market Position**: ${analysis.priceAnalysis.pricePositioning} - ${analysis.priceAnalysis.competitiveAdvantage}\n`;
+  recommendation += `**Location Ranking**: ${analysis.locationIntelligence.neighborhoodRanking} neighborhood\n`;
+  recommendation += `**Market Strategy**: ${analysis.professionalInsights.recommendedStrategy}\n\n`;
+  
+  recommendation += `**Key Advantages**:\n`;
+  comparison.comparison.executiveSummary[`${recommended}Advantages`].forEach((advantage: string) => {
+    recommendation += `• ${advantage}\n`;
+  });
+  
+  recommendation += `\n**Professional Insight**: ${analysis.professionalInsights.marketPosition}`;
+  
+  return recommendation;
 } 
