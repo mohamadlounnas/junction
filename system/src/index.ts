@@ -562,13 +562,18 @@ async function startServer() {
       console.warn('Redis connection failed, continuing without cache');
     }
 
-    // Start the server
-    app.listen(PORT);
+    // Start the server with explicit configuration
+    const server = app.listen({
+      port: Number(PORT),
+      hostname: '0.0.0.0'
+    });
     
     console.log('✅ Smart Contact System started successfully!');
     console.log(`🌐 Server: http://localhost:${PORT}`);
     console.log(`📚 Swagger: http://localhost:${PORT}/swagger`);
     console.log(`🇩🇿 Algeria Real Estate AI System Ready!`);
+    
+    return server;
     
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -589,7 +594,42 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Start the server
-startServer();
+// Export the app for Bun to serve
+export default {
+  port: Number(PORT),
+  hostname: '0.0.0.0',
+  fetch: app.fetch,
+  development: false
+};
 
-export default app;
+// Initialize the server
+(async () => {
+  try {
+    console.log('🚀 Starting Smart Contact System...');
+    
+    // Initialize Redis
+    initializeRedis();
+    
+    // Test database connection
+    const dbConnected = await testDatabaseConnection();
+    if (!dbConnected) {
+      throw new Error('Database connection failed');
+    }
+
+    // Connect to Redis (if available)
+    try {
+      await connectRedis();
+    } catch (error) {
+      console.warn('Redis connection failed, continuing without cache');
+    }
+    
+    console.log('✅ Smart Contact System initialized successfully!');
+    console.log(`🌐 Server will start on: http://localhost:${PORT}`);
+    console.log(`📚 Swagger: http://localhost:${PORT}/swagger`);
+    console.log(`🇩🇿 Algeria Real Estate AI System Ready!`);
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize server:', error);
+    process.exit(1);
+  }
+})();
