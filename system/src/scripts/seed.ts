@@ -1,15 +1,16 @@
 /**
  * Seed Script - Smart Contact System
  * Populates database with sample Algerian real estate data
+ * Enhanced with dual transaction type support
  */
 
 import { PrismaClient } from '@prisma/client';
-import { generateScoresFromContact, generateScoresFromProperty } from '../services/score-generator';
+import { generateScoresFromContact, generateAllScoresFromContact, generateScoresFromProperty } from '../services/score-generator';
 import { updatePropertyGeohash } from '../services/geospatial';
 
 const prisma = new PrismaClient();
 
-// Sample contacts data
+// Sample contacts data with enhanced dual transaction support
 const sampleContacts = [
   {
     email: 'ahmed.benali@email.dz',
@@ -21,7 +22,10 @@ const sampleContacts = [
     locationWilayas: ['Algiers', 'Boumerdès'],
     locationCities: ['Hydra', 'Bab Ezzouar'],
     propertyTypes: ['VILLA' as const, 'APARTMENT' as const],
-    transactionType: 'SALE' as const,
+    transactionType: 'SALE' as const, // Legacy field
+    transactionTypes: ['SALE' as const], // Enhanced field
+    primaryTransactionType: 'SALE' as const,
+    transactionFlexibility: 0.3, // Low flexibility - prefers buying
     familySize: 4,
     hasChildren: true,
     minRooms: 3,
@@ -41,7 +45,10 @@ const sampleContacts = [
     locationWilayas: ['Oran', 'Tlemcen'],
     locationCities: ['Es Senia', 'Oran Centre'],
     propertyTypes: ['APARTMENT' as const],
-    transactionType: 'RENT' as const,
+    transactionType: 'RENT' as const, // Legacy field
+    transactionTypes: ['RENT' as const], // Enhanced field
+    primaryTransactionType: 'RENT' as const,
+    transactionFlexibility: 0.2, // Very low flexibility - only rents
     familySize: 2,
     hasChildren: false,
     minRooms: 2,
@@ -61,7 +68,10 @@ const sampleContacts = [
     locationWilayas: ['Algiers', 'Oran', 'Constantine'],
     locationCities: ['Algiers Centre', 'Oran Centre', 'Constantine Centre'],
     propertyTypes: ['OFFICE' as const, 'SHOP' as const, 'APARTMENT' as const],
-    transactionType: 'SALE' as const,
+    transactionType: 'SALE' as const, // Legacy field
+    transactionTypes: ['SALE' as const, 'RENT' as const], // Enhanced field - interested in both
+    primaryTransactionType: 'SALE' as const, // Prefers buying for investment
+    transactionFlexibility: 0.8, // High flexibility - open to both
     familySize: 1,
     hasChildren: false,
     minArea: 50,
@@ -79,7 +89,10 @@ const sampleContacts = [
     locationWilayas: ['Constantine', 'Annaba'],
     locationCities: ['Constantine', 'Annaba Centre'],
     propertyTypes: ['HOUSE' as const, 'APARTMENT' as const],
-    transactionType: 'SALE' as const,
+    transactionType: 'SALE' as const, // Legacy field
+    transactionTypes: ['SALE' as const, 'RENT' as const], // Enhanced field - flexible
+    primaryTransactionType: 'SALE' as const, // Prefers buying
+    transactionFlexibility: 0.6, // Medium flexibility
     familySize: 6,
     hasChildren: true,
     minRooms: 4,
@@ -99,7 +112,10 @@ const sampleContacts = [
     locationWilayas: ['Algiers'],
     locationCities: ['Bab Ezzouar', 'Ben Aknoun'],
     propertyTypes: ['APARTMENT' as const],
-    transactionType: 'RENT' as const,
+    transactionType: 'RENT' as const, // Legacy field
+    transactionTypes: ['RENT' as const], // Enhanced field
+    primaryTransactionType: 'RENT' as const,
+    transactionFlexibility: 0.1, // Very low flexibility - student budget
     familySize: 1,
     hasChildren: false,
     minRooms: 1,
@@ -108,6 +124,30 @@ const sampleContacts = [
     maxArea: 80,
     requiresParking: false,
     requiresSecurity: false
+  },
+  // New contact demonstrating dual transaction flexibility
+  {
+    email: 'sara.flexible@email.dz',
+    name: 'Sara Benmoussa',
+    phone: '+213 555 999 888',
+    type: 'BUYER' as const,
+    budgetMin: 12000000, // 12M DZD
+    budgetMax: 20000000, // 20M DZD
+    locationWilayas: ['Algiers', 'Tipaza'],
+    locationCities: ['Hydra', 'Cherchell'],
+    propertyTypes: ['VILLA' as const, 'APARTMENT' as const],
+    transactionType: 'SALE' as const, // Legacy field
+    transactionTypes: ['SALE' as const, 'RENT' as const], // Enhanced field - very flexible
+    primaryTransactionType: 'SALE' as const, // Prefers buying but open to renting
+    transactionFlexibility: 0.9, // Very high flexibility
+    familySize: 3,
+    hasChildren: true,
+    minRooms: 3,
+    maxRooms: 4,
+    minArea: 100,
+    maxArea: 200,
+    requiresParking: true,
+    requiresSecurity: true
   }
 ];
 
@@ -328,15 +368,7 @@ async function main() {
 
     // Create contacts with auto-generated scores
     console.log('👥 Creating contacts...');
-    for (const contactData of sampleContacts) {
-      const scores = generateScoresFromContact(contactData);
-      await prisma.contact.create({
-        data: {
-          ...contactData,
-          scores
-        }
-      });
-    }
+    await seedContacts();
 
     // Create properties with auto-generated scores
     console.log('🏠 Creating properties...');
@@ -395,6 +427,37 @@ async function main() {
     console.error('❌ Seed failed:', error);
     throw error;
   }
+}
+
+async function seedContacts() {
+  console.log('📝 Seeding contacts...');
+  
+  for (const contactData of sampleContacts) {
+    try {
+      // Generate enhanced scores with dual transaction support
+      const allScores = generateAllScoresFromContact(contactData);
+      
+      // Prepare contact data with backward compatibility
+      const contact = await prisma.contact.create({
+        data: {
+          ...contactData,
+          scores: allScores.scores,
+          transactionScores: allScores.transactionScores,
+          // Ensure legacy field is set for backward compatibility
+          transactionType: (contactData.primaryTransactionType || contactData.transactionTypes?.[0] || contactData.transactionType) as 'RENT' | 'SALE'
+        }
+      });
+      
+      console.log(`   ✅ Created ${contact.name} (${contact.type}) - Transaction: ${contact.transactionType}`);
+      if (contact.transactionTypes?.length > 1) {
+        console.log(`      🔄 Flexible: ${contact.transactionTypes.join(', ')} (Primary: ${contact.primaryTransactionType})`);
+      }
+    } catch (error) {
+      console.error(`   ❌ Failed to create contact ${contactData.name}:`, error);
+    }
+  }
+  
+  console.log(`📊 Created ${sampleContacts.length} contacts with enhanced transaction support`);
 }
 
 main()

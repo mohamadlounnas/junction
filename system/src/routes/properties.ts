@@ -9,6 +9,46 @@ import {
   isValidAlgeriaLocation,
   ALGERIA_LANDMARKS
 } from '../services/geospatial';
+import { existsSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
+import path from 'path';
+import { randomUUID } from 'crypto';
+
+// Helper function to handle file upload
+async function saveUploadedFile(file: File): Promise<string> {
+  try {
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
+
+    // Generate unique filename
+    const fileExtension = path.extname(file.name);
+    const fileName = `${randomUUID()}${fileExtension}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    // Save file
+    const buffer = await file.arrayBuffer();
+    await writeFile(filePath, new Uint8Array(buffer));
+
+    // Return URL
+    return `/uploads/${fileName}`;
+  } catch (error) {
+    console.error('File upload error:', error);
+    throw new Error('Failed to save uploaded file');
+  }
+}
+
+// Helper function to handle multiple files
+async function saveUploadedFiles(files: File[]): Promise<string[]> {
+  const urls: string[] = [];
+  for (const file of files) {
+    const url = await saveUploadedFile(file);
+    urls.push(url);
+  }
+  return urls;
+}
 
 export const propertiesRoutes = new Elysia({ prefix: '/properties' })
   // List properties with filtering and pagination
@@ -406,15 +446,41 @@ Quick search for properties near famous Algeria landmarks.
   // Create new property
   .post('/', async ({ body }) => {
     try {
+      let imageUrl: string | undefined;
+      let imageUrls: string[] = [];
+
+      // Handle image_url or imageFile
+      if ((body as any).imageFile) {
+        imageUrl = await saveUploadedFile((body as any).imageFile);
+      } else if ((body as any).image_url) {
+        imageUrl = (body as any).image_url;
+      }
+
+      // Handle images array (can be URLs or files)
+      if ((body as any).imageFiles && Array.isArray((body as any).imageFiles)) {
+        imageUrls = await saveUploadedFiles((body as any).imageFiles);
+      } else if ((body as any).images && Array.isArray((body as any).images)) {
+        imageUrls = (body as any).images;
+      }
+
+      // Create property data without file fields
+      const propertyData = { ...(body as any) };
+      delete propertyData.imageFile;
+      delete propertyData.imageFiles;
+      
+      // Add processed image data
+      if (imageUrl) propertyData.image_url = imageUrl;
+      if (imageUrls.length > 0) propertyData.images = imageUrls;
+
       // Generate scores automatically
-      const scores = generateScoresFromProperty(body);
+      const scores = generateScoresFromProperty(propertyData);
       
       // Generate geohash data if coordinates provided
-      const geohashData = updatePropertyGeohash(body);
+      const geohashData = updatePropertyGeohash(propertyData);
 
       const property = await prisma.property.create({
         data: {
-          ...(body as any),
+          ...propertyData,
           scores,
           ...geohashData
         }
@@ -466,13 +532,93 @@ Quick search for properties near famous Algeria landmarks.
       buildingAge: t.Optional(t.Number({ minimum: 0 })),
       floor: t.Optional(t.Number({ minimum: 0 })),
       totalFloors: t.Optional(t.Number({ minimum: 1 })),
+      image_url: t.Optional(t.String({ description: 'Direct image URL' })),
+      images: t.Optional(t.Array(t.String(), { description: 'Array of image URLs' })),
+      imageFile: t.Optional(t.File({ description: 'Single image file to upload' })),
+      imageFiles: t.Optional(t.Array(t.File(), { description: 'Multiple image files to upload' })),
       ownerId: t.Optional(t.String()),
       featured: t.Optional(t.Boolean())
     }),
     detail: {
       tags: ['Properties'],
-      summary: 'Create property',
-      description: 'Create a new property with automatic score generation'
+      summary: 'Create property with image upload support',
+      description: `
+## Create Property with Images
+
+Create a new property with automatic AI scoring and optional image uploads.
+
+### 🖼️ Image Upload Options
+- **Direct URL**: Use \`image_url\` field for single image
+- **URL Array**: Use \`images\` field for multiple image URLs  
+- **File Upload**: Use \`imageFile\` for single file upload
+- **Multiple Files**: Use \`imageFiles\` for multiple file uploads
+
+### 📝 Examples
+
+**With Direct Image URL:**
+\`\`\`json
+{
+  "title": "Beautiful Villa in Algiers",
+  "price": 25000000,
+  "area": 200,
+  "rooms": 4,
+  "wilaya": "Algiers",
+  "city": "Hydra",
+  "image_url": "https://example.com/villa.jpg"
+}
+\`\`\`
+
+**With Multiple Image URLs:**
+\`\`\`json
+{
+  "title": "Modern Apartment",
+  "price": 15000000,
+  "area": 120,
+  "rooms": 3,
+  "wilaya": "Algiers", 
+  "city": "Bab Ezzouar",
+  "images": ["https://example.com/apt1.jpg", "https://example.com/apt2.jpg"]
+}
+\`\`\`
+
+### 📤 File Upload
+Use \`multipart/form-data\` for file uploads with \`imageFile\` or \`imageFiles\` fields.
+
+### ✨ Features
+- **Auto AI Scoring**: 12D vector generated automatically
+- **Geospatial Index**: Location-based search optimization
+- **Image Processing**: Secure upload with UUID naming
+- **URL Generation**: Automatic image URL generation
+      `,
+      responses: {
+        '200': {
+          description: 'Property created successfully with images',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', example: 'cuid123...' },
+                      title: { type: 'string', example: 'Beautiful Villa in Algiers' },
+                      image_url: { type: 'string', example: '/uploads/uuid-image.jpg' },
+                      images: { 
+                        type: 'array', 
+                        items: { type: 'string' },
+                        example: ['/uploads/uuid-img1.jpg', '/uploads/uuid-img2.jpg']
+                      }
+                    }
+                  },
+                  message: { type: 'string', example: 'Property created successfully' }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   })
 
@@ -729,6 +875,8 @@ Quick search for properties near famous Algeria landmarks.
         buildingAge: t.Optional(t.Number({ minimum: 0 })),
         floor: t.Optional(t.Number({ minimum: 0 })),
         totalFloors: t.Optional(t.Number({ minimum: 1 })),
+        image_url: t.Optional(t.String()),
+        images: t.Optional(t.Array(t.String())),
         ownerId: t.Optional(t.String()),
         featured: t.Optional(t.Boolean())
       }), { minItems: 1, maxItems: 50 })

@@ -3,6 +3,7 @@
  * 
  * Generates 12-dimensional vectors for contact preferences and property features
  * Optimized for the Algerian real estate market with cultural and geographic considerations
+ * Enhanced with dual transaction type support
  */
 
 // Type definitions will be available after Prisma generation
@@ -18,6 +19,9 @@ type Contact = {
   locationCities: string[];
   propertyTypes: ('APARTMENT' | 'VILLA' | 'HOUSE' | 'OFFICE' | 'SHOP' | 'WAREHOUSE' | 'LAND' | 'GARAGE')[];
   transactionType: 'RENT' | 'SALE';
+  transactionTypes?: ('RENT' | 'SALE')[];
+  primaryTransactionType?: 'RENT' | 'SALE';
+  transactionFlexibility?: number;
   familySize?: number | null;
   hasChildren: boolean;
   minRooms?: number | null;
@@ -29,6 +33,7 @@ type Contact = {
   requiresParking: boolean;
   requiresSecurity: boolean;
   scores: number[];
+  transactionScores?: number[];
   isActive: boolean;
   notes?: string | null;
   createdAt: Date;
@@ -176,10 +181,59 @@ export const VECTOR_DIMENSIONS = {
 } as const;
 
 /**
+ * Generate transaction scores for dual transaction type support
+ * Returns [rentScore, saleScore] where each score is 0-1
+ */
+export function generateTransactionScores(contact: Partial<Contact>): number[] {
+  const rentScore = 0.0;
+  const saleScore = 0.0;
+  
+  // If using legacy single transaction type
+  if (contact.transactionType && !contact.transactionTypes?.length) {
+    if (contact.transactionType === 'RENT') {
+      return [1.0, 0.0];
+    } else {
+      return [0.0, 1.0];
+    }
+  }
+  
+  // Enhanced dual transaction type logic
+  if (contact.transactionTypes?.length) {
+    const hasRent = contact.transactionTypes.includes('RENT');
+    const hasSale = contact.transactionTypes.includes('SALE');
+    
+    if (hasRent && hasSale) {
+      // Interested in both - use primary preference and flexibility
+      const primary = contact.primaryTransactionType || contact.transactionTypes[0];
+      const flexibility = contact.transactionFlexibility || 0.5;
+      
+      if (primary === 'RENT') {
+        return [1.0, flexibility];
+      } else {
+        return [flexibility, 1.0];
+      }
+    } else if (hasRent) {
+      return [1.0, 0.0];
+    } else if (hasSale) {
+      return [0.0, 1.0];
+    }
+  }
+  
+  // Fallback to legacy behavior
+  if (contact.transactionType === 'RENT') {
+    return [1.0, 0.0];
+  } else if (contact.transactionType === 'SALE') {
+    return [0.0, 1.0];
+  }
+  
+  return [0.5, 0.5]; // Default neutral scores
+}
+
+/**
  * Generate 12D score vector for a contact based on their preferences
  */
 export function generateScoresFromContact(contact: Partial<Contact>): number[] {
-  const scores = new Array(12).fill(0.5); // Default neutral scores
+  const scores = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
 
   // Dimension 0: Budget (normalized based on contact's budget range)
   if (contact.budgetMin && contact.budgetMax) {
@@ -263,10 +317,25 @@ export function generateScoresFromContact(contact: Partial<Contact>): number[] {
     scores[VECTOR_DIMENSIONS.URGENCY] = 0.3;
   }
 
-  // Dimension 11: Transaction type
-  scores[VECTOR_DIMENSIONS.TRANSACTION] = contact.transactionType === 'SALE' ? 1.0 : 0.0;
+  // Dimension 11: Transaction type (enhanced for dual support)
+  const transactionScores = generateTransactionScores(contact);
+  const primaryTransaction = contact.primaryTransactionType || contact.transactionType;
+  scores[VECTOR_DIMENSIONS.TRANSACTION] = primaryTransaction === 'SALE' ? 1.0 : 0.0;
 
   return scores;
+}
+
+/**
+ * Generate both main scores and transaction scores
+ */
+export function generateAllScoresFromContact(contact: Partial<Contact>): {
+  scores: number[];
+  transactionScores: number[];
+} {
+  return {
+    scores: generateScoresFromContact(contact),
+    transactionScores: generateTransactionScores(contact)
+  };
 }
 
 /**

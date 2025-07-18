@@ -194,6 +194,129 @@ describe('Smart Contact API Tests', () => {
       expect(data.success).toBe(true);
       expect(data.message).toContain('synchronized');
     });
+
+    it('should create property with image_url', async () => {
+      const propertyWithImage = {
+        title: 'Villa with Image URL',
+        description: 'Villa with direct image URL',
+        price: 20000000,
+        area: 200,
+        rooms: 5,
+        bathrooms: 3,
+        wilaya: 'Algiers',
+        city: 'Cheraga',
+        propertyType: 'VILLA',
+        transactionType: 'SALE',
+        furnishing: 'FURNISHED',
+        condition: 'EXCELLENT',
+        hasParking: true,
+        hasSecurity: true,
+        hasElevator: false,
+        hasGarden: true,
+        hasBalcony: true,
+        hasSwimmingPool: true,
+        image_url: 'https://example.com/villa-image.jpg',
+        featured: false
+      };
+
+      const response = await fetch(`${BASE_URL}/api/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(propertyWithImage)
+      });
+      
+      const data = await response.json();
+      
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.image_url).toBe('https://example.com/villa-image.jpg');
+    });
+
+    it('should create property with multiple images', async () => {
+      const propertyWithImages = {
+        title: 'Apartment with Multiple Images',
+        description: 'Modern apartment with gallery',
+        price: 15000000,
+        area: 120,
+        rooms: 3,
+        bathrooms: 2,
+        wilaya: 'Algiers',
+        city: 'Bab Ezzouar',
+        propertyType: 'APARTMENT',
+        transactionType: 'SALE',
+        furnishing: 'SEMI_FURNISHED',
+        condition: 'GOOD',
+        hasParking: true,
+        hasSecurity: true,
+        hasElevator: true,
+        hasGarden: false,
+        hasBalcony: true,
+        hasSwimmingPool: false,
+        images: [
+          'https://example.com/apt-living.jpg',
+          'https://example.com/apt-kitchen.jpg',
+          'https://example.com/apt-bedroom.jpg'
+        ],
+        featured: false
+      };
+
+      const response = await fetch(`${BASE_URL}/api/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(propertyWithImages)
+      });
+      
+      const data = await response.json();
+      
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data.images)).toBe(true);
+      expect(data.data.images).toHaveLength(3);
+      expect(data.data.images[0]).toBe('https://example.com/apt-living.jpg');
+    });
+
+    it('should create property with both image_url and images', async () => {
+      const propertyWithBothImages = {
+        title: 'House with Complete Gallery',
+        description: 'House with main image and gallery',
+        price: 12000000,
+        area: 150,
+        rooms: 4,
+        bathrooms: 2,
+        wilaya: 'Oran',
+        city: 'Oran Center',
+        propertyType: 'HOUSE',
+        transactionType: 'SALE',
+        furnishing: 'UNFURNISHED',
+        condition: 'GOOD',
+        hasParking: true,
+        hasSecurity: false,
+        hasElevator: false,
+        hasGarden: true,
+        hasBalcony: false,
+        hasSwimmingPool: false,
+        image_url: 'https://example.com/house-main.jpg',
+        images: [
+          'https://example.com/house-interior1.jpg',
+          'https://example.com/house-interior2.jpg'
+        ],
+        featured: true
+      };
+
+      const response = await fetch(`${BASE_URL}/api/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(propertyWithBothImages)
+      });
+      
+      const data = await response.json();
+      
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.image_url).toBe('https://example.com/house-main.jpg');
+      expect(Array.isArray(data.data.images)).toBe(true);
+      expect(data.data.images).toHaveLength(2);
+    });
   });
 
   // Recommendations API (Core AI Feature)
@@ -309,6 +432,30 @@ describe('Smart Contact API Tests', () => {
       expect(data.data).toHaveProperty('overview');
       expect(data.data).toHaveProperty('trends');
       expect(data.data).toHaveProperty('performance');
+    });
+  });
+
+  // File Upload and Static Serving
+  describe('File Upload and Static Serving', () => {
+    it('should serve static files from uploads directory', async () => {
+      // Create a test file path (this assumes a test file exists or we're testing the 404 case)
+      const response = await fetch(`${BASE_URL}/uploads/test-non-existent-file.jpg`);
+      
+      // Should return 404 for non-existent file, but with proper error structure
+      expect(response.status).toBe(404);
+      
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('File not found');
+    });
+
+    it('should reject access to files outside uploads directory', async () => {
+      const response = await fetch(`${BASE_URL}/uploads/../package.json`);
+      
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Access denied');
     });
   });
 

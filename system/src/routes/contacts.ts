@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../config/database';
-import { generateScoresFromContact, validateScoreVector } from '../services/score-generator';
+import { generateScoresFromContact, generateAllScoresFromContact, validateScoreVector } from '../services/score-generator';
 
 export const contactsRoutes = new Elysia({ prefix: '/contacts' })
   // List contacts with filtering and pagination
@@ -13,6 +13,8 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
         search,
         wilaya,
         transactionType,
+        transactionTypes,
+        primaryTransactionType,
         budgetMin,
         budgetMax,
         hasChildren,
@@ -40,6 +42,11 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
       if (isActiveBool !== undefined) where.isActive = isActiveBool;
       if (type) where.type = type;
       if (transactionType) where.transactionType = transactionType;
+      if (primaryTransactionType) where.primaryTransactionType = primaryTransactionType;
+      if (transactionTypes) {
+        // Support filtering by multiple transaction types
+        where.transactionTypes = { hasSome: Array.isArray(transactionTypes) ? transactionTypes : [transactionTypes] };
+      }
       if (hasChildrenBool !== undefined) where.hasChildren = hasChildrenBool;
       
       if (search) {
@@ -53,22 +60,24 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
         where.locationWilayas = { has: wilaya };
       }
 
-      if (budgetMinNum !== undefined || budgetMaxNum !== undefined) {
-        where.AND = [];
-        if (budgetMinNum !== undefined) where.AND.push({ budgetMin: { gte: budgetMinNum } });
-        if (budgetMaxNum !== undefined) where.AND.push({ budgetMax: { lte: budgetMaxNum } });
+      if (budgetMinNum !== undefined) {
+        where.budgetMin = { gte: budgetMinNum };
       }
 
-      // Get contacts and total count
-      const [contacts, total] = await Promise.all([
-        prisma.contact.findMany({
-          where,
-          skip,
-          take: limitNum,
-          orderBy: { createdAt: 'desc' }
-        }),
-        prisma.contact.count({ where })
-      ]);
+      if (budgetMaxNum !== undefined) {
+        where.budgetMax = { lte: budgetMaxNum };
+      }
+
+      // Get total count for pagination
+      const total = await prisma.contact.count({ where });
+
+      // Get contacts with pagination
+      const contacts = await prisma.contact.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' }
+      });
 
       return {
         success: true,
@@ -79,7 +88,17 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
           total,
           pages: Math.ceil(total / limitNum)
         },
-        filters: { type, search, wilaya, transactionType, budgetMin: budgetMinNum, budgetMax: budgetMaxNum, hasChildren: hasChildrenBool }
+        filters: { 
+          type, 
+          search, 
+          wilaya, 
+          transactionType, 
+          transactionTypes,
+          primaryTransactionType,
+          budgetMin: budgetMinNum, 
+          budgetMax: budgetMaxNum, 
+          hasChildren: hasChildrenBool 
+        }
       };
     } catch (error) {
       console.error('Get contacts error:', error);
@@ -108,7 +127,15 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
       transactionType: t.Optional(t.Union([
         t.Literal('RENT'),
         t.Literal('SALE')
-      ], { description: 'Filter by transaction preference' })),
+      ], { description: 'Filter by transaction preference (legacy)' })),
+      transactionTypes: t.Optional(t.Union([
+        t.Array(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+        t.String({ description: 'Filter by multiple transaction types' })
+      ], { description: 'Filter by multiple transaction types' })),
+      primaryTransactionType: t.Optional(t.Union([
+        t.Literal('RENT'),
+        t.Literal('SALE')
+      ], { description: 'Filter by primary transaction type' })),
       budgetMin: t.Optional(t.Union([
         t.Number({ minimum: 0, description: 'Minimum budget in DZD' }),
         t.String({ description: 'Minimum budget as string' })
@@ -128,147 +155,30 @@ export const contactsRoutes = new Elysia({ prefix: '/contacts' })
     }),
     detail: {
       tags: ['Contacts'],
-      summary: 'List contacts with advanced filtering',
+      summary: 'List contacts with enhanced filtering',
       description: `
-## Get All Contacts with Filtering and Pagination
+## Enhanced Contact Listing with Dual Transaction Support
 
-Retrieve contacts with comprehensive filtering options for efficient searching and browsing.
+List contacts with comprehensive filtering options including the new dual transaction type support.
 
-### 🔍 Filter Options
+### 🔄 Dual Transaction Support
+- **Legacy**: Filter by single transactionType (RENT/SALE)
+- **Enhanced**: Filter by multiple transactionTypes or primaryTransactionType
+- **Flexibility**: Support for contacts interested in both RENT and SALE
+
+### 📋 Filter Options
 - **Type**: BUYER, TENANT, INVESTOR
-- **Search**: Name and email text search
-- **Location**: Filter by Algerian wilayas
-- **Budget**: Min/max price range in DZD
-- **Transaction**: RENT or SALE preference
-- **Family**: Has children or not
-- **Status**: Active/inactive contacts
+- **Transaction**: Single or multiple transaction types
+- **Location**: Wilaya-based filtering
+- **Budget**: Min/max budget ranges
+- **Family**: Children status
+- **Search**: Name and email search
 
-### 📄 Pagination
-- Default: 10 results per page
-- Maximum: 50 results per page
-- Returns total count and page info
-
-### 🇩🇿 Algeria-Specific Features
-- All 48 wilayas supported
-- DZD currency ranges
-- Cultural family preferences
-      `,
-      responses: {
-        '200': {
-          description: 'Successful response with filtered contacts',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: true },
-                  data: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        id: { type: 'string', example: 'cmd8bvuwy0009m5y8bqjlgepr' },
-                        email: { type: 'string', example: 'ahmed.benali@email.dz' },
-                        name: { type: 'string', example: 'Ahmed Benali' },
-                        type: { type: 'string', example: 'BUYER' },
-                        budgetMin: { type: 'number', example: 15000000 },
-                        budgetMax: { type: 'number', example: 25000000 },
-                        locationWilayas: { type: 'array', items: { type: 'string' }, example: ['Algiers', 'Boumerdès'] },
-                        transactionType: { type: 'string', example: 'SALE' },
-                        hasChildren: { type: 'boolean', example: true },
-                        scores: { type: 'array', items: { type: 'number' }, example: [0.1, 0.1, 0.1, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1.0] }
-                      }
-                    }
-                  },
-                  pagination: {
-                    type: 'object',
-                    properties: {
-                      page: { type: 'number', example: 1 },
-                      limit: { type: 'number', example: 10 },
-                      total: { type: 'number', example: 5 },
-                      pages: { type: 'number', example: 1 }
-                    }
-                  },
-                  filters: {
-                    type: 'object',
-                    example: { type: 'BUYER', wilaya: 'Algiers', budgetMin: 15000000 }
-                  }
-                }
-              },
-              examples: {
-                'all_contacts': {
-                  summary: 'All active contacts',
-                  value: {
-                    success: true,
-                    data: [
-                      {
-                        id: 'cmd8bvuwy0009m5y8bqjlgepr',
-                        email: 'ahmed.benali@email.dz',
-                        name: 'Ahmed Benali',
-                        type: 'BUYER',
-                        budgetMin: 15000000,
-                        budgetMax: 25000000,
-                        locationWilayas: ['Algiers'],
-                        transactionType: 'SALE',
-                        hasChildren: true,
-                        scores: [0.1, 0.1, 0.1, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1.0]
-                      }
-                    ],
-                    pagination: { page: 1, limit: 10, total: 5, pages: 1 },
-                    filters: {}
-                  }
-                },
-                'filtered_buyers': {
-                  summary: 'Buyers in Algiers',
-                  value: {
-                    success: true,
-                    data: [
-                      {
-                        id: 'cmd8bvuwy0009m5y8bqjlgepr',
-                        name: 'Ahmed Benali',
-                        type: 'BUYER',
-                        locationWilayas: ['Algiers'],
-                        budgetMin: 15000000,
-                        budgetMax: 25000000
-                      }
-                    ],
-                    pagination: { page: 1, limit: 10, total: 2, pages: 1 },
-                    filters: { type: 'BUYER', wilaya: 'Algiers' }
-                  }
-                }
-              }
-            }
-          }
-        },
-        '400': {
-          description: 'Bad request - invalid parameters',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: false },
-                  error: { type: 'string', example: 'Invalid page number' }
-                }
-              }
-            }
-          }
-        },
-        '500': {
-          description: 'Internal server error',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: false },
-                  error: { type: 'string', example: 'Failed to fetch contacts' }
-                }
-              }
-            }
-          }
-        }
-      }
+### 🎯 Use Cases
+- Find flexible buyers open to both renting and buying
+- Target investors with specific transaction preferences
+- Segment contacts by primary vs secondary transaction interests
+        `
     }
   })
 
@@ -314,10 +224,9 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
     }
   })
 
-  // Create new contact
+  // Create new contact with enhanced dual transaction support
   .post('/', async ({ body, set }) => {
     try {
-      // Basic email validation
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
         set.status = 400;
         return {
@@ -327,20 +236,26 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
         };
       }
 
-      // Generate scores automatically
-      const scores = generateScoresFromContact(body);
+      // Generate enhanced scores with dual transaction support
+      const allScores = generateAllScoresFromContact(body);
+      
+      // Prepare contact data with backward compatibility
+      const contactData = {
+        ...body,
+        scores: allScores.scores,
+        transactionScores: allScores.transactionScores,
+        // Ensure legacy field is set for backward compatibility
+        transactionType: (body.primaryTransactionType || body.transactionTypes?.[0] || body.transactionType) as 'RENT' | 'SALE'
+      };
 
       const contact = await prisma.contact.create({
-        data: {
-          ...(body as any),
-          scores
-        }
+        data: contactData
       });
 
       return {
         success: true,
         data: contact,
-        message: 'Contact created successfully'
+        message: 'Contact created successfully with enhanced transaction support'
       };
     } catch (error) {
       console.error('Create contact error:', error);
@@ -365,7 +280,11 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
         t.Literal('OFFICE'), t.Literal('SHOP'), t.Literal('WAREHOUSE'),
         t.Literal('LAND'), t.Literal('GARAGE')
       ])),
-      transactionType: t.Union([t.Literal('RENT'), t.Literal('SALE')]),
+      // Enhanced transaction type support
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])), // Legacy support
+      transactionTypes: t.Optional(t.Array(t.Union([t.Literal('RENT'), t.Literal('SALE')]))),
+      primaryTransactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      transactionFlexibility: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
       familySize: t.Optional(t.Number({ minimum: 1 })),
       hasChildren: t.Boolean(),
       minRooms: t.Optional(t.Number({ minimum: 1 })),
@@ -373,10 +292,16 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
       minArea: t.Optional(t.Number({ minimum: 1 })),
       maxArea: t.Optional(t.Number({ minimum: 1 })),
       furnishingType: t.Optional(t.Union([
-        t.Literal('FURNISHED'), t.Literal('SEMI_FURNISHED'), t.Literal('UNFURNISHED')
+        t.Literal('FURNISHED'),
+        t.Literal('SEMI_FURNISHED'),
+        t.Literal('UNFURNISHED')
       ])),
       preferredCondition: t.Optional(t.Union([
-        t.Literal('POOR'), t.Literal('FAIR'), t.Literal('GOOD'), t.Literal('EXCELLENT'), t.Literal('NEW')
+        t.Literal('POOR'),
+        t.Literal('FAIR'),
+        t.Literal('GOOD'),
+        t.Literal('EXCELLENT'),
+        t.Literal('NEW')
       ])),
       requiresParking: t.Boolean(),
       requiresSecurity: t.Boolean(),
@@ -384,182 +309,50 @@ Retrieve contacts with comprehensive filtering options for efficient searching a
     }),
     detail: {
       tags: ['Contacts'],
-      summary: 'Create new contact with AI scoring',
+      summary: 'Create new contact with enhanced dual transaction support',
       description: `
-## Create New Contact with Automatic 12D Vector Generation
+## Create New Contact with Enhanced Dual Transaction Support
 
-Creates a new contact and automatically generates a 12-dimensional preference vector for AI recommendations.
+Creates a new contact with support for multiple transaction types and automatic AI scoring.
+
+### 🔄 Enhanced Transaction Support
+- **Legacy**: Single transactionType (RENT/SALE)
+- **Enhanced**: Multiple transactionTypes with primary preference
+- **Flexibility**: Transaction flexibility score (0-1)
+- **Backward Compatible**: Works with existing single transaction type
 
 ### 🤖 AI Features
-- **Automatic Scoring**: Generates 12D vector from preferences
-- **Algeria Optimization**: Considers cultural and geographic factors
-- **Budget Normalization**: Converts DZD amounts to 0-1 scale
-- **Location Scoring**: Optimized for 48 Algerian wilayas
+- **Dual Scoring**: Generates both main 12D vector and transaction scores
+- **Flexibility Scoring**: Considers transaction flexibility in recommendations
+- **Primary Preference**: Prioritizes primary transaction type in matching
 
 ### 📋 Required Fields
-- **email**: Valid email address (validated)
+- **email**: Valid email address
 - **name**: Full name (minimum 2 characters)
 - **type**: BUYER, TENANT, or INVESTOR
-- **transactionType**: RENT or SALE
 - **hasChildren**: Family status (boolean)
 - **requiresParking**: Parking preference (boolean)
 - **requiresSecurity**: Security preference (boolean)
 
-### 🎯 12D Vector Dimensions
-The system automatically generates scores for:
-1. **Budget** - Price preference level
-2. **Area** - Size requirements  
-3. **Rooms** - Room count preference
-4. **Location** - Wilaya desirability
-5. **Property Type** - Villa, apartment, etc.
-6. **Condition** - Property condition preference
-7. **Features** - Amenities importance
-8. **Family** - Family-friendliness needs
-9. **Modern** - Modernity preference
-10. **Investment** - Investment potential interest
-11. **Urgency** - Decision timeline
-12. **Transaction** - RENT (0) or SALE (1)
-      `,
-      responses: {
-        '200': {
-          description: 'Contact created successfully with AI scores',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: true },
-                  data: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', example: 'cmd8bvuwy0009m5y8bqjlgepr' },
-                      email: { type: 'string', example: 'ahmed.benali@email.dz' },
-                      name: { type: 'string', example: 'Ahmed Benali' },
-                      type: { type: 'string', example: 'BUYER' },
-                      budgetMin: { type: 'number', example: 15000000 },
-                      budgetMax: { type: 'number', example: 25000000 },
-                      locationWilayas: { type: 'array', items: { type: 'string' }, example: ['Algiers'] },
-                      propertyTypes: { type: 'array', items: { type: 'string' }, example: ['VILLA', 'APARTMENT'] },
-                      transactionType: { type: 'string', example: 'SALE' },
-                      hasChildren: { type: 'boolean', example: true },
-                      requiresParking: { type: 'boolean', example: true },
-                      requiresSecurity: { type: 'boolean', example: true },
-                      scores: { 
-                        type: 'array', 
-                        items: { type: 'number', minimum: 0, maximum: 1 },
-                        example: [0.38, 0.5, 0.5, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1.0],
-                        description: '12D preference vector (Budget, Area, Rooms, Location, PropertyType, Condition, Features, Family, Modern, Investment, Urgency, Transaction)'
-                      },
-                      createdAt: { type: 'string', format: 'date-time', example: '2025-07-18T04:37:51.306Z' }
-                    }
-                  },
-                  message: { type: 'string', example: 'Contact created successfully' }
-                }
-              },
-              examples: {
-                'algerian_buyer': {
-                  summary: 'Algerian Family Buyer',
-                  description: 'Successful creation of a family buyer looking for a villa in Algiers',
-                  value: {
-                    success: true,
-                    data: {
-                      id: 'cmd8bvuwy0009m5y8bqjlgepr',
-                      email: 'ahmed.benali@email.dz',
-                      name: 'Ahmed Benali',
-                      phone: '+213 555 123 456',
-                      type: 'BUYER',
-                      budgetMin: 15000000,
-                      budgetMax: 25000000,
-                      locationWilayas: ['Algiers'],
-                      locationCities: ['Hydra'],
-                      propertyTypes: ['VILLA', 'APARTMENT'],
-                      transactionType: 'SALE',
-                      familySize: 4,
-                      hasChildren: true,
-                      requiresParking: true,
-                      requiresSecurity: true,
-                      scores: [0.38, 0.5, 0.5, 0.95, 0.8, 0.7, 0.9, 0.8, 0.6, 0.5, 0.3, 1.0],
-                      isActive: true,
-                      createdAt: '2025-07-18T04:37:51.306Z'
-                    },
-                    message: 'Contact created successfully'
-                  }
-                },
-                'student_tenant': {
-                  summary: 'Student Tenant',
-                  description: 'Student looking for a rental apartment in Oran',
-                  value: {
-                    success: true,
-                    data: {
-                      id: 'cmd8bvuwy0009m5y8bqjlgepr',
-                      email: 'sara.student@univ-oran.dz',
-                      name: 'Sara Koui',
-                      type: 'TENANT',
-                      budgetMin: 20000,
-                      budgetMax: 50000,
-                      locationWilayas: ['Oran'],
-                      propertyTypes: ['APARTMENT'],
-                      transactionType: 'RENT',
-                      hasChildren: false,
-                      requiresParking: false,
-                      requiresSecurity: true,
-                      scores: [0.15, 0.2, 0.3, 0.85, 0.9, 0.5, 0.4, 0.1, 0.8, 0.2, 0.8, 0.0]
-                    },
-                    message: 'Contact created successfully'
-                  }
-                }
-              }
-            }
-          }
-        },
-        '400': {
-          description: 'Validation error - invalid input data',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: false },
-                  error: { type: 'string', example: 'Invalid email format' },
-                  message: { type: 'string', example: 'Please provide a valid email address' }
-                }
-              },
-              examples: {
-                'invalid_email': {
-                  summary: 'Invalid Email Format',
-                  value: {
-                    success: false,
-                    error: 'Invalid email format',
-                    message: 'Please provide a valid email address'
-                  }
-                },
-                'missing_required': {
-                  summary: 'Missing Required Fields',
-                  value: {
-                    success: false,
-                    error: 'Validation failed',
-                    message: 'Missing required fields: name, type, transactionType'
-                  }
-                }
-              }
-            }
-          }
-        },
-        '500': {
-          description: 'Internal server error',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: false },
-                  error: { type: 'string', example: 'Failed to create contact' }
-                }
-              }
-            }
-          }
-        }
-      }
+### 🎯 Transaction Configuration
+- **transactionTypes**: Array of interested transaction types ['RENT', 'SALE']
+- **primaryTransactionType**: Main preference (optional, defaults to first in array)
+- **transactionFlexibility**: 0-1 score for flexibility (optional, defaults to 0.5)
+
+### 💡 Example Usage
+\`\`\`json
+{
+  "email": "flexible.buyer@example.dz",
+  "name": "Ahmed Flexible",
+  "type": "BUYER",
+  "transactionTypes": ["SALE", "RENT"],
+  "primaryTransactionType": "SALE",
+  "transactionFlexibility": 0.7,
+  "budgetMin": 10000000,
+  "budgetMax": 20000000
+}
+\`\`\`
+        `
     }
   })
 
