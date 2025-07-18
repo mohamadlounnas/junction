@@ -12,4 +12,4 @@ RUN bunx prisma generate
 RUN bun run build
 
 # نشغّل الملف النهائي مباشرةً (وليس عبر "bun run")
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "run", "start"]
