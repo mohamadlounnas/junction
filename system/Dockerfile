@@ -10,7 +10,7 @@ COPY . .
 RUN bun install
 
 # Update binary target for Prisma
-RUN npx prisma generate
+RUN bunx prisma generate
 
 RUN bun run build
 
