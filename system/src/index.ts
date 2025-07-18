@@ -15,7 +15,7 @@ import { recommendationsRoutes } from './routes/recommendations';
 import { salesRoutes } from './routes/sales';
 import { settingsRoutes } from './routes/settings';
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3000;
 
 // Initialize the app
 const app = new Elysia()
