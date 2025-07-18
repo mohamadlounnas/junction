@@ -19,6 +19,10 @@ RUN mkdir -p /app/uploads
 # Create volume for uploads and storage persistence
 VOLUME ["/app/uploads", "/app/storage"]
 
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3005/health || exit 1
+
 # لا تستخدم bun build
 # شغل السيرفر مباشرة من TypeScript
 CMD ["bun", "src/index.ts"]

@@ -1555,7 +1555,7 @@ Search properties using a 12-dimensional preference vector for intelligent match
     }),
     detail: {
       tags: ['Properties'],
-      summary: 'Professional Property Comparison Analysis',
+      summary: 'Comparison two properties',
       description: `
 ## 🏆 Professional Property Comparison System
 
