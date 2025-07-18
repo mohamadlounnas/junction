@@ -7,6 +7,9 @@ import 'package:appsystem/screens/dashboard/settings_page.dart';
 import 'package:appsystem/screens/dashboard/map_page.dart';
 import 'package:appsystem/screens/dashboard/leads_page.dart';
 import 'package:appsystem/screens/chatbot/chatbot_page.dart';
+import 'package:appsystem/screens/properties/add_property_page.dart';
+import 'package:appsystem/screens/properties/property_list_page.dart'
+    as properties;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -48,7 +51,11 @@ final router = GoRouter(
             ),
             GoRoute(
               path: '/properties',
-              builder: (context, state) => const PropertyListPage(),
+              builder: (context, state) => const properties.PropertiesPage(),
+            ),
+            GoRoute(
+              path: '/add-property',
+              builder: (context, state) => const AddPropertyPage(),
             ),
             GoRoute(
               path: '/settings',

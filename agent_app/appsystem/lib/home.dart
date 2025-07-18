@@ -245,9 +245,11 @@ class NavigationSidebar extends StatelessWidget {
             ) ==
             true)
           NavigationSidebarItem(
-            leading: Icon(Iconsax.flash, color: Color(0xFF1877F2)),
+            leading: Icon(Icons.home, color: Color(0xFF1877F2)),
             title: Text(
-              mode == NavigationSidebarItemMode.full ? "ContentSync" : "CS",
+              mode == NavigationSidebarItemMode.full
+                  ? "وكيل عقارات محترف"
+                  : "وكيل",
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -255,7 +257,7 @@ class NavigationSidebar extends StatelessWidget {
             ),
             subtitle: mode == NavigationSidebarItemMode.full
                 ? Text(
-                    "Content Automation Platform",
+                    "Professional Real Estate Agent",
                     style: TextStyle(
                       fontSize: 8,
                       color: Theme.of(context).colorScheme.primary,
@@ -270,72 +272,72 @@ class NavigationSidebar extends StatelessWidget {
             },
           ),
 
-        // Dashboard Overview
+        // Home
         NavigationSidebarItem(
-          leading: route.fullPath == "/dashboard/overview"
-              ? Icon(Iconsax.home)
-              : Icon(Iconsax.home),
-          title: Text("Dashboard"),
-          selected: route.fullPath?.startsWith("/dashboard/overview"),
+          leading: route.fullPath == "/dashboard/home"
+              ? Icon(Icons.home)
+              : Icon(Icons.home_outlined),
+          title: Text("الرئيسية"),
+          selected: route.fullPath?.startsWith("/dashboard/home"),
           mode: mode,
           onTap: () {
-            context.go('/dashboard/overview');
+            context.go('/dashboard/home');
             onItemPressed?.call();
           },
         ),
 
-        // Content Scheduler
+        // Map
         NavigationSidebarItem(
-          leading: route.fullPath == "/dashboard/scheduler"
-              ? Icon(Iconsax.calendar)
-              : Icon(Iconsax.calendar),
-          title: Text("Scheduler", style: TextStyle()),
-          selected: route.fullPath?.startsWith("/dashboard/scheduler"),
+          leading: route.fullPath == "/dashboard/map"
+              ? Icon(Icons.map)
+              : Icon(Icons.map_outlined),
+          title: Text("الخريطة"),
+          selected: route.fullPath?.startsWith("/dashboard/map"),
           mode: mode,
           onTap: () {
-            context.go('/dashboard/scheduler');
+            context.go('/dashboard/map');
             onItemPressed?.call();
           },
         ),
 
-        // Content Library
+        // Leads/Clients
         NavigationSidebarItem(
-          leading: route.fullPath == "/dashboard/content-library"
-              ? Icon(Iconsax.book_saved)
-              : Icon(Iconsax.book_saved),
-          title: Text("Content Library"),
-          selected: route.fullPath?.startsWith("/dashboard/content-library"),
+          leading: route.fullPath == "/dashboard/leads"
+              ? Icon(Icons.people)
+              : Icon(Icons.people_outlined),
+          title: Text("العملاء"),
+          selected: route.fullPath?.startsWith("/dashboard/leads"),
           mode: mode,
           onTap: () {
-            context.go('/dashboard/content-library');
+            context.go('/dashboard/leads');
             onItemPressed?.call();
           },
         ),
 
-        // Analytics
+        // Properties
         NavigationSidebarItem(
-          leading: route.fullPath == "/dashboard/analytics"
-              ? Icon(Iconsax.chart_1)
-              : Icon(Iconsax.chart_1),
-          title: Text("Analytics"),
-          selected: route.fullPath?.startsWith("/dashboard/analytics"),
+          leading: route.fullPath == "/dashboard/properties"
+              ? Icon(Icons.list_alt)
+              : Icon(Icons.list_alt_outlined),
+          title: Text("العقارات"),
+          selected: route.fullPath?.startsWith("/dashboard/properties"),
           mode: mode,
           onTap: () {
-            context.go('/dashboard/analytics');
+            context.go('/dashboard/properties');
             onItemPressed?.call();
           },
         ),
 
-        // Profile
+        // Chatbot
         NavigationSidebarItem(
-          leading: route.fullPath == "/dashboard/profile"
-              ? Icon(Iconsax.user)
-              : Icon(Iconsax.user),
-          title: Text("Profile"),
-          selected: route.fullPath?.startsWith("/dashboard/profile"),
+          leading: route.fullPath == "/dashboard/chatbot"
+              ? Icon(Icons.smart_toy)
+              : Icon(Icons.smart_toy_outlined),
+          title: Text("المساعد الذكي"),
+          selected: route.fullPath?.startsWith("/dashboard/chatbot"),
           mode: mode,
           onTap: () {
-            context.go('/dashboard/profile');
+            context.go('/dashboard/chatbot');
             onItemPressed?.call();
           },
         ),
@@ -345,9 +347,9 @@ class NavigationSidebar extends StatelessWidget {
         // Settings
         NavigationSidebarItem(
           leading: route.fullPath == "/dashboard/settings"
-              ? Icon(Iconsax.setting)
-              : Icon(Iconsax.setting),
-          title: Text("Settings", style: TextStyle()),
+              ? Icon(Icons.settings)
+              : Icon(Icons.settings_outlined),
+          title: Text("الإعدادات"),
           selected: route.fullPath?.startsWith("/dashboard/settings"),
           mode: mode,
           onTap: () {
@@ -358,27 +360,27 @@ class NavigationSidebar extends StatelessWidget {
 
         // Logout
         NavigationSidebarItem(
-          leading: Icon(Iconsax.logout),
-          title: Text("Logout", style: TextStyle()),
+          leading: Icon(Icons.logout),
+          title: Text("تسجيل الخروج"),
           mode: mode,
           onTap: () {
             showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: const Text('Logout Confirmation'),
-                  content: const Text('Are you sure you want to logout?'),
+                  title: const Text('تأكيد تسجيل الخروج'),
+                  content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: const Text('إلغاء'),
                     ),
                     FilledButton(
                       onPressed: () {
                         Navigator.of(context).pop();
                         context.go('/auth');
                       },
-                      child: const Text('Logout'),
+                      child: const Text('تسجيل الخروج'),
                     ),
                   ],
                 );
@@ -496,7 +498,9 @@ class NavigationSidebarItem extends StatelessWidget {
                             style: Theme.of(context).textTheme.labelSmall!
                                 .copyWith(
                                   fontSize: 10,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.color,
                                 ),
                             child: title,
                           ),
@@ -511,7 +515,9 @@ class NavigationSidebarItem extends StatelessWidget {
                         DefaultTextStyle(
                           style: Theme.of(context).textTheme.labelLarge!
                               .copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge?.color,
                               ),
                           child: title,
                         ),
@@ -519,7 +525,9 @@ class NavigationSidebarItem extends StatelessWidget {
                           DefaultTextStyle(
                             style: Theme.of(context).textTheme.labelSmall!
                                 .copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.color,
                                   fontSize: 10,
                                 ),
                             child: subtitle!,

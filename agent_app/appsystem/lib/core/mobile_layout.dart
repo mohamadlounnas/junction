@@ -89,18 +89,54 @@ class _MobileLayoutState extends State<MobileLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: 300,
+              child: Image.asset(
+                'assets/images/gard.jpeg',
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          Positioned(
+            child: SizedBox(
+              height: 300,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surface.withAlpha(100),
+                      Theme.of(context).colorScheme.surface,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          widget.child,
+        ],
+      ),
       backgroundColor: Colors.transparent,
-      body: SafeArea(child: widget.child),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
         destinations: _destinations,
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        elevation: 8,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
+
         height: 64,
-        indicatorColor: Theme.of(context).primaryColor.withOpacity(0.2),
       ),
     );
   }

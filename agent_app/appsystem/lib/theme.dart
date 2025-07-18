@@ -60,31 +60,100 @@ class AppTheme {
   );
 
   getTheme({
-    Brightness brightness = Brightness.light,
+    Brightness brightness = Brightness.dark,
     Color color = Colors.green,
   }) {
     var g = ColorScheme.fromSeed(seedColor: color, brightness: brightness);
     return ThemeData(
-      textTheme: GoogleFonts.poppinsTextTheme(
-        //   const TextTheme(
-        //     // app bar text to 16
-        //     titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-        //     // use fontWeight: FontWeight.w300 for all
-        //     titleMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-        //     titleSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        //     //
-        //     bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-        //     bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),
-        //     bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w200),
-        //     //
-        //     labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        //     labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-        //     labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w300),
-        //     //
-        //     displayLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-        //     displayMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-        //     displaySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-        //   ),
+      textTheme: GoogleFonts.poppinsTextTheme().copyWith(
+        // Ensure proper text colors for good contrast
+        displayLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.normal,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+          color: brightness == Brightness.dark
+              ? Colors.white60
+              : Colors.black45,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: brightness == Brightness.dark ? Colors.white : Colors.black87,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: brightness == Brightness.dark
+              ? Colors.white60
+              : Colors.black45,
+        ),
       ),
       // snackbar
       snackBarTheme: SnackBarThemeData(

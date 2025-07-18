@@ -74,6 +74,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildMobileLayout() {
     return Container(
+      color: Colors.transparent,
       constraints: const BoxConstraints(maxWidth: 400),
       child: _buildLoginForm(),
     );

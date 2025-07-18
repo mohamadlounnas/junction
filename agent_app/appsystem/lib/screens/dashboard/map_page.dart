@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:appsystem/theme.dart';
+import 'package:appsystem/services/property_service.dart';
 
 /// A comprehensive map screen that displays OpenStreetMap with interactive features.
 ///
@@ -13,6 +14,7 @@ import 'package:appsystem/theme.dart';
 /// - Advanced filtering and search capabilities
 /// - Responsive design that adapts to different screen sizes
 /// - Integration with the app's theme system
+/// - AI-powered potential clients matching
 ///
 /// The map uses OpenStreetMap tiles for free, open-source mapping data.
 class MapPage extends StatefulWidget {
@@ -26,12 +28,15 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Controller for the map widget
   final MapController _mapController = MapController();
 
+  /// Property service instance
+  late final PropertyService _propertyService;
+
   /// Search and filter controllers
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
-  /// Default center location (Dubai, UAE)
-  static const LatLng _defaultCenter = LatLng(25.2048, 55.2708);
+  /// Default center location (Algiers, Algeria)
+  static const LatLng _defaultCenter = LatLng(36.7538, 3.0588);
 
   /// Default zoom level for the map
   static const double _defaultZoom = 13.0;
@@ -63,122 +68,23 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   int? _maxBedrooms;
 
   /// Potential clients state
-  List<PotentialClient> _potentialClients = [];
+  List<ContactRecommendation> _potentialClients = [];
   bool _showPotentialClients = false;
   bool _isLoadingClients = false;
 
-  /// Sample properties data
-  final List<Property> _properties = [
-    Property(
-      id: '1',
-      title: 'فيلا فاخرة في دبي مارينا',
-      titleEn: 'Luxury Villa in Dubai Marina',
-      price: '2,500,000',
-      currency: 'درهم',
-      location: const LatLng(25.2048, 55.2708),
-      type: PropertyType.villa,
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 450,
-      rating: 4.8,
-      imageUrl:
-          'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400',
-    ),
-    Property(
-      id: '2',
-      title: 'شقة عصرية في برج خليفة',
-      titleEn: 'Modern Apartment in Burj Khalifa',
-      price: '1,800,000',
-      currency: 'درهم',
-      location: const LatLng(25.1972, 55.2744),
-      type: PropertyType.apartment,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 280,
-      rating: 4.6,
-      imageUrl:
-          'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400',
-    ),
-    Property(
-      id: '3',
-      title: 'مكتب تجاري في وسط المدينة',
-      titleEn: 'Commercial Office in City Center',
-      price: '3,200,000',
-      currency: 'درهم',
-      location: const LatLng(25.2285, 55.2867),
-      type: PropertyType.office,
-      bedrooms: 0,
-      bathrooms: 2,
-      area: 320,
-      rating: 4.7,
-      imageUrl:
-          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
-    ),
-    Property(
-      id: '4',
-      title: 'فيلا عائلية في جميرا',
-      titleEn: 'Family Villa in Jumeirah',
-      price: '4,500,000',
-      currency: 'درهم',
-      location: const LatLng(25.1800, 55.2400),
-      type: PropertyType.villa,
-      bedrooms: 5,
-      bathrooms: 4,
-      area: 600,
-      rating: 4.9,
-      imageUrl:
-          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400',
-    ),
-    Property(
-      id: '5',
-      title: 'شقة استثمارية في دبي هيلز',
-      titleEn: 'Investment Apartment in Dubai Hills',
-      price: '1,200,000',
-      currency: 'درهم',
-      location: const LatLng(25.1500, 55.2000),
-      type: PropertyType.apartment,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 180,
-      rating: 4.5,
-      imageUrl:
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
-    ),
-    Property(
-      id: '6',
-      title: 'فيلا بحرية في جزيرة النخيل',
-      titleEn: 'Beach Villa in Palm Island',
-      price: '6,800,000',
-      currency: 'درهم',
-      location: const LatLng(25.1100, 55.1400),
-      type: PropertyType.villa,
-      bedrooms: 6,
-      bathrooms: 5,
-      area: 800,
-      rating: 4.9,
-      imageUrl:
-          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400',
-    ),
-    Property(
-      id: '7',
-      title: 'شقة فاخرة في برج العرب',
-      titleEn: 'Luxury Apartment in Burj Al Arab',
-      price: '3,500,000',
-      currency: 'درهم',
-      location: const LatLng(25.1412, 55.1854),
-      type: PropertyType.apartment,
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 350,
-      rating: 4.8,
-      imageUrl:
-          'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400',
-    ),
-  ];
+  /// Properties from API
+  List<Property> _properties = [];
+  bool _isLoadingProperties = true;
+  String? _errorMessage;
 
   /// Get filtered properties based on search and filter criteria
   List<Property> get _filteredProperties {
     return _properties.where((property) {
+      // Only include properties with valid coordinates
+      if (property.location.latitude == 0 && property.location.longitude == 0) {
+        return false;
+      }
+
       // Search filter
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
@@ -197,8 +103,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
       // Price filter
       if (_minPrice != null || _maxPrice != null) {
-        final propertyPrice =
-            double.tryParse(property.price.replaceAll(',', '')) ?? 0;
+        final propertyPrice = _extractPriceValue(property.price);
         if (_minPrice != null && propertyPrice < _minPrice!) {
           return false;
         }
@@ -219,11 +124,23 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }).toList();
   }
 
+  /// Extract numeric price value from formatted price string
+  double _extractPriceValue(String price) {
+    try {
+      final cleanPrice = price.replaceAll(RegExp(r'[^\d.]'), '');
+      return double.tryParse(cleanPrice) ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _propertyService = PropertyService();
     _initializeAnimations();
     _searchController.addListener(_onSearchChanged);
+    _loadPropertiesFromAPI();
   }
 
   @override
@@ -236,6 +153,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _mapController.dispose();
+    _propertyService.dispose();
     super.dispose();
   }
 
@@ -297,6 +215,247 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
     // Start marker animation
     _markerAnimationController.forward();
+  }
+
+  /// Load properties from API using the new Property model with pagination
+  Future<void> _loadPropertiesFromAPI() async {
+    try {
+      setState(() {
+        _isLoadingProperties = true;
+        _errorMessage = null;
+      });
+
+      print('MapPage: Fetching properties from API...');
+
+      // Use the new getPropertiesList method that returns List<Property> with pagination
+      final properties = await _propertyService.getPropertiesList();
+
+      print(
+        'MapPage: Successfully loaded ${properties.length} properties from API',
+      );
+
+      setState(() {
+        _properties = properties;
+        _isLoadingProperties = false;
+        _errorMessage = null;
+      });
+
+      // Show success message with property count
+      if (properties.isNotEmpty) {
+        final totalProperties = properties.length;
+        final propertiesWithCoordinates = properties
+            .where((p) => p.location.latitude != 0 && p.location.longitude != 0)
+            .length;
+
+        if (propertiesWithCoordinates == totalProperties) {
+          _showSuccessSnackBar('تم تحميل $totalProperties عقار بنجاح');
+        } else {
+          _showSuccessSnackBar(
+            'تم تحميل $propertiesWithCoordinates من $totalProperties عقار (بعض العقارات بدون إحداثيات)',
+          );
+        }
+      } else {
+        _showInfoSnackBar('لا توجد عقارات متاحة في قاعدة البيانات');
+      }
+    } catch (e) {
+      print('MapPage: Error loading properties: $e');
+
+      String errorMessage = 'فشل في تحميل العقارات';
+
+      // Provide more specific error messages based on the error type
+      if (e.toString().contains('timeout')) {
+        errorMessage =
+            'انتهت مهلة الاتصال - يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى';
+      } else if (e.toString().contains('SocketException')) {
+        errorMessage = 'فشل الاتصال بالشبكة - يرجى التحقق من اتصال الإنترنت';
+      } else if (e.toString().contains('HttpException')) {
+        errorMessage = 'خطأ في الاتصال بالخادم - يرجى المحاولة مرة أخرى لاحقاً';
+      } else if (e.toString().contains('404')) {
+        errorMessage = 'الخادم غير متاح - يرجى المحاولة مرة أخرى لاحقاً';
+      } else if (e.toString().contains('500')) {
+        errorMessage = 'خطأ في الخادم - يرجى المحاولة مرة أخرى لاحقاً';
+      } else {
+        errorMessage = 'خطأ في تحميل العقارات: $e';
+      }
+
+      setState(() {
+        _errorMessage = errorMessage;
+        _isLoadingProperties = false;
+        _properties = [];
+      });
+      _showErrorSnackBar(errorMessage);
+    }
+  }
+
+  /// Convert API property data to map property
+  Property? _convertApiPropertyToMapProperty(
+    Map<String, dynamic> propertyData,
+  ) {
+    try {
+      // Check if property has coordinates - these are required for map display
+      final latitude = propertyData['latitude'];
+      final longitude = propertyData['longitude'];
+
+      if (latitude == null || longitude == null) {
+        print(
+          'Property ${propertyData['id']} missing coordinates: lat=$latitude, lng=$longitude',
+        );
+        return null; // Skip properties without coordinates
+      }
+
+      // Handle different property type formats
+      String propertyTypeStr = propertyData['propertyType'] ?? 'APARTMENT';
+      if (propertyTypeStr is String) {
+        propertyTypeStr = propertyTypeStr.toUpperCase();
+      }
+
+      // Handle bathrooms field - might be missing or named differently
+      int bathrooms = 0;
+      if (propertyData['bathrooms'] != null) {
+        bathrooms = (propertyData['bathrooms'] is int)
+            ? propertyData['bathrooms']
+            : int.tryParse(propertyData['bathrooms'].toString()) ?? 0;
+      }
+
+      return Property(
+        id: propertyData['id']?.toString() ?? '',
+        title: propertyData['title'] ?? '',
+        titleEn: propertyData['title'] ?? '', // Use title as fallback
+        price: _formatPrice(propertyData['price'] ?? 0),
+        currency: 'دج', // Algerian Dinar
+        location: LatLng(
+          (latitude is num)
+              ? latitude.toDouble()
+              : double.tryParse(latitude.toString()) ?? 0,
+          (longitude is num)
+              ? longitude.toDouble()
+              : double.tryParse(longitude.toString()) ?? 0,
+        ),
+        type: _convertPropertyType(propertyTypeStr),
+        bedrooms: propertyData['rooms'] ?? 0,
+        bathrooms: bathrooms,
+        area: (propertyData['area'] ?? 0).toDouble(),
+        rating: 4.5, // Default rating
+        imageUrl: propertyData['image_url'] ?? _getDefaultImageUrl(),
+        wilaya: propertyData['wilaya'],
+        city: propertyData['city'],
+      );
+    } catch (e) {
+      print('Error converting property ${propertyData['id']}: $e');
+      return null;
+    }
+  }
+
+  /// Format price in Algerian Dinar
+  String _formatPrice(dynamic price) {
+    try {
+      final numPrice = (price ?? 0).toDouble();
+      if (numPrice >= 1000000) {
+        return '${(numPrice / 1000000).toStringAsFixed(1)}M';
+      } else if (numPrice >= 1000) {
+        return '${(numPrice / 1000).toStringAsFixed(0)}K';
+      }
+      return numPrice.toStringAsFixed(0);
+    } catch (e) {
+      return '0';
+    }
+  }
+
+  /// Convert API property type to map property type
+  PropertyType _convertPropertyType(String apiType) {
+    switch (apiType.toUpperCase()) {
+      case 'APARTMENT':
+        return PropertyType.apartment;
+      case 'VILLA':
+        return PropertyType.villa;
+      case 'OFFICE':
+        return PropertyType.office;
+      case 'LAND':
+        return PropertyType.land;
+      case 'WAREHOUSE':
+        return PropertyType.warehouse;
+      default:
+        return PropertyType.apartment;
+    }
+  }
+
+  /// Get default image URL for properties without images
+  String _getDefaultImageUrl() {
+    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400';
+  }
+
+  /// Show error message to user
+  void _showErrorSnackBar(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(message, style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'إعادة المحاولة',
+              textColor: Colors.white,
+              onPressed: _loadPropertiesFromAPI,
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  /// Show success message to user
+  void _showSuccessSnackBar(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(message, style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    });
+  }
+
+  /// Show info message to user
+  void _showInfoSnackBar(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(message, style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    });
   }
 
   /// Handle search text changes
@@ -370,10 +529,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               _buildSearchResults(),
             // Property details card
             if (_showPropertyCard) _buildPropertyCard(),
+            // Loading overlay for properties
+            if (_isLoadingProperties) _buildPropertiesLoadingOverlay(),
             // Loading overlay for potential clients
             if (_isLoadingClients) _buildLoadingOverlay(),
             // Potential clients display
             if (_showPotentialClients) _buildPotentialClientsOverlay(),
+            // Empty state when no properties
+            if (!_isLoadingProperties &&
+                _properties.isEmpty &&
+                _errorMessage == null)
+              _buildEmptyState(),
             // Floating action buttons
             _buildFloatingButtons(),
           ],
@@ -382,8 +548,179 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
+  /// Builds empty state when no properties are available
+  Widget _buildEmptyState() {
+    // Determine the type of empty state
+    bool isErrorState = _errorMessage != null;
+    bool isNetworkError =
+        _errorMessage?.contains('اتصال') == true ||
+        _errorMessage?.contains('شبكة') == true ||
+        _errorMessage?.contains('timeout') == true;
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        margin: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isErrorState
+                  ? (isNetworkError ? Iconsax.wifi : Iconsax.warning_2)
+                  : Iconsax.building,
+              size: 64,
+              color: isErrorState
+                  ? (isNetworkError ? Colors.orange : Colors.red)
+                  : Theme.of(context).primaryColor.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isErrorState
+                  ? (isNetworkError
+                        ? 'مشكلة في الاتصال'
+                        : 'خطأ في تحميل البيانات')
+                  : 'لا توجد عقارات متاحة',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isErrorState
+                  ? (_errorMessage ?? 'حدث خطأ غير متوقع')
+                  : 'لم يتم العثور على عقارات في قاعدة البيانات',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _loadPropertiesFromAPI,
+                  icon: const Icon(Iconsax.refresh),
+                  label: const Text('إعادة المحاولة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                if (isNetworkError)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Show network settings or help
+                      _showNetworkHelpDialog();
+                    },
+                    icon: const Icon(Iconsax.info_circle),
+                    label: const Text('مساعدة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show network help dialog
+  void _showNetworkHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Iconsax.wifi, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text('مشكلة في الاتصال'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('لحل مشكلة الاتصال:'),
+            const SizedBox(height: 8),
+            Text('• تأكد من اتصالك بالإنترنت'),
+            Text('• تحقق من إعدادات الشبكة'),
+            Text('• جرب إعادة تشغيل التطبيق'),
+            Text('• تأكد من أن الخادم متاح'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('إغلاق'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _loadPropertiesFromAPI();
+            },
+            child: Text('إعادة المحاولة'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Builds the header section with title and action buttons
   Widget _buildHeader() {
+    String statusText;
+    Color statusColor = Theme.of(context).primaryColor;
+    IconData statusIcon = Iconsax.map;
+
+    if (_isLoadingProperties) {
+      statusText = 'جاري تحميل العقارات...';
+      statusColor = Colors.blue;
+      statusIcon = Icons.hourglass_empty;
+    } else if (_errorMessage != null) {
+      statusText = 'خطأ في تحميل البيانات';
+      statusColor = Colors.red;
+      statusIcon = Icons.error_outline;
+    } else if (_properties.isEmpty) {
+      statusText = 'لا توجد عقارات متاحة';
+      statusColor = Colors.orange;
+      statusIcon = Icons.info_outline;
+    } else {
+      // Show filtered count vs total count
+      final totalCount = _properties.length;
+      final filteredCount = _filteredProperties.length;
+
+      if (filteredCount == totalCount) {
+        statusText = '$totalCount عقار متاح';
+      } else {
+        statusText = '$filteredCount من $totalCount عقار (مفلتر)';
+      }
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    }
+
     return Positioned(
       top: 0,
       left: 0,
@@ -408,9 +745,19 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             size: 28,
           ),
           title: Text('الخريطة', style: Theme.of(context).textTheme.titleLarge),
-          subtitle: Text(
-            'استكشف المواقع والعقارات',
-            style: Theme.of(context).textTheme.bodyMedium,
+          subtitle: Row(
+            children: [
+              Icon(statusIcon, color: statusColor, size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  statusText,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: statusColor),
+                ),
+              ),
+            ],
           ),
           trailing: _buildActionButtons(),
         ),
@@ -423,6 +770,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        _buildActionButton(
+          icon: Iconsax.refresh,
+          onPressed: _loadPropertiesFromAPI,
+          tooltip: 'تحديث البيانات',
+          isLoading: _isLoadingProperties,
+        ),
+        const SizedBox(width: 8),
         _buildActionButton(
           icon: Iconsax.search_normal,
           onPressed: _toggleSearchBar,
@@ -464,6 +818,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     required VoidCallback onPressed,
     required String tooltip,
     bool isActive = false,
+    bool isLoading = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -476,13 +831,24 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             : null,
       ),
       child: IconButton(
-        icon: Icon(
-          icon,
-          color: isActive
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).primaryColor.withOpacity(0.8),
-        ),
-        onPressed: onPressed,
+        icon: isLoading
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor,
+                  ),
+                ),
+              )
+            : Icon(
+                icon,
+                color: isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              ),
+        onPressed: isLoading ? null : onPressed,
         tooltip: tooltip,
         style: IconButton.styleFrom(padding: const EdgeInsets.all(8)),
       ),
@@ -913,6 +1279,22 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  /// Get the appropriate icon for property type
+  IconData _getPropertyIcon(PropertyType type) {
+    switch (type) {
+      case PropertyType.apartment:
+        return Iconsax.building;
+      case PropertyType.villa:
+        return Iconsax.house;
+      case PropertyType.office:
+        return Iconsax.briefcase;
+      case PropertyType.land:
+        return Iconsax.map;
+      case PropertyType.warehouse:
+        return Iconsax.box;
+    }
+  }
+
   /// Builds the main map widget with OpenStreetMap tiles
   Widget _buildMap() {
     return Container(
@@ -1156,7 +1538,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               ),
               const SizedBox(width: 4),
               Text(
-                'دبي، الإمارات العربية المتحدة',
+                '${_selectedProperty!.city ?? _selectedProperty!.wilaya ?? 'الجزائر'}, الجزائر',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                 ),
@@ -1213,6 +1595,51 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         const SizedBox(width: 4),
         Text(text, style: Theme.of(context).textTheme.bodyMedium),
       ],
+    );
+  }
+
+  /// Builds the loading overlay for properties
+  Widget _buildPropertiesLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'جاري تحميل العقارات...',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'يتم جلب البيانات من الخادم',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1496,7 +1923,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 
   /// Builds an animated potential client card with staggered animation
-  Widget _buildAnimatedPotentialClientCard(PotentialClient client, int index) {
+  Widget _buildAnimatedPotentialClientCard(
+    ContactRecommendation client,
+    int index,
+  ) {
     // Calculate delay based on index for staggered effect
     final delay = index * 200.0; // 200ms delay between each card
     final animationValue = _clientListFadeAnimation.value;
@@ -1513,32 +1943,20 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 
   /// Builds a potential client card
-  Widget _buildPotentialClientCard(PotentialClient client) {
-    final statusColors = {
-      ClientStatus.hot: Colors.red,
-      ClientStatus.warm: Colors.orange,
-      ClientStatus.cold: Colors.grey,
-    };
-
-    final statusLabels = {
-      ClientStatus.hot: 'ساخن',
-      ClientStatus.warm: 'دافئ',
-      ClientStatus.cold: 'بارد',
-    };
+  Widget _buildPotentialClientCard(ContactRecommendation recommendation) {
+    final contact = recommendation.contact;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: statusColors[client.status]!.withOpacity(0.3),
-        ),
+        border: Border.all(color: recommendation.statusColor.withOpacity(0.3)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _contactPotentialClient(client),
+          onTap: () => _contactPotentialClient(recommendation),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -1554,15 +1972,15 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            statusColors[client.status]!,
-                            statusColors[client.status]!.withOpacity(0.8),
+                            recommendation.statusColor,
+                            recommendation.statusColor.withOpacity(0.8),
                           ],
                         ),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
-                          client.name.split(' ').first[0],
+                          contact.name.split(' ').first[0],
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: Colors.white,
@@ -1577,12 +1995,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            client.name,
+                            contact.name,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
-                            client.email,
+                            contact.email,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -1600,13 +2018,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                        color: recommendation.statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${client.matchScore.toInt()}%',
+                        '${recommendation.similarityPercentage}%',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).primaryColor,
+                          color: recommendation.statusColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1618,44 +2036,91 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   children: [
                     _buildClientInfo(
                       Iconsax.money,
-                      client.budget,
-                      Theme.of(context).primaryColor,
+                      contact.formattedBudget,
+                      Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 16),
-                    _buildClientInfo(Iconsax.call, client.phone, Colors.blue),
+                    _buildClientInfo(
+                      Iconsax.call,
+                      contact.phone ?? 'غير متوفر',
+                      Colors.blue,
+                    ),
                     const SizedBox(width: 16),
                     _buildClientInfo(
                       Iconsax.flash,
-                      statusLabels[client.status]!,
-                      statusColors[client.status]!,
+                      recommendation.matchStatus,
+                      recommendation.statusColor,
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Interests
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: client.interests.take(3).map((interest) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        interest,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 10,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                // Contact type and transaction type
+                Row(
+                  children: [
+                    _buildClientInfo(
+                      Iconsax.user,
+                      contact.typeDisplayName,
+                      Colors.purple,
+                    ),
+                    const SizedBox(width: 16),
+                    _buildClientInfo(
+                      Iconsax.document,
+                      contact.transactionTypeDisplayName,
+                      Colors.teal,
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                // Property preferences
+                if (contact.propertyTypes.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: contact.propertyTypes.take(3).map((type) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getPropertyTypeName(_convertPropertyType(type)),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 10,
+                              ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                // Location preferences
+                if (contact.locationWilayas.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(Iconsax.location, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'يفضل: ${contact.locationWilayas.take(2).join(', ')}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1681,11 +2146,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 
   /// Contact potential client
-  void _contactPotentialClient(PotentialClient client) {
+  void _contactPotentialClient(ContactRecommendation recommendation) {
+    final contact = recommendation.contact;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('جاري الاتصال بـ ${client.name}'),
-        backgroundColor: Theme.of(context).primaryColor,
+        content: Text('جاري الاتصال بـ ${contact.name}'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -1743,22 +2209,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
-  /// Gets the appropriate icon for property type
-  IconData _getPropertyIcon(PropertyType type) {
-    switch (type) {
-      case PropertyType.apartment:
-        return Iconsax.building;
-      case PropertyType.villa:
-        return Iconsax.house;
-      case PropertyType.office:
-        return Iconsax.briefcase;
-      case PropertyType.land:
-        return Iconsax.map;
-      case PropertyType.warehouse:
-        return Iconsax.box;
-    }
   }
 
   /// Handles map tap events
@@ -1862,137 +2312,113 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   /// Get potential clients for the selected property
   void _getPotentialClients() async {
+    if (_selectedProperty == null) return;
+
     setState(() {
       _isLoadingClients = true;
       _showPotentialClients = false;
     });
 
-    // Simulate AI processing delay
-    await Future.delayed(const Duration(seconds: 3));
+    try {
+      // Fetch potential clients from API based on property
+      final response = await _propertyService.getPropertyRecommendations(
+        _selectedProperty!.id,
+      );
 
-    // Generate potential clients based on property
-    final clients = _generatePotentialClients();
+      if (response['success'] == true) {
+        final clientsData = response['data'] as List<ContactRecommendation>;
 
-    setState(() {
-      _potentialClients = clients;
-      _isLoadingClients = false;
-      _showPotentialClients = true;
-    });
+        setState(() {
+          _potentialClients = clientsData;
+          _isLoadingClients = false;
+          _showPotentialClients = true;
+        });
 
-    // Start the staggered animation for clients
-    _clientListController.forward();
+        // Start the staggered animation for clients
+        _clientListController.forward();
+
+        if (clientsData.isEmpty) {
+          _showInfoSnackBar('لا توجد عملاء محتملين لهذا العقار');
+        } else {
+          _showSuccessSnackBar(
+            'تم العثور على ${clientsData.length} عميل محتمل',
+          );
+        }
+      } else {
+        setState(() {
+          _isLoadingClients = false;
+        });
+
+        String errorMessage =
+            response['message'] ?? 'فشل في تحميل العملاء المحتملين';
+
+        // Provide more specific error messages
+        if (errorMessage.contains('timeout')) {
+          errorMessage = 'انتهت مهلة الاتصال - يرجى المحاولة مرة أخرى';
+        } else if (errorMessage.contains('network')) {
+          errorMessage = 'خطأ في الاتصال بالشبكة - يرجى التحقق من الإنترنت';
+        }
+
+        _showErrorSnackBar(errorMessage);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingClients = false;
+      });
+
+      String errorMessage = 'خطأ في تحميل العملاء المحتملين';
+
+      // Provide more specific error messages based on the error type
+      if (e.toString().contains('timeout')) {
+        errorMessage = 'انتهت مهلة الاتصال - يرجى المحاولة مرة أخرى';
+      } else if (e.toString().contains('SocketException')) {
+        errorMessage = 'فشل الاتصال بالشبكة - يرجى التحقق من الإنترنت';
+      } else if (e.toString().contains('HttpException')) {
+        errorMessage = 'خطأ في الاتصال بالخادم - يرجى المحاولة مرة أخرى لاحقاً';
+      } else {
+        errorMessage = 'خطأ في تحميل العملاء المحتملين: $e';
+      }
+
+      _showErrorSnackBar(errorMessage);
+    }
   }
 
-  /// Generate potential clients based on selected property
-  List<PotentialClient> _generatePotentialClients() {
-    final property = _selectedProperty!;
+  /// Extract interests from client data
+  List<String> _extractInterests(Map<String, dynamic> clientData) {
+    final interests = <String>[];
 
-    return [
-      PotentialClient(
-        id: '1',
-        name: 'أحمد محمد علي',
-        email: 'ahmed.mohamed@email.com',
-        phone: '+971 50 123 4567',
-        budget: property.price,
-        matchScore: 95,
-        interests: ['فيلا فاخرة', 'مسبح خاص', 'مطبخ مفتوح'],
-        lastActivity: DateTime.now().subtract(const Duration(hours: 2)),
-        status: ClientStatus.hot,
-      ),
-      PotentialClient(
-        id: '2',
-        name: 'سارة أحمد حسن',
-        email: 'sara.ahmed@email.com',
-        phone: '+971 55 987 6543',
-        budget: property.price,
-        matchScore: 87,
-        interests: ['شقة عصرية', 'إطلالة على المدينة', 'مرافق رياضية'],
-        lastActivity: DateTime.now().subtract(const Duration(days: 1)),
-        status: ClientStatus.warm,
-      ),
-      PotentialClient(
-        id: '3',
-        name: 'محمد عبدالله سالم',
-        email: 'mohamed.abdullah@email.com',
-        phone: '+971 52 456 7890',
-        budget: property.price,
-        matchScore: 92,
-        interests: ['مكتب تجاري', 'موقف سيارات', 'موقع استراتيجي'],
-        lastActivity: DateTime.now().subtract(const Duration(minutes: 30)),
-        status: ClientStatus.hot,
-      ),
-      PotentialClient(
-        id: '4',
-        name: 'فاطمة خالد محمد',
-        email: 'fatima.khalid@email.com',
-        phone: '+971 54 321 0987',
-        budget: property.price,
-        matchScore: 78,
-        interests: ['فيلا عائلية', 'حديقة خاصة', 'غرف ضيوف'],
-        lastActivity: DateTime.now().subtract(const Duration(days: 3)),
-        status: ClientStatus.cold,
-      ),
-    ];
+    // Add property type preference
+    if (clientData['preferredPropertyType'] != null) {
+      interests.add(
+        _getPropertyTypeName(
+          _convertPropertyType(clientData['preferredPropertyType']),
+        ),
+      );
+    }
+
+    // Add location preferences
+    if (clientData['locationWilayas'] != null) {
+      final locations = clientData['locationWilayas'] as List<dynamic>;
+      if (locations.isNotEmpty) {
+        interests.add(locations.first.toString());
+      }
+    }
+
+    // Add transaction type
+    if (clientData['transactionType'] != null) {
+      interests.add(clientData['transactionType'] == 'RENT' ? 'إيجار' : 'بيع');
+    }
+
+    return interests;
   }
-}
 
-/// Property data model
-class Property {
-  final String id;
-  final String title;
-  final String titleEn;
-  final String price;
-  final String currency;
-  final LatLng location;
-  final PropertyType type;
-  final int bedrooms;
-  final int bathrooms;
-  final double area;
-  final double rating;
-  final String imageUrl;
-
-  Property({
-    required this.id,
-    required this.title,
-    required this.titleEn,
-    required this.price,
-    required this.currency,
-    required this.location,
-    required this.type,
-    required this.bedrooms,
-    required this.bathrooms,
-    required this.area,
-    required this.rating,
-    required this.imageUrl,
-  });
-}
-
-/// Property types enum
-enum PropertyType { apartment, villa, office, land, warehouse }
-
-/// Potential client data model
-class PotentialClient {
-  final String id;
-  final String name;
-  final String email;
-  final String phone;
-  final String budget;
-  final double matchScore;
-  final List<String> interests;
-  final DateTime lastActivity;
-  final ClientStatus status;
-
-  PotentialClient({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.budget,
-    required this.matchScore,
-    required this.interests,
-    required this.lastActivity,
-    required this.status,
-  });
+  /// Determine client status based on data
+  ClientStatus _determineClientStatus(Map<String, dynamic> clientData) {
+    final similarity = clientData['similarity'] ?? 0.0;
+    if (similarity > 0.8) return ClientStatus.hot;
+    if (similarity > 0.6) return ClientStatus.warm;
+    return ClientStatus.cold;
+  }
 }
 
 /// Client status enum
