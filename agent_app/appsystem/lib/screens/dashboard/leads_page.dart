@@ -192,7 +192,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: AnimatedBuilder(
           animation: _pageAnimationController,
@@ -227,12 +227,12 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryGreen.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Iconsax.user_search,
-              color: AppTheme.primaryGreen,
+              color: Theme.of(context).primaryColor,
               size: 24,
             ),
           ),
@@ -243,14 +243,14 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
               children: [
                 Text(
                   'العملاء المحتملون',
-                  style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'إدارة العملاء والفرص الساخنة',
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                    color: AppTheme.textGrey,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ],
@@ -268,8 +268,8 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryGreen,
-            AppTheme.primaryGreen.withOpacity(0.8),
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withOpacity(0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
@@ -288,7 +288,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
                 const SizedBox(width: 4),
                 Text(
                   'تحليل AI',
-                  style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
@@ -327,7 +327,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
             'إجمالي العملاء',
             totalLeads.toString(),
             Iconsax.people,
-            AppTheme.primaryGreen,
+            Theme.of(context).primaryColor,
           ),
           const SizedBox(width: 12),
           _buildStatCard(
@@ -352,7 +352,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
       width: 120,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
@@ -363,15 +363,15 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
           const SizedBox(height: 8),
           Text(
             value,
-            style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
             title,
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-              color: AppTheme.textGrey,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],
@@ -412,17 +412,23 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryGreen : AppTheme.cardBackground,
+          color: isActive
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? AppTheme.primaryGreen : AppTheme.borderColor,
+            color: isActive
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).colorScheme.onPrimary,
           ),
         ),
         child: Text(
           title,
           textAlign: TextAlign.center,
-          style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-            color: isActive ? Colors.white : AppTheme.textGrey,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: isActive
+                ? Colors.white
+                : Theme.of(context).colorScheme.onPrimary,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -459,7 +465,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _getUrgencyColor(lead.urgency).withOpacity(0.3),
@@ -492,13 +498,17 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
                         children: [
                           Text(
                             lead.name,
-                            style: AppTheme.getSafeTextTheme().titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             lead.email,
-                            style: AppTheme.getSafeTextTheme().bodySmall
-                                ?.copyWith(color: AppTheme.textGrey),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
                           ),
                         ],
                       ),
@@ -512,7 +522,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
                     _buildLeadInfo(
                       Iconsax.money,
                       '${lead.budget} ${lead.currency}',
-                      AppTheme.primaryGreen,
+                      Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 16),
                     _buildLeadInfo(
@@ -551,7 +561,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
       child: Center(
         child: Text(
           lead.name.split(' ').first[0],
-          style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: _getUrgencyColor(lead.urgency),
             fontWeight: FontWeight.bold,
           ),
@@ -583,7 +593,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
       ),
       child: Text(
         labels[urgency]!,
-        style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: colors[urgency]!,
           fontWeight: FontWeight.w600,
         ),
@@ -599,8 +609,8 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
         const SizedBox(width: 4),
         Text(
           text,
-          style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-            color: AppTheme.textGrey,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
       ],
@@ -616,13 +626,13 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             interest,
-            style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-              color: AppTheme.primaryGreen,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).primaryColor,
               fontSize: 10,
             ),
           ),
@@ -635,11 +645,11 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
       onPressed: _addNewLead,
-      backgroundColor: AppTheme.primaryGreen,
+      backgroundColor: Theme.of(context).primaryColor,
       icon: const Icon(Iconsax.add, color: Colors.white),
       label: Text(
         'إضافة عميل',
-        style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
@@ -670,7 +680,7 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
   /// Builds AI analysis dialog
   Widget _buildAIAnalysisDialog() {
     return Dialog(
-      backgroundColor: AppTheme.cardBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -680,31 +690,31 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Iconsax.cpu,
-                color: AppTheme.primaryGreen,
+                color: Theme.of(context).primaryColor,
                 size: 32,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'تحليل الذكاء الاصطناعي',
-              style: AppTheme.getSafeTextTheme().titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'جاري تحليل العملاء المحتملين...',
-              style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                color: AppTheme.textGrey,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(color: AppTheme.primaryGreen),
+            CircularProgressIndicator(color: Theme.of(context).primaryColor),
           ],
         ),
       ),
@@ -714,9 +724,9 @@ class _LeadsPageState extends State<LeadsPage> with TickerProviderStateMixin {
   /// Adds new lead
   void _addNewLead() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('إضافة عميل جديد'),
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: Duration(seconds: 1),
       ),
     );

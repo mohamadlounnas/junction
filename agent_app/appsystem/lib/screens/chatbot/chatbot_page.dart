@@ -298,7 +298,7 @@ How can I help you today?''',
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
           children: [
@@ -324,7 +324,7 @@ How can I help you today?''',
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -340,8 +340,8 @@ How can I help you today?''',
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primaryGreen,
-                  AppTheme.primaryGreen.withOpacity(0.8),
+                  Theme.of(context).primaryColor,
+                  Theme.of(context).primaryColor.withOpacity(0.8),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -359,14 +359,14 @@ How can I help you today?''',
               children: [
                 Text(
                   'المساعد الذكي',
-                  style: AppTheme.getSafeTextTheme().titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   'Smart Assistant',
-                  style: AppTheme.getSafeTextTheme().bodySmall?.copyWith(
-                    color: AppTheme.textGrey,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ],
@@ -375,13 +375,13 @@ How can I help you today?''',
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.primaryGreen.withOpacity(0.2),
+              color: Theme.of(context).primaryColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               'متصل',
-              style: AppTheme.getSafeTextTheme().labelSmall?.copyWith(
-                color: AppTheme.primaryGreen,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -427,8 +427,8 @@ How can I help you today?''',
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryGreen,
-                    AppTheme.primaryGreen.withOpacity(0.8),
+                    Theme.of(context).primaryColor,
+                    Theme.of(context).primaryColor.withOpacity(0.8),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -450,8 +450,8 @@ How can I help you today?''',
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isUser
-                    ? AppTheme.primaryGreen.withOpacity(0.2)
-                    : AppTheme.cardBackground,
+                    ? Theme.of(context).primaryColor.withOpacity(0.2)
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20).copyWith(
                   bottomLeft: isUser
                       ? const Radius.circular(20)
@@ -462,8 +462,10 @@ How can I help you today?''',
                 ),
                 border: Border.all(
                   color: isUser
-                      ? AppTheme.primaryGreen.withOpacity(0.3)
-                      : AppTheme.borderColor.withOpacity(0.5),
+                      ? Theme.of(context).primaryColor.withOpacity(0.3)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.5),
                   width: 1,
                 ),
               ),
@@ -476,14 +478,14 @@ How can I help you today?''',
                         Icon(
                           Iconsax.microphone,
                           size: 16,
-                          color: AppTheme.primaryGreen,
+                          color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'رسالة صوتية',
-                          style: AppTheme.getSafeTextTheme().labelSmall
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: AppTheme.primaryGreen,
+                                color: Theme.of(context).primaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -494,8 +496,10 @@ How can I help you today?''',
 
                   Text(
                     message.content,
-                    style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                      color: isUser ? AppTheme.textWhite : AppTheme.textWhite,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isUser
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
 
@@ -503,8 +507,8 @@ How can I help you today?''',
 
                   Text(
                     _formatTime(message.timestamp),
-                    style: AppTheme.getSafeTextTheme().labelSmall?.copyWith(
-                      color: AppTheme.textGrey,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontSize: 10,
                     ),
                   ),
@@ -519,13 +523,17 @@ How can I help you today?''',
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppTheme.primaryGreen.withOpacity(0.3),
+                  color: Theme.of(context).primaryColor.withOpacity(0.3),
                 ),
               ),
-              child: Icon(Iconsax.user, color: AppTheme.primaryGreen, size: 16),
+              child: Icon(
+                Iconsax.user,
+                color: Theme.of(context).primaryColor,
+                size: 16,
+              ),
             ),
           ],
         ],
@@ -544,10 +552,7 @@ How can I help you today?''',
             height: 32,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryGreen,
-                  AppTheme.primaryGreen.withOpacity(0.8),
-                ],
+                colors: [Theme.of(context).primaryColor],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -561,12 +566,12 @@ How can I help you today?''',
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.cardBackground,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(
                 20,
               ).copyWith(bottomLeft: const Radius.circular(4)),
               border: Border.all(
-                color: AppTheme.borderColor.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.5),
                 width: 1,
               ),
             ),
@@ -607,9 +612,9 @@ How can I help you today?''',
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withOpacity(
-              0.3 + (animationValue * 0.7),
-            ),
+            color: Theme.of(
+              context,
+            ).primaryColor.withOpacity(0.3 + (animationValue * 0.7)),
             shape: BoxShape.circle,
           ),
         );
@@ -623,9 +628,11 @@ How can I help you today?''',
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withOpacity(0.1),
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -636,7 +643,7 @@ How can I help you today?''',
                 scale: _listeningAnimation.value,
                 child: Icon(
                   Iconsax.microphone,
-                  color: AppTheme.primaryGreen,
+                  color: Theme.of(context).primaryColor,
                   size: 20,
                 ),
               );
@@ -646,8 +653,8 @@ How can I help you today?''',
           Expanded(
             child: Text(
               _transcriptionText,
-              style: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                color: AppTheme.primaryGreen,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -662,7 +669,7 @@ How can I help you today?''',
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -683,13 +690,13 @@ How can I help you today?''',
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: _isListening
-                      ? AppTheme.primaryGreen.withOpacity(0.2)
-                      : AppTheme.primaryGreen.withOpacity(0.1),
+                      ? Theme.of(context).primaryColor.withOpacity(0.2)
+                      : Theme.of(context).primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _isListening
-                        ? AppTheme.primaryGreen
-                        : AppTheme.primaryGreen.withOpacity(0.3),
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).primaryColor.withOpacity(0.3),
                   ),
                 ),
                 child: AnimatedBuilder(
@@ -701,7 +708,7 @@ How can I help you today?''',
                         _isListening
                             ? Iconsax.microphone_slash
                             : Iconsax.microphone,
-                        color: AppTheme.primaryGreen,
+                        color: Theme.of(context).primaryColor,
                         size: 24,
                       ),
                     );
@@ -716,20 +723,22 @@ How can I help you today?''',
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.darkBackground,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppTheme.borderColor.withOpacity(0.5),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.5),
                   ),
                 ),
                 child: TextField(
                   controller: _messageController,
                   focusNode: _messageFocusNode,
-                  style: AppTheme.getSafeTextTheme().bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium,
                   decoration: InputDecoration(
                     hintText: 'اكتب رسالتك هنا...',
-                    hintStyle: AppTheme.getSafeTextTheme().bodyMedium?.copyWith(
-                      color: AppTheme.textGrey,
+                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -750,11 +759,11 @@ How can I help you today?''',
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen,
+                  color: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryGreen.withOpacity(0.3),
+                      color: Theme.of(context).primaryColor.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

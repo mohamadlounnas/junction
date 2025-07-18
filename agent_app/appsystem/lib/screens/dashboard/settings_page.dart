@@ -17,40 +17,32 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(context),
-                const SizedBox(height: 32),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              _buildHeader(context),
+              const SizedBox(height: 32),
 
-                // Profile Section
-                _buildProfileSection(context),
-                const SizedBox(height: 24),
+              // Profile Section
+              _buildProfileSection(context),
+              const SizedBox(height: 24),
 
-                // Preferences Section
-                _buildPreferencesSection(context),
-                const SizedBox(height: 24),
+              // Preferences Section
+              _buildPreferencesSection(context),
+              const SizedBox(height: 24),
 
-                // Security Section
-                _buildSecuritySection(context),
-                const SizedBox(height: 24),
+              // Security Section
+              _buildSecuritySection(context),
+              const SizedBox(height: 24),
 
-                // Support Section
-                _buildSupportSection(context),
-              ],
-            ),
+              // Support Section
+              _buildSupportSection(context),
+            ],
           ),
         ),
       ),
@@ -65,16 +57,16 @@ class _SettingsPageState extends State<SettingsPage> {
           'الإعدادات',
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppTheme.textWhite,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
           textAlign: TextAlign.right,
         ),
         const SizedBox(height: 8),
         Text(
           'Settings',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(color: AppTheme.textGrey),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
       ],
     );
@@ -215,15 +207,15 @@ class _SettingsPageState extends State<SettingsPage> {
           titleAr,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppTheme.textWhite,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
           textAlign: TextAlign.right,
         ),
         Text(
           titleEn,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
         const SizedBox(height: 16),
         Card(
@@ -236,7 +228,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (index < children.length - 1)
                     Divider(
                       height: 1,
-                      color: AppTheme.borderColor,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       indent: 20,
                       endIndent: 20,
                     ),
@@ -262,25 +254,29 @@ class _SettingsPageState extends State<SettingsPage> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.primaryGreen.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: AppTheme.primaryGreen, size: 20),
+        child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       ),
       title: Text(
         titleAr,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
-          color: AppTheme.textWhite,
+          color: Theme.of(context).colorScheme.onPrimary,
         ),
       ),
       subtitle: Text(
         titleEn,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
       ),
-      trailing: Icon(Icons.chevron_right, color: AppTheme.textGrey, size: 20),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Theme.of(context).colorScheme.onPrimary,
+        size: 20,
+      ),
     );
   }
 
@@ -297,28 +293,28 @@ class _SettingsPageState extends State<SettingsPage> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.primaryGreen.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: AppTheme.primaryGreen, size: 20),
+        child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       ),
       title: Text(
         titleAr,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
-          color: AppTheme.textWhite,
+          color: Theme.of(context).colorScheme.onPrimary,
         ),
       ),
       subtitle: Text(
         titleEn,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
       ),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: AppTheme.primaryGreen,
+        activeColor: Theme.of(context).primaryColor,
       ),
     );
   }

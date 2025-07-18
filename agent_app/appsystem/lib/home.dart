@@ -27,6 +27,7 @@ class _DashboardViewState extends State<DashboardView> {
     var width = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       key: scaffold,
 
       // drawer: Drawer(
@@ -43,129 +44,170 @@ class _DashboardViewState extends State<DashboardView> {
       //     ),
       //   ),
       // ),
-      body: SafeArea(
-        child: Row(
-          children: [
-            // if (width >= kMdUp)
-            AnimatedContainer(
-              // color: Theme.of(context).primaryColor,
-              duration: const Duration(milliseconds: 150),
-              // start quik and slow
-              curve: Curves.easeInOut,
-              width: forceSmall
-                  ? kMinInteractiveDimension + 16
-                  : forScreen(
-                      width: width,
-                      sm: kMinInteractiveDimension + 16,
-                      md: kMinInteractiveDimension + 35,
-                      lg: 200,
-                    )!,
-              padding: const EdgeInsets.all(8),
-              child: NavigationSidebar(
-                mode: forceSmall
-                    ? NavigationSidebarItemMode.square
-                    : forScreen(
-                        width: width,
-                        sm: NavigationSidebarItemMode.square,
-                        md: NavigationSidebarItemMode.squareWithTitle,
-                        lg: NavigationSidebarItemMode.full,
-                      )!,
-                onToggle: (value) {
-                  setState(() {
-                    forceSmall = value;
-                  });
-                },
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              height: 300,
+              child: Image.asset(
+                'assets/images/gard.jpeg',
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
               ),
             ),
-            Expanded(
-              child: Column(
-                children: [
-                  AppBar(
-                    leading: DrawerButton(),
-                    surfaceTintColor: Colors.transparent,
-                    backgroundColor: Colors.transparent,
-                    title: Row(
-                      children: [
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: const []),
-                              Text(
-                                "Welcome",
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: Colors.white),
+          ),
+
+          Positioned(
+            child: SizedBox(
+              height: 300,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surface.withAlpha(100),
+                      Theme.of(context).colorScheme.surface,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Row(
+              children: [
+                // if (width >= kMdUp)
+                AnimatedContainer(
+                  // color: Theme.of(context).primaryColor,
+                  duration: const Duration(milliseconds: 150),
+                  // start quik and slow
+                  curve: Curves.easeInOut,
+                  width: forceSmall
+                      ? kMinInteractiveDimension + 16
+                      : forScreen(
+                          width: width,
+                          sm: kMinInteractiveDimension + 16,
+                          md: kMinInteractiveDimension + 35,
+                          lg: 200,
+                        )!,
+                  padding: const EdgeInsets.all(8),
+                  child: NavigationSidebar(
+                    mode: forceSmall
+                        ? NavigationSidebarItemMode.square
+                        : forScreen(
+                            width: width,
+                            sm: NavigationSidebarItemMode.square,
+                            md: NavigationSidebarItemMode.squareWithTitle,
+                            lg: NavigationSidebarItemMode.full,
+                          )!,
+                    onToggle: (value) {
+                      setState(() {
+                        forceSmall = value;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      AppBar(
+                        leading: DrawerButton(),
+                        surfaceTintColor: Colors.transparent,
+                        backgroundColor: Colors.transparent,
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: const []),
+                                  Text(
+                                    "Welcome",
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: Colors.white),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            if (kDebugMode)
+                              Center(
+                                child: Text(
+                                  GoRouterState.of(context).uri.toFilePath(),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.brightness_6,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {},
+                            ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(
+                                Icons.language,
+                                color: Colors.white,
+                              ),
+                              onSelected: (String languageCode) {},
+                              itemBuilder: (BuildContext context) =>
+                                  <PopupMenuEntry<String>>[
+                                    const PopupMenuItem<String>(
+                                      value: 'en',
+                                      child: Text('English'),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'ar',
+                                      child: Text('العربية'),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'fr',
+                                      child: Text('Français'),
+                                    ),
+                                  ],
+                            ),
+                          ],
                         ),
-                        if (kDebugMode)
-                          Center(
-                            child: Text(
-                              GoRouterState.of(context).uri.toFilePath(),
-                              style: const TextStyle(color: Colors.white),
+                        automaticallyImplyLeading: false,
+                        actions: const [AppBarActions(), SizedBox(width: 8)],
+                      ),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadiusDirectional.only(
+                              topStart: Radius.circular(17),
                             ),
                           ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.brightness_6,
-                            color: Colors.white,
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 1,
+                            top: 1,
                           ),
-                          onPressed: () {},
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.language, color: Colors.white),
-                          onSelected: (String languageCode) {},
-                          itemBuilder: (BuildContext context) =>
-                              <PopupMenuEntry<String>>[
-                                const PopupMenuItem<String>(
-                                  value: 'en',
-                                  child: Text('English'),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'ar',
-                                  child: Text('العربية'),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'fr',
-                                  child: Text('Français'),
-                                ),
-                              ],
-                        ),
-                      ],
-                    ),
-                    automaticallyImplyLeading: false,
-                    actions: const [AppBarActions(), SizedBox(width: 8)],
-                  ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadiusDirectional.only(
-                          topStart: Radius.circular(17),
-                        ),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                      padding: const EdgeInsetsDirectional.only(
-                        start: 1,
-                        top: 1,
-                      ),
-                      child: Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadiusDirectional.only(
-                            topStart: Radius.circular(16),
+                          child: Container(
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              // color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadiusDirectional.only(
+                                topStart: Radius.circular(16),
+                              ),
+                            ),
+                            child: widget.content ?? Column(children: []),
                           ),
                         ),
-                        child: widget.content ?? Column(children: []),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
