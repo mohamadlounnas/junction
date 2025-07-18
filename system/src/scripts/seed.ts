@@ -346,6 +346,150 @@ const sampleSettings = [
     category: 'algorithm',
     description: 'Enable learning from successful sales',
     isPublic: false
+  },
+  {
+    key: 'collaborative_learning_enabled',
+    value: 'true',
+    type: 'BOOLEAN' as const,
+    category: 'algorithm',
+    description: 'Enable collaborative learning from similar users and properties',
+    isPublic: false
+  },
+  {
+    key: 'user_similarity_threshold',
+    value: '0.8',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Minimum similarity threshold for users to learn from each other',
+    isPublic: false
+  },
+  {
+    key: 'property_similarity_threshold',
+    value: '0.8',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Minimum similarity threshold for properties to learn from sales',
+    isPublic: false
+  },
+  {
+    key: 'collaborative_learning_rate',
+    value: '0.1',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Base learning rate for collaborative learning algorithm',
+    isPublic: false
+  },
+  {
+    key: 'enable_time_weighting',
+    value: 'true',
+    type: 'BOOLEAN' as const,
+    category: 'algorithm',
+    description: 'Enable time-based weighting for learning (faster decisions = stronger signal)',
+    isPublic: false
+  },
+  {
+    key: 'enable_success_weighting',
+    value: 'true',
+    type: 'BOOLEAN' as const,
+    category: 'algorithm',
+    description: 'Enable success score weighting for learning',
+    isPublic: false
+  },
+  {
+    key: 'genetic_algorithm_enabled',
+    value: 'false',
+    type: 'BOOLEAN' as const,
+    category: 'algorithm',
+    description: 'Enable genetic algorithm optimization (experimental)',
+    isPublic: false
+  },
+  {
+    key: 'genetic_algorithm_population_size',
+    value: '20',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Population size for genetic algorithm',
+    isPublic: false
+  },
+  {
+    key: 'genetic_algorithm_generations',
+    value: '50',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Number of generations for genetic algorithm',
+    isPublic: false
+  },
+  {
+    key: 'genetic_algorithm_mutation_rate',
+    value: '0.15',
+    type: 'NUMBER' as const,
+    category: 'algorithm',
+    description: 'Mutation rate for genetic algorithm',
+    isPublic: false
+  },
+  {
+    key: 'auto_learn_on_sale',
+    value: 'true',
+    type: 'BOOLEAN' as const,
+    category: 'algorithm',
+    description: 'Automatically trigger learning when new sales are added',
+    isPublic: false
+  },
+  {
+    key: 'agent_commission_rate',
+    value: '0.05',
+    type: 'NUMBER' as const,
+    category: 'quotes',
+    description: 'Default agent commission rate (5%)',
+    isPublic: false
+  },
+  {
+    key: 'legal_fees_rate',
+    value: '0.02',
+    type: 'NUMBER' as const,
+    category: 'quotes',
+    description: 'Default legal fees rate (2%)',
+    isPublic: false
+  },
+  {
+    key: 'administrative_fees',
+    value: '50000',
+    type: 'NUMBER' as const,
+    category: 'quotes',
+    description: 'Fixed administrative fees in DZD',
+    isPublic: false
+  },
+  {
+    key: 'tax_rate',
+    value: '0.19',
+    type: 'NUMBER' as const,
+    category: 'quotes',
+    description: 'VAT/Tax rate (19%)',
+    isPublic: false
+  },
+  {
+    key: 'quote_validity_days',
+    value: '30',
+    type: 'NUMBER' as const,
+    category: 'quotes',
+    description: 'Default quote validity period in days',
+    isPublic: false
+  },
+  {
+    key: 'default_currency',
+    value: 'DZD',
+    type: 'STRING' as const,
+    category: 'quotes',
+    description: 'Default currency for quotes',
+    isPublic: false
+  },
+  {
+    key: 'default_language',
+    value: 'fr',
+    type: 'STRING' as const,
+    category: 'quotes',
+    description: 'Default language for quotes (ar/fr/en)',
+    isPublic: false
   }
 ];
 
@@ -432,7 +576,7 @@ async function main() {
 async function seedContacts() {
   console.log('📝 Seeding contacts...');
   
-  for (const contactData of sampleContacts) {
+  for (const contactData of sampleContacts as any[]) {
     try {
       // Generate enhanced scores with dual transaction support
       const allScores = generateAllScoresFromContact(contactData);
@@ -444,7 +588,7 @@ async function seedContacts() {
           scores: allScores.scores,
           transactionScores: allScores.transactionScores,
           // Ensure legacy field is set for backward compatibility
-          transactionType: (contactData.primaryTransactionType || contactData.transactionTypes?.[0] || contactData.transactionType) as 'RENT' | 'SALE'
+          transactionType: (contactData.primaryTransactionType || contactData.transactionTypes?.[0] || contactData.transactionType || 'SALE') as 'RENT' | 'SALE'
         }
       });
       

@@ -18,6 +18,7 @@ import { propertiesRoutes } from './routes/properties';
 import { recommendationsRoutes } from './routes/recommendations';
 import { salesRoutes } from './routes/sales';
 import { settingsRoutes } from './routes/settings';
+import { quotesRoutes } from './routes/quotes';
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
@@ -131,6 +132,14 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
             description: 'Configuration Guide',
             url: 'https://github.com/smart-contact/docs/config'
           }
+        },
+        {
+          name: 'Quotes',
+          description: 'Professional quote generation and PDF reports',
+          externalDocs: {
+            description: 'Quote System Guide',
+            url: 'https://github.com/smart-contact/docs/quotes'
+          }
         }
       ],
       components: {
@@ -225,6 +234,70 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
               property: { $ref: '#/components/schemas/Property' },
               similarity: { type: 'number', minimum: 0, maximum: 1, description: 'Similarity score' },
               explanation: { type: 'string', description: 'Human-readable explanation' }
+            }
+          },
+          PropertyQuote: {
+            type: 'object',
+            properties: {
+              quoteNumber: { type: 'string', description: 'Unique quote identifier' },
+              property: { $ref: '#/components/schemas/Property' },
+              client: { $ref: '#/components/schemas/Contact' },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    description: { type: 'string' },
+                    quantity: { type: 'number' },
+                    unitPrice: { type: 'number' },
+                    total: { type: 'number' }
+                  }
+                }
+              },
+              subtotal: { type: 'number' },
+              total: { type: 'number' },
+              currency: { type: 'string', default: 'DZD' },
+              language: { type: 'string', enum: ['ar', 'fr', 'en'] },
+              validityDays: { type: 'number' },
+              createdAt: { type: 'string', format: 'date-time' }
+            }
+          },
+          MarketAnalysis: {
+            type: 'object',
+            properties: {
+              priceAnalysis: {
+                type: 'object',
+                properties: {
+                  currentPricePerSqm: { type: 'number' },
+                  marketAveragePricePerSqm: { type: 'number' },
+                  pricePositioning: { type: 'string', enum: ['Below Market', 'Market Rate', 'Premium', 'Luxury'] },
+                  priceDeviation: { type: 'number' },
+                  competitiveAdvantage: { type: 'string' }
+                }
+              },
+              investmentAnalysis: {
+                type: 'object',
+                properties: {
+                  expectedROI: { type: 'number' },
+                  rentalYield: { type: 'number' },
+                  appreciationForecast: {
+                    type: 'object',
+                    properties: {
+                      oneYear: { type: 'number' },
+                      threeYear: { type: 'number' },
+                      fiveYear: { type: 'number' }
+                    }
+                  },
+                  investmentGrade: { type: 'string', enum: ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D'] }
+                }
+              },
+              locationIntelligence: {
+                type: 'object',
+                properties: {
+                  overallScore: { type: 'number' },
+                  neighborhoodRanking: { type: 'string', enum: ['Top 10%', 'Top 25%', 'Top 50%', 'Average', 'Below Average'] }
+                }
+              }
             }
           },
           ApiResponse: {
@@ -529,6 +602,17 @@ Real-time statistics and insights about the Algeria real estate platform perform
       }
     }
   )
+  // Health check endpoint
+  .get('/health', () => {
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'Smart Contact System - Algeria Real Estate AI',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
+    };
+  })
   // Static file serving for uploads
   .get('/uploads/*', async ({ params, set }: { params: Record<string, string>, set: any }) => {
     try {
@@ -582,10 +666,11 @@ Real-time statistics and insights about the Algeria real estate platform perform
   .group('/api', (app) => 
     app
       .use(contactsRoutes)
-      .use(propertiesRoutes)
-      .use(recommendationsRoutes)
-      .use(salesRoutes)
-      .use(settingsRoutes)
+.use(propertiesRoutes)
+.use(recommendationsRoutes)
+.use(salesRoutes)
+.use(settingsRoutes)
+.use(quotesRoutes)
   )
   // Error handler
   .onError(({ code, error, set }: { code: string; error: Error; set: any }) => {

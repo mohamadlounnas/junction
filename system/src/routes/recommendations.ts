@@ -89,7 +89,7 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
       });
 
       // Calculate similarities with enhanced transaction scoring
-      const recommendations = properties
+      const allRecommendations = properties
         .map((property: any) => {
           let similarity = calculateSimilarity(contact.scores, property.scores);
           
@@ -114,26 +114,51 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
             combinedScore: similarity * 0.8 + avgSuccessScore * 0.2
           };
         })
+        .sort((a: any, b: any) => b.combinedScore - a.combinedScore);
+
+      // Get primary recommendations (meeting minimum similarity)
+      const primaryRecommendations = allRecommendations
         .filter((rec: any) => rec.similarity >= minSim)
-        .sort((a: any, b: any) => b.combinedScore - a.combinedScore)
-        .slice(0, limitNum)
-        .map((rec: any) => ({
-          property: {
-            id: rec.property.id,
-            title: rec.property.title,
-            price: rec.property.price,
-            area: rec.property.area,
-            rooms: rec.property.rooms,
-            wilaya: rec.property.wilaya,
-            city: rec.property.city,
-            propertyType: rec.property.propertyType,
-            transactionType: rec.property.transactionType,
-            condition: rec.property.condition
-          },
-          similarity: Math.round(rec.similarity * 1000) / 1000,
-          combinedScore: Math.round(rec.combinedScore * 1000) / 1000,
-          explanation: generateExplanation(contact, rec.property, rec.similarity)
-        }));
+        .slice(0, limitNum);
+
+      // If we have 2 or fewer primary recommendations, add fallback recommendations
+      let finalRecommendations = primaryRecommendations;
+      let fallbackRecommendations: any[] = [];
+
+      if (primaryRecommendations.length <= 2) {
+        // Get additional recommendations with lower similarity scores
+        const remainingSlots = limitNum - primaryRecommendations.length;
+        const primaryIds = new Set(primaryRecommendations.map((rec: any) => rec.property.id));
+        
+        fallbackRecommendations = allRecommendations
+          .filter((rec: any) => 
+            !primaryIds.has(rec.property.id) && // Not already in primary
+            rec.similarity > 0.1 // Minimum threshold to avoid very poor matches
+          )
+          .slice(0, remainingSlots);
+
+        finalRecommendations = [...primaryRecommendations, ...fallbackRecommendations];
+      }
+
+      // Format final recommendations
+      const formattedRecommendations = finalRecommendations.map((rec: any, index: any) => ({
+        property: {
+          id: rec.property.id,
+          title: rec.property.title,
+          price: rec.property.price,
+          area: rec.property.area,
+          rooms: rec.property.rooms,
+          wilaya: rec.property.wilaya,
+          city: rec.property.city,
+          propertyType: rec.property.propertyType,
+          transactionType: rec.property.transactionType,
+          condition: rec.property.condition
+        },
+        similarity: Math.round(rec.similarity * 1000) / 1000,
+        combinedScore: Math.round(rec.combinedScore * 1000) / 1000,
+        matchType: index < primaryRecommendations.length ? 'primary' : 'fallback',
+        explanation: generateExplanation(contact, rec.property, rec.similarity)
+      }));
 
       return {
         success: true,
@@ -148,8 +173,14 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
             primaryTransactionType: contact.primaryTransactionType,
             transactionFlexibility: contact.transactionFlexibility
           },
-          recommendations,
-          total: recommendations.length,
+          recommendations: formattedRecommendations,
+          total: formattedRecommendations.length,
+          metadata: {
+            primaryMatches: primaryRecommendations.length,
+            fallbackMatches: fallbackRecommendations.length,
+            totalAvailableProperties: properties.length,
+            fallbackUsed: fallbackRecommendations.length > 0
+          },
           filters: {
             minSimilarity: minSim,
             propertyType,
@@ -201,11 +232,11 @@ export const recommendationsRoutes = new Elysia({ prefix: '/recommendations' })
     }),
     detail: {
       tags: ['Recommendations'],
-      summary: 'Get property recommendations for contact with enhanced transaction support',
+      summary: 'Get property recommendations for contact with enhanced transaction support and fallback recommendations',
       description: `
-## Enhanced Property Recommendations with Dual Transaction Support
+## Enhanced Property Recommendations with Dual Transaction Support and Smart Fallbacks
 
-Get AI-powered property recommendations for a contact, now with support for multiple transaction types.
+Get AI-powered property recommendations for a contact, now with support for multiple transaction types and intelligent fallback recommendations when few matches are found.
 
 ### 🔄 Enhanced Transaction Support
 - **Legacy**: Matches single transactionType
@@ -213,22 +244,31 @@ Get AI-powered property recommendations for a contact, now with support for mult
 - **Flexibility**: Considers transaction flexibility in scoring
 - **Primary Preference**: Prioritizes primary transaction type
 
+### 🎯 Smart Fallback System
+- **Automatic Fallbacks**: When ≤2 primary matches found, system adds lower-scored recommendations
+- **Quality Threshold**: Fallback recommendations have minimum 0.1 similarity score
+- **Match Types**: Each recommendation labeled as 'primary' or 'fallback'
+- **Better Coverage**: Ensures users get more options when high-quality matches are scarce
+
 ### 🤖 AI Features
 - **Dual Scoring**: Uses both main scores and transaction scores
 - **Transaction Bonus**: Boosts similarity for matching transaction types
 - **Flexibility Weighting**: Considers how flexible the contact is
 - **Success History**: Incorporates past successful transactions
+- **Intelligent Fallbacks**: Provides additional options when needed
 
 ### 📊 Scoring Algorithm
 1. **Base Similarity**: 12D vector similarity (80% weight)
 2. **Transaction Bonus**: Transaction type matching (20% weight)
 3. **Success History**: Past transaction success rates
 4. **Combined Score**: Weighted combination for final ranking
+5. **Fallback Logic**: Activates when primary matches ≤2
 
 ### 🎯 Use Cases
 - Flexible buyers open to both renting and buying
 - Investors with multiple transaction strategies
 - Contacts with primary and secondary preferences
+- Markets with limited inventory requiring broader options
         `
     }
   })
@@ -308,12 +348,6 @@ Get AI-powered property recommendations for a contact, now with support for mult
 
       // Budget compatibility with property price
       where.AND = where.AND || [];
-      where.AND.push({
-        OR: [
-          { budgetMin: { lte: property.price } },
-          { budgetMin: null }
-        ]
-      });
       where.AND.push({
         OR: [
           { budgetMax: { gte: property.price } },
@@ -401,10 +435,78 @@ Get AI-powered property recommendations for a contact, now with support for mult
       };
     }
   }, {
+    params: t.Object({
+      id: t.String({ description: 'Property ID' })
+    }),
+    query: t.Object({
+      limit: t.Optional(t.Union([
+        t.Number({ minimum: 1, maximum: 50, default: 10 }),
+        t.String()
+      ])),
+      minSimilarity: t.Optional(t.Union([
+        t.Number({ minimum: 0, maximum: 1, default: 0.3 }),
+        t.String()
+      ])),
+      contactType: t.Optional(t.Union([
+        t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('INVESTOR'),
+        t.Literal('SELLER'), t.Literal('LANDLORD')
+      ])),
+      wilaya: t.Optional(t.String()),
+      budgetMin: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ])),
+      budgetMax: t.Optional(t.Union([
+        t.Number({ minimum: 0 }),
+        t.String()
+      ]))
+    }),
     detail: {
       tags: ['Recommendations'],
       summary: 'Get contact recommendations for property',
-      description: 'Get AI-powered contact recommendations for a specific property'
+      description: `
+## Property-to-Contact Recommendations
+
+Get AI-powered contact recommendations for a specific property using 12D vector similarity scoring.
+
+### 🔍 Available Filters
+
+#### **Basic Filters**
+- **limit**: Maximum number of recommendations (1-50, default: 10)
+- **minSimilarity**: Minimum similarity threshold (0-1, default: 0.3)
+
+#### **Contact Type Filter**
+- **contactType**: Filter by contact type
+  - \`BUYER\` - Property buyers
+  - \`TENANT\` - Property renters  
+  - \`INVESTOR\` - Real estate investors
+  - \`SELLER\` - Property sellers
+  - \`LANDLORD\` - Property owners
+
+#### **Location Filter**
+- **wilaya**: Filter contacts by preferred wilaya (Algeria administrative division)
+
+#### **Budget Filters**
+- **budgetMin**: Minimum budget requirement
+- **budgetMax**: Maximum budget limit
+
+### 🤖 AI Algorithm
+- **12D Vector Similarity**: Compares property and contact feature vectors
+- **Budget Compatibility**: Ensures property price fits contact budget
+- **Transaction Type Matching**: Matches property transaction type with contact preferences
+- **Success History**: Incorporates past transaction success rates
+
+### 📊 Response Structure
+- **property**: Property details
+- **recommendations**: Array of matching contacts with similarity scores
+- **metadata**: Processing statistics and algorithm info
+
+### 🎯 Use Cases
+- Find potential buyers for a property
+- Identify interested tenants for rental properties
+- Market analysis and lead generation
+- Property valuation insights
+        `
     }
   })
 
@@ -493,7 +595,7 @@ Get AI-powered property recommendations for a contact, now with support for mult
           });
 
           // Calculate similarities with enhanced transaction scoring
-          const recommendations = matchingContacts
+          const allContactMatches = matchingContacts
             .map(contact => {
               let similarity = calculateSimilarity(contact.scores, property.scores);
               
@@ -507,27 +609,54 @@ Get AI-powered property recommendations for a contact, now with support for mult
               
               return { contact, similarity };
             })
+            .sort((a, b) => b.similarity - a.similarity);
+
+          // Get primary recommendations (meeting minimum similarity)
+          const primaryMatches = allContactMatches
             .filter(rec => rec.similarity >= minSim)
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, limitNum)
-            .map(rec => ({
-              contact: {
-                id: rec.contact.id,
-                name: rec.contact.name,
-                email: rec.contact.email,
-                type: rec.contact.type,
-                transactionType: rec.contact.transactionType,
-                transactionTypes: rec.contact.transactionTypes,
-                primaryTransactionType: rec.contact.primaryTransactionType,
-                transactionFlexibility: rec.contact.transactionFlexibility
-              },
-              similarity: Math.round(rec.similarity * 1000) / 1000
-            }));
+            .slice(0, limitNum);
+
+          // If we have 2 or fewer primary matches, add fallback recommendations
+          let finalMatches = primaryMatches;
+          let fallbackMatches: any[] = [];
+
+          if (primaryMatches.length <= 2) {
+            // Get additional recommendations with lower similarity scores
+            const remainingSlots = limitNum - primaryMatches.length;
+            const primaryIds = new Set(primaryMatches.map(rec => rec.contact.id));
+            
+            fallbackMatches = allContactMatches
+              .filter(rec => 
+                !primaryIds.has(rec.contact.id) && // Not already in primary
+                rec.similarity > 0.1 // Minimum threshold to avoid very poor matches
+              )
+              .slice(0, remainingSlots);
+
+            finalMatches = [...primaryMatches, ...fallbackMatches];
+          }
+
+          const recommendations = finalMatches.map((rec, index) => ({
+            contact: {
+              id: rec.contact.id,
+              name: rec.contact.name,
+              email: rec.contact.email,
+              type: rec.contact.type,
+              transactionType: rec.contact.transactionType,
+              transactionTypes: rec.contact.transactionTypes,
+              primaryTransactionType: rec.contact.primaryTransactionType,
+              transactionFlexibility: rec.contact.transactionFlexibility
+            },
+            similarity: Math.round(rec.similarity * 1000) / 1000,
+            matchType: index < primaryMatches.length ? 'primary' : 'fallback'
+          }));
 
           results.push({
             propertyId,
             propertyTitle: property.title,
             recommendationsCount: recommendations.length,
+            primaryMatches: primaryMatches.length,
+            fallbackMatches: fallbackMatches.length,
+            fallbackUsed: fallbackMatches.length > 0,
             recommendations
           });
         } catch (error) {
@@ -851,7 +980,10 @@ Get AI-powered contact recommendations for multiple properties at once, now with
         const contactResults = {
           contactId: contact.id,
           contactName: contact.name,
-          recommendations: [] as any[]
+          recommendations: [] as any[],
+          primaryMatches: 0,
+          fallbackMatches: 0,
+          fallbackUsed: false
         };
 
         // Filter properties by transaction type match
@@ -860,26 +992,53 @@ Get AI-powered contact recommendations for multiple properties at once, now with
         );
 
         // Calculate similarities
-        const recommendations = matchingProperties
+        const allPropertyMatches = matchingProperties
           .map(property => {
             const similarity = calculateSimilarity(contact.scores, property.scores);
             return { property, similarity };
           })
+          .sort((a, b) => b.similarity - a.similarity);
+
+        // Get primary recommendations (meeting minimum similarity)
+        const primaryMatches = allPropertyMatches
           .filter(rec => rec.similarity >= minSim)
-          .sort((a, b) => b.similarity - a.similarity)
-          .slice(0, limitNum)
-          .map(rec => ({
-            property: {
-              id: rec.property.id,
-              title: rec.property.title,
-              price: rec.property.price,
-              wilaya: rec.property.wilaya,
-              propertyType: rec.property.propertyType
-            },
-            similarity: Math.round(rec.similarity * 1000) / 1000
-          }));
+          .slice(0, limitNum);
+
+        // If we have 2 or fewer primary matches, add fallback recommendations
+        let finalMatches = primaryMatches;
+        let fallbackMatches: any[] = [];
+
+        if (primaryMatches.length <= 2) {
+          // Get additional recommendations with lower similarity scores
+          const remainingSlots = limitNum - primaryMatches.length;
+          const primaryIds = new Set(primaryMatches.map(rec => rec.property.id));
+          
+          fallbackMatches = allPropertyMatches
+            .filter(rec => 
+              !primaryIds.has(rec.property.id) && // Not already in primary
+              rec.similarity > 0.1 // Minimum threshold to avoid very poor matches
+            )
+            .slice(0, remainingSlots);
+
+          finalMatches = [...primaryMatches, ...fallbackMatches];
+        }
+
+        const recommendations = finalMatches.map((rec, index) => ({
+          property: {
+            id: rec.property.id,
+            title: rec.property.title,
+            price: rec.property.price,
+            wilaya: rec.property.wilaya,
+            propertyType: rec.property.propertyType
+          },
+          similarity: Math.round(rec.similarity * 1000) / 1000,
+          matchType: index < primaryMatches.length ? 'primary' : 'fallback'
+        }));
 
         contactResults.recommendations = recommendations;
+        contactResults.primaryMatches = primaryMatches.length;
+        contactResults.fallbackMatches = fallbackMatches.length;
+        contactResults.fallbackUsed = fallbackMatches.length > 0;
         results.push(contactResults);
       }
 
@@ -1290,7 +1449,270 @@ Perfect for integrating with:
         }
       }
     }
-  }); 
+  })
+
+  // Collaborative Learning API Endpoint
+  .post('/learn', async ({ body }) => {
+    try {
+      const { 
+        mode = 'recent_sales', 
+        salesLimit = 100, 
+        saleId,
+        config = {} 
+      } = body;
+
+      let result;
+
+      switch (mode) {
+        case 'recent_sales':
+          // Process collaborative learning for recent sales
+          result = await import('../services/learning').then(module => 
+            module.processCollaborativeLearning({
+              salesLimit,
+              config
+            })
+          );
+          break;
+
+        case 'specific_sale':
+          // Process learning for a specific sale
+          if (!saleId) {
+            return {
+              success: false,
+              error: 'Sale ID is required for specific_sale mode'
+            };
+          }
+          
+          result = await import('../services/learning').then(module => 
+            module.processLearningForSale(saleId)
+          );
+          break;
+
+        case 'stats':
+          // Get learning statistics
+          result = await import('../services/learning').then(module => 
+            module.getLearningStats()
+          );
+          return {
+            success: true,
+            data: result
+          };
+
+        default:
+          return {
+            success: false,
+            error: 'Invalid learning mode. Use "recent_sales", "specific_sale", or "stats"'
+          };
+      }
+
+      return {
+        success: result.success,
+        data: {
+          usersAffected: result.usersAffected,
+          propertiesAffected: result.propertiesAffected,
+          totalLearningOperations: result.totalLearningOperations,
+          processingTimeMs: result.processingTimeMs,
+          salesProcessed: result.salesProcessed,
+          geneticOptimizationTriggered: result.geneticOptimizationTriggered
+        },
+        errors: result.errors
+      };
+
+    } catch (error) {
+      console.error('Learning API error:', error);
+      return {
+        success: false,
+        error: 'Internal server error during learning process'
+      };
+    }
+  }, {
+    // default
+    // {
+    //   "mode": "recent_sales",
+    //   "salesLimit": 1,
+    //   "saleId": "",
+    //   "config": {
+    //     "userSimilarityThreshold": 1,
+    //     "propertySimilarityThreshold": 1,
+    //     "baseLearningRate": 1,
+    //     "enableTimeWeighting": true,
+    //     "enableSuccessWeighting": true,
+    //     "enableCollaborativeLearning": true
+    //   }
+    // }
+    body: t.Object({
+      mode: t.Optional(t.Union([
+        t.Literal('recent_sales'),
+        t.Literal('specific_sale'), 
+        t.Literal('stats')
+      ])),
+      salesLimit: t.Optional(t.Number({ minimum: 1, maximum: 1000 })),
+      saleId: t.Optional(t.String()),
+      config: t.Optional(t.Object({
+        userSimilarityThreshold: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
+        propertySimilarityThreshold: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
+        baseLearningRate: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
+        enableTimeWeighting: t.Optional(t.Boolean()),
+        enableSuccessWeighting: t.Optional(t.Boolean()),
+        enableCollaborativeLearning: t.Optional(t.Boolean())
+      }))
+    }),
+    detail: {
+      tags: ['Recommendations', 'Learning'],
+      summary: 'Collaborative Learning API',
+      description: `
+## 🧠 Collaborative Learning System
+
+Advanced AI learning endpoint that enables users and properties to learn from successful sales transactions of similar entities.
+
+### 🎯 Learning Modes
+
+#### **recent_sales** (Default)
+Process collaborative learning for recent sales transactions:
+- All users with similarity ≥0.8 learn from successful purchases of similar users
+- All properties with similarity ≥0.8 adapt based on successful sales patterns
+- Configurable batch processing with performance optimization
+
+#### **specific_sale**
+Process learning for a single sale transaction:
+- Triggered automatically when new sales are added (if auto-learning enabled)
+- Real-time learning for immediate preference updates
+- Targeted learning for specific transaction patterns
+
+#### **stats**
+Get learning system statistics and health metrics:
+- Total sales processed, recent activity, average success scores
+- System configuration and learning parameters
+- Performance metrics and processing statistics
+
+### 🤖 Collaborative Learning Algorithm
+
+#### **User-to-User Learning**
+When user A successfully purchases a property:
+1. Find all users with similarity ≥0.8 to user A
+2. Update their preferences based on user A's successful choice
+3. Apply dynamic learning rates based on:
+   - User similarity strength (higher similarity = more learning)
+   - Success score of the transaction (higher success = stronger signal)
+   - Decision speed (faster decisions = stronger preference signals)
+
+#### **Property-to-Property Learning**
+When a property is successfully sold:
+1. Find all properties with similarity ≥0.8 to the sold property
+2. Update their feature representation based on the successful match
+3. Consider both property features and buyer preferences
+4. Apply lower learning rates to prevent property overfitting
+
+### ⚙️ Configuration Parameters
+
+All parameters can be overridden via the \`config\` object or managed through system settings:
+
+- **userSimilarityThreshold** (0-1, default: 0.8): Minimum similarity for user learning
+- **propertySimilarityThreshold** (0-1, default: 0.8): Minimum similarity for property learning  
+- **baseLearningRate** (0-1, default: 0.1): Base learning rate for updates
+- **enableTimeWeighting** (boolean, default: true): Consider decision speed in learning
+- **enableSuccessWeighting** (boolean, default: true): Weight learning by success scores
+- **enableCollaborativeLearning** (boolean, default: true): Master switch for collaborative learning
+
+### 🚀 Performance Features
+
+- **Batch Processing**: Efficient processing of multiple sales simultaneously
+- **Background Optimization**: Optional genetic algorithm runs in background
+- **Smart Filtering**: Only processes entities above similarity thresholds
+- **Change Detection**: Only updates scores that change significantly (>0.001)
+- **Memory Management**: Limits genetic optimization to prevent system overload
+
+### 📊 Response Structure
+
+#### Learning Results
+\`\`\`json
+{
+  "success": true,
+  "data": {
+    "usersAffected": 15,
+    "propertiesAffected": 8,
+    "totalLearningOperations": 23,
+    "processingTimeMs": 450,
+    "salesProcessed": 5,
+    "geneticOptimizationTriggered": true
+  }
+}
+\`\`\`
+
+#### Statistics Response
+\`\`\`json
+{
+  "success": true,
+  "data": {
+    "totalSales": 1250,
+    "recentSales": 45,
+    "averageSuccessScore": 0.78,
+    "totalUsers": 890,
+    "totalProperties": 2100,
+    "config": { ... },
+    "lastProcessedSale": {
+      "date": "2024-01-15T10:30:00Z",
+      "successScore": 0.85
+    }
+  }
+}
+\`\`\`
+
+### 🇩🇿 Algeria Real Estate Optimization
+
+The collaborative learning system is specifically designed for the Algerian real estate market:
+
+- **Cultural Preferences**: Learns family housing patterns and cultural preferences
+- **Regional Patterns**: Adapts to regional differences across wilayas
+- **Economic Factors**: Considers local pricing and economic conditions
+- **Transaction Types**: Optimizes for both rental and sale transactions
+- **Investment Patterns**: Learns from successful investor strategies
+
+### 🎯 Use Cases
+
+#### **Real Estate Agencies**
+- Improve recommendation accuracy by learning from successful transactions
+- Adapt to changing market preferences and trends
+- Optimize property listings based on successful sales patterns
+
+#### **Property Developers**
+- Understand what features lead to successful sales
+- Adapt new developments based on market learning
+- Optimize pricing and feature sets
+
+#### **Investors**
+- Learn from successful investment patterns
+- Identify emerging market trends and opportunities
+- Optimize portfolio recommendations
+
+### 🛡️ System Safeguards
+
+- **Learning Rate Limits**: Prevents overfitting with maximum learning rates
+- **Smoothing Factors**: Gradual changes to maintain system stability
+- **Similarity Thresholds**: Only high-similarity entities influence each other
+- **Background Processing**: Genetic optimization runs separately to avoid blocking
+- **Error Handling**: Graceful degradation with detailed error reporting
+
+### 📈 Performance Guidelines
+
+| Operation | Processing Time | Recommendations |
+|-----------|-----------------|-----------------|
+| **Single Sale** | <100ms | Real-time processing |
+| **Recent Sales (10)** | 100-500ms | Standard batch |
+| **Recent Sales (100)** | 500ms-2s | Large batch processing |
+| **Statistics** | <50ms | Instant response |
+
+### 🔄 Integration with Existing Systems
+
+The collaborative learning seamlessly integrates with:
+- **Recommendation Engine**: Improved similarity calculations
+- **Genetic Algorithm**: Optional background optimization
+- **Settings Management**: Dynamic configuration updates
+- **Sales Tracking**: Automatic learning triggers
+- **Performance Analytics**: Learning effectiveness metrics
+      `
+    }
+  });
 
 // Helper function to generate human-readable explanations
 function generateExplanation(contact: any, property: any, similarity: number): string {

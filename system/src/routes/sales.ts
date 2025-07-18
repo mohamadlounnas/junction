@@ -160,7 +160,7 @@ export const salesRoutes = new Elysia({ prefix: '/sales' })
       // Learn from this sale if it was successful
       if (successScore >= 0.6) {
         try {
-          const updatedScores = learnFromSale(contact, property, { successScore, salePrice });
+          const updatedScores = learnFromSale(contact as any, property, { successScore, salePrice });
           
           await prisma.contact.update({
             where: { id: contactId },
@@ -172,6 +172,21 @@ export const salesRoutes = new Elysia({ prefix: '/sales' })
           console.error('Learning error:', learningError);
           // Don't fail the sale creation if learning fails
         }
+      }
+
+      // Trigger collaborative learning for similar users and properties
+      try {
+        const { processLearningForSale } = await import('../services/learning');
+        const learningResult = await processLearningForSale(sale.id);
+        
+        if (learningResult.success) {
+          console.log(`Collaborative learning triggered: ${learningResult.usersAffected} users, ${learningResult.propertiesAffected} properties affected`);
+        } else {
+          console.log('Collaborative learning disabled or failed');
+        }
+      } catch (collaborativeLearningError) {
+        console.error('Collaborative learning error:', collaborativeLearningError);
+        // Don't fail the sale creation if collaborative learning fails
       }
 
       // Update property status if it was sold
@@ -229,7 +244,7 @@ export const salesRoutes = new Elysia({ prefix: '/sales' })
 
       const updatedSale = await prisma.sale.update({
         where: { id },
-        data: body
+        data: body as any
       });
 
       return {

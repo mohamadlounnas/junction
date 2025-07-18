@@ -499,6 +499,350 @@ export function getDefaultScoreVector(): number[] {
 }
 
 /**
+ * Advanced collaborative learning from sale
+ * Learns based on user similarity and decision patterns
+ */
+export function collaborativeLearningFromSale(
+  currentUser: { scores: number[] },
+  buyerUser: { scores: number[] },
+  property: { scores: number[] },
+  sale: { 
+    successScore: number; 
+    timeToDecision?: number; 
+    salePrice: number; 
+    viewCount?: number 
+  },
+  userSimilarity: number,
+  options: {
+    baseLearningRate?: number;
+    similarityThreshold?: number;
+    enableTimeWeighting?: boolean;
+    enableSuccessWeighting?: boolean;
+  } = {}
+): number[] {
+  const {
+    baseLearningRate = 0.1,
+    similarityThreshold = 0.8,
+    enableTimeWeighting = true,
+    enableSuccessWeighting = true
+  } = options;
+
+  // Only learn if similarity is above threshold
+  if (userSimilarity < similarityThreshold) {
+    return [...currentUser.scores];
+  }
+
+  const updatedScores = [...currentUser.scores];
+  const buyerScores = buyerUser.scores;
+  const propertyScores = property.scores;
+  
+  // Calculate dynamic learning rate based on multiple factors
+  let learningRate = baseLearningRate;
+  
+  // Adjust learning rate based on user similarity (higher similarity = more learning)
+  learningRate *= userSimilarity;
+  
+  // Adjust learning rate based on success score
+  if (enableSuccessWeighting) {
+    if (sale.successScore >= 0.8) {
+      learningRate *= 1.5; // Learn more from very successful sales
+    } else if (sale.successScore <= 0.4) {
+      learningRate *= 0.5; // Learn less from poor matches
+    }
+  }
+  
+  // Adjust learning rate based on decision speed (faster = stronger preference signal)
+  if (enableTimeWeighting && sale.timeToDecision) {
+    if (sale.timeToDecision < 7) {
+      learningRate *= 1.3; // Very quick decisions show strong preference
+    } else if (sale.timeToDecision < 14) {
+      learningRate *= 1.1; // Quick decisions show preference  
+    } else if (sale.timeToDecision > 60) {
+      learningRate *= 0.7; // Slow decisions show uncertainty
+    }
+  }
+  
+  // Cap learning rate to prevent overfitting
+  learningRate = Math.min(0.3, learningRate);
+  
+  // Update each dimension of the preference vector
+  for (let i = 0; i < updatedScores.length; i++) {
+    const currentPreference = updatedScores[i];
+    const buyerPreference = buyerScores[i];
+    const propertyFeature = propertyScores[i];
+    
+    // Calculate target preference based on buyer's preference and property features
+    let targetPreference: number;
+    
+    if (sale.successScore >= 0.6) {
+      // Successful sale: blend buyer preference and property features
+      const buyerWeight = 0.7; // Trust buyer's preferences more
+      const propertyWeight = 0.3; // But also consider what they actually bought
+      targetPreference = buyerPreference * buyerWeight + propertyFeature * propertyWeight;
+    } else {
+      // Unsuccessful sale: slightly avoid both buyer preference and property features
+      const avoidanceStrength = (1 - sale.successScore) * 0.3; // Max 30% avoidance
+      targetPreference = currentPreference - 
+        (buyerPreference - currentPreference) * avoidanceStrength * 0.5 -
+        (propertyFeature - currentPreference) * avoidanceStrength * 0.5;
+    }
+    
+    // Apply learning with calculated rate
+    updatedScores[i] = currentPreference + (targetPreference - currentPreference) * learningRate;
+    
+    // Ensure scores stay within bounds [0, 1]
+    updatedScores[i] = Math.max(0, Math.min(1, updatedScores[i]));
+  }
+  
+  // Apply smoothing to prevent overfitting
+  const smoothingFactor = 0.02;
+  for (let i = 0; i < updatedScores.length; i++) {
+    updatedScores[i] = updatedScores[i] * (1 - smoothingFactor) + 0.5 * smoothingFactor;
+  }
+  
+  return updatedScores;
+}
+
+/**
+ * Property learning from successful client interactions
+ * Updates property feature representation based on successful matches
+ */
+export function propertyLearningFromSale(
+  currentProperty: { scores: number[] },
+  targetProperty: { scores: number[] },
+  client: { scores: number[] },
+  sale: { 
+    successScore: number; 
+    timeToDecision?: number; 
+    salePrice: number;
+    viewCount?: number 
+  },
+  propertySimilarity: number,
+  options: {
+    baseLearningRate?: number;
+    similarityThreshold?: number;
+    enablePriceWeighting?: boolean;
+  } = {}
+): number[] {
+  const {
+    baseLearningRate = 0.05, // Lower learning rate for properties
+    similarityThreshold = 0.8,
+    enablePriceWeighting = true
+  } = options;
+
+  // Only learn if similarity is above threshold
+  if (propertySimilarity < similarityThreshold) {
+    return [...currentProperty.scores];
+  }
+
+  const updatedScores = [...currentProperty.scores];
+  const targetScores = targetProperty.scores;
+  const clientScores = client.scores;
+  
+  // Calculate dynamic learning rate
+  let learningRate = baseLearningRate;
+  
+  // Adjust based on property similarity
+  learningRate *= propertySimilarity;
+  
+  // Adjust based on success score
+  if (sale.successScore >= 0.8) {
+    learningRate *= 1.3;
+  } else if (sale.successScore <= 0.5) {
+    learningRate *= 0.6;
+  }
+  
+  // Consider price similarity for property learning
+  if (enablePriceWeighting && currentProperty.hasOwnProperty('price') && targetProperty.hasOwnProperty('price')) {
+    const currentPrice = (currentProperty as any).price;
+    const targetPrice = (targetProperty as any).price;
+    const priceRatio = Math.min(currentPrice, targetPrice) / Math.max(currentPrice, targetPrice);
+    learningRate *= (0.5 + priceRatio * 0.5); // Weight by price similarity
+  }
+  
+  // Cap learning rate
+  learningRate = Math.min(0.2, learningRate);
+  
+  // Update property features
+  for (let i = 0; i < updatedScores.length; i++) {
+    const currentFeature = updatedScores[i];
+    const targetFeature = targetScores[i];
+    const clientPreference = clientScores[i];
+    
+    // Target should blend with successful property features and client preferences
+    if (sale.successScore >= 0.6) {
+      const targetWeight = 0.6; // What successful property had
+      const clientWeight = 0.4; // What client preferred
+      const adjustedTarget = targetFeature * targetWeight + clientPreference * clientWeight;
+      
+      updatedScores[i] = currentFeature + (adjustedTarget - currentFeature) * learningRate;
+    } else {
+      // For unsuccessful sales, slightly avoid the pattern
+      const avoidanceStrength = (1 - sale.successScore) * 0.2;
+      updatedScores[i] = currentFeature - (targetFeature - currentFeature) * learningRate * avoidanceStrength;
+    }
+    
+    // Ensure bounds
+    updatedScores[i] = Math.max(0, Math.min(1, updatedScores[i]));
+  }
+  
+  // Minimal smoothing for properties
+  const smoothingFactor = 0.01;
+  for (let i = 0; i < updatedScores.length; i++) {
+    updatedScores[i] = updatedScores[i] * (1 - smoothingFactor) + 0.5 * smoothingFactor;
+  }
+  
+  return updatedScores;
+}
+
+/**
+ * Calculate combined score for sale analysis
+ * Combines user preferences and property features to predict match quality
+ */
+export function calculateCombinedScore(
+  userScores: number[],
+  propertyScores: number[],
+  weights: {
+    similarityWeight?: number;
+    priceCompatibilityWeight?: number;
+    transactionTypeWeight?: number;
+  } = {}
+): number {
+  const {
+    similarityWeight = 0.7,
+    priceCompatibilityWeight = 0.2,
+    transactionTypeWeight = 0.1
+  } = weights;
+
+  // Base similarity score
+  const similarity = calculateSimilarity(userScores, propertyScores);
+  
+  // Combined score is primarily similarity-based
+  // Additional weights can be applied based on business logic
+  return similarity * similarityWeight + 
+         0.8 * priceCompatibilityWeight + // Assume price is compatible for now
+         0.9 * transactionTypeWeight; // Assume transaction type matches
+}
+
+/**
+ * Batch learning function for processing multiple sales
+ */
+export function batchCollaborativeLearning(
+  users: Array<{ id: string; scores: number[] }>,
+  properties: Array<{ id: string; scores: number[] }>,
+  sales: Array<{
+    contactId: string;
+    propertyId: string;
+    successScore: number;
+    timeToDecision?: number;
+    salePrice: number;
+    viewCount?: number;
+  }>,
+  options: {
+    userSimilarityThreshold?: number;
+    propertySimilarityThreshold?: number;
+    baseLearningRate?: number;
+  } = {}
+): {
+  updatedUsers: Array<{ id: string; scores: number[] }>;
+  updatedProperties: Array<{ id: string; scores: number[] }>;
+  learningStats: {
+    usersAffected: number;
+    propertiesAffected: number;
+    totalLearningOperations: number;
+  };
+} {
+  const {
+    userSimilarityThreshold = 0.8,
+    propertySimilarityThreshold = 0.8,
+    baseLearningRate = 0.1
+  } = options;
+
+  const updatedUsers = users.map(user => ({ ...user, scores: [...user.scores] }));
+  const updatedProperties = properties.map(prop => ({ ...prop, scores: [...prop.scores] }));
+  
+  let usersAffected = 0;
+  let propertiesAffected = 0;
+  let totalLearningOperations = 0;
+
+  // Process each sale for collaborative learning
+  for (const sale of sales) {
+    const buyer = users.find(u => u.id === sale.contactId);
+    const soldProperty = properties.find(p => p.id === sale.propertyId);
+    
+    if (!buyer || !soldProperty) continue;
+
+    // Update similar users
+    for (let i = 0; i < updatedUsers.length; i++) {
+      if (updatedUsers[i].id === sale.contactId) continue; // Skip the buyer
+      
+      const similarity = calculateSimilarity(updatedUsers[i].scores, buyer.scores);
+      
+      if (similarity >= userSimilarityThreshold) {
+        const newScores = collaborativeLearningFromSale(
+          updatedUsers[i],
+          buyer,
+          soldProperty,
+          sale,
+          similarity,
+          { baseLearningRate, similarityThreshold: userSimilarityThreshold }
+        );
+        
+        // Check if scores actually changed
+        const changed = newScores.some((score, idx) => 
+          Math.abs(score - updatedUsers[i].scores[idx]) > 0.001
+        );
+        
+        if (changed) {
+          updatedUsers[i].scores = newScores;
+          usersAffected++;
+          totalLearningOperations++;
+        }
+      }
+    }
+
+    // Update similar properties
+    for (let i = 0; i < updatedProperties.length; i++) {
+      if (updatedProperties[i].id === sale.propertyId) continue; // Skip the sold property
+      
+      const similarity = calculateSimilarity(updatedProperties[i].scores, soldProperty.scores);
+      
+      if (similarity >= propertySimilarityThreshold) {
+        const newScores = propertyLearningFromSale(
+          updatedProperties[i],
+          soldProperty,
+          buyer,
+          sale,
+          similarity,
+          { baseLearningRate: baseLearningRate * 0.5, similarityThreshold: propertySimilarityThreshold }
+        );
+        
+        // Check if scores actually changed
+        const changed = newScores.some((score, idx) => 
+          Math.abs(score - updatedProperties[i].scores[idx]) > 0.001
+        );
+        
+        if (changed) {
+          updatedProperties[i].scores = newScores;
+          propertiesAffected++;
+          totalLearningOperations++;
+        }
+      }
+    }
+  }
+
+  return {
+    updatedUsers,
+    updatedProperties,
+    learningStats: {
+      usersAffected,
+      propertiesAffected,
+      totalLearningOperations
+    }
+  };
+}
+
+/**
  * Get score vector explanation for debugging
  */
 export function explainScoreVector(scores: number[]): Record<string, { value: number; meaning: string }> {

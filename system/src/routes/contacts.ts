@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../config/database';
-import { generateScoresFromContact, generateAllScoresFromContact, validateScoreVector } from '../services/score-generator';
+import { generateScoresFromContact, generateAllScoresFromContact, validateScoreVector, calculateSimilarity } from '../services/score-generator';
 
 export const contactsRoutes = new Elysia({ prefix: '/contacts' })
   // List contacts with filtering and pagination
@@ -919,4 +919,270 @@ Each dimension is scored 0.0 to 1.0:
       summary: 'Contact analytics and insights',
       description: 'Get comprehensive analytics about contacts including distribution and trends'
     }
+  })
+
+  // Vector-based contact search
+  .post('/vector-search', async ({ body }) => {
+    try {
+      const {
+        vector,
+        minSimilarity = 0.3,
+        limit = 10,
+        // Optional traditional filters
+        type,
+        transactionType,
+        transactionTypes,
+        primaryTransactionType,
+        wilaya,
+        budgetMin,
+        budgetMax,
+        hasChildren,
+        isActive = true
+      } = body;
+
+      // Validate vector
+      if (!Array.isArray(vector) || vector.length !== 12) {
+        return {
+          success: false,
+          error: 'Vector must be an array of 12 numbers'
+        };
+      }
+
+      // Validate vector values
+      if (!vector.every(v => typeof v === 'number' && v >= 0 && v <= 1)) {
+        return {
+          success: false,
+          error: 'All vector values must be numbers between 0 and 1'
+        };
+      }
+
+      const limitNum = Math.min(50, Math.max(1, Number(limit)));
+      const minSim = Math.max(0, Math.min(1, Number(minSimilarity)));
+
+      // Build optional filters
+      const where: any = {};
+      if (isActive !== undefined) where.isActive = Boolean(isActive);
+      if (type) where.type = type;
+      if (transactionType) where.transactionType = transactionType;
+      if (primaryTransactionType) where.primaryTransactionType = primaryTransactionType;
+      if (transactionTypes) {
+        where.transactionTypes = { hasSome: Array.isArray(transactionTypes) ? transactionTypes : [transactionTypes] };
+      }
+
+      if (wilaya) {
+        where.locationWilayas = { has: wilaya };
+      }
+
+      if (budgetMin || budgetMax) {
+        where.AND = [];
+        if (budgetMin) {
+          where.AND.push({
+            OR: [
+              { budgetMin: { gte: Number(budgetMin) } },
+              { budgetMin: null }
+            ]
+          });
+        }
+        if (budgetMax) {
+          where.AND.push({
+            OR: [
+              { budgetMax: { lte: Number(budgetMax) } },
+              { budgetMax: null }
+            ]
+          });
+        }
+      }
+
+      if (hasChildren !== undefined) {
+        where.hasChildren = Boolean(hasChildren);
+      }
+
+      // Get contacts with optional filters (get more for vector filtering)
+      const contacts = await prisma.contact.findMany({
+        where,
+        take: limitNum * 5, // Get more to allow for similarity filtering
+        orderBy: { createdAt: 'desc' },
+        include: {
+          sales: {
+            select: { successScore: true }
+          }
+        }
+      });
+
+      // Calculate similarities and filter
+      const results = contacts
+        .map((contact: any) => {
+          const similarity = calculateSimilarity(vector, contact.scores);
+          
+          // Calculate average success score for this contact
+          const avgSuccessScore = contact.sales.length > 0
+            ? contact.sales.reduce((sum: number, sale: any) => sum + sale.successScore, 0) / contact.sales.length
+            : 0.5;
+
+          return {
+            contact: {
+              id: contact.id,
+              name: contact.name,
+              email: contact.email,
+              phone: contact.phone,
+              type: contact.type,
+              budgetMin: contact.budgetMin,
+              budgetMax: contact.budgetMax,
+              locationWilayas: contact.locationWilayas,
+              transactionType: contact.transactionType,
+              transactionTypes: contact.transactionTypes,
+              primaryTransactionType: contact.primaryTransactionType,
+              transactionFlexibility: contact.transactionFlexibility,
+              familySize: contact.familySize,
+              hasChildren: contact.hasChildren,
+              isActive: contact.isActive,
+              createdAt: contact.createdAt
+            },
+            similarity,
+            avgSuccessScore,
+            combinedScore: similarity * 0.8 + avgSuccessScore * 0.2,
+            contactVector: contact.scores
+          };
+        })
+        .filter((result: any) => result.similarity >= minSim)
+        .sort((a: any, b: any) => b.combinedScore - a.combinedScore)
+        .slice(0, limitNum)
+        .map((result: any) => ({
+          ...result.contact,
+          similarity: Math.round(result.similarity * 1000) / 1000,
+          combinedScore: Math.round(result.combinedScore * 1000) / 1000,
+          matchExplanation: generateContactVectorMatchExplanation(vector, result.contactVector, result.similarity)
+        }));
+
+      return {
+        success: true,
+        data: results,
+        metadata: {
+          searchVector: vector,
+          resultsFound: results.length,
+          totalContactsScanned: contacts.length,
+          minSimilarity: minSim,
+          searchType: 'vector-similarity',
+          algorithm: '12D Cosine Similarity with Success History'
+        }
+      };
+    } catch (error) {
+      console.error('Contact vector search error:', error);
+      return {
+        success: false,
+        error: 'Failed to perform contact vector search'
+      };
+    }
+  }, {
+    body: t.Object({
+      vector: t.Array(t.Number({ minimum: 0, maximum: 1 }), {
+        minItems: 12,
+        maxItems: 12,
+        description: '12D preference vector: [budget, area, rooms, location, propertyType, condition, features, family, modern, investment, urgency, transaction]'
+      }),
+      minSimilarity: t.Optional(t.Number({ minimum: 0, maximum: 1, default: 0.3 })),
+      limit: t.Optional(t.Number({ minimum: 1, maximum: 50, default: 10 })),
+      // Optional traditional filters
+      type: t.Optional(t.Union([
+        t.Literal('BUYER'), t.Literal('TENANT'), t.Literal('INVESTOR')
+      ])),
+      transactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      transactionTypes: t.Optional(t.Array(t.Union([t.Literal('RENT'), t.Literal('SALE')]))),
+      primaryTransactionType: t.Optional(t.Union([t.Literal('RENT'), t.Literal('SALE')])),
+      wilaya: t.Optional(t.String()),
+      budgetMin: t.Optional(t.Number({ minimum: 0 })),
+      budgetMax: t.Optional(t.Number({ minimum: 0 })),
+      hasChildren: t.Optional(t.Boolean()),
+      isActive: t.Optional(t.Boolean({ default: true }))
+    }),
+    detail: {
+      tags: ['Contacts'],
+      summary: 'Vector-based contact search',
+      description: `
+## AI-Powered Vector Contact Search
+
+Search contacts using a 12-dimensional preference vector for intelligent matching.
+
+### 🤖 Vector Format
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0]
+}
+\`\`\`
+
+### 📊 Vector Dimensions (0.0-1.0)
+0. **Budget**: Price level preference
+1. **Area**: Size requirements 
+2. **Rooms**: Room count preference
+3. **Location**: Geographic desirability (Algeria-optimized)
+4. **Property Type**: Villa, apartment, etc.
+5. **Condition**: Property condition importance
+6. **Features**: Amenities importance
+7. **Family**: Family-friendliness needs
+8. **Modern**: Modernity preference
+9. **Investment**: Investment potential interest
+10. **Urgency**: Decision timeline
+11. **Transaction**: RENT (0.0) vs SALE (1.0)
+
+### 🎯 Use Cases
+- **Property Reverse Search**: Find contacts interested in a specific property profile
+- **Market Analysis**: Identify potential buyers/tenants for property types
+- **Lead Generation**: Find contacts with similar preferences to successful clients
+- **Preference Matching**: Match contacts to property listing patterns
+
+### 💡 Enhanced Features
+- **Success History**: Combines vector similarity with past success scores
+- **Transaction Flexibility**: Supports dual transaction type filtering
+- **Cultural Factors**: Algeria-specific family and cultural preferences
+- **Explainable Results**: Detailed match explanations
+
+### 📝 Example Request
+\`\`\`json
+{
+  "vector": [0.69, 0.6, 0.8, 0.95, 0.6, 0.5, 0.65, 0.8, 0.5, 0.3, 0.5, 1.0],
+  "minSimilarity": 0.7,
+  "limit": 20,
+  "type": "BUYER",
+  "wilaya": "Algiers",
+  "isActive": true
+}
+\`\`\`
+
+### 🔄 Combined Scoring
+- **80%** Vector similarity (preference alignment)
+- **20%** Success history (past performance)
+      `
+    }
   }); 
+
+// Helper function to generate contact match explanation
+function generateContactVectorMatchExplanation(searchVector: number[], contactVector: number[], similarity: number): string {
+  const dimensions = [
+    'Budget', 'Area', 'Rooms', 'Location', 'Property Type',
+    'Condition', 'Features', 'Family', 'Modern', 'Investment', 'Urgency', 'Transaction'
+  ];
+
+  const strongMatches = [];
+  const weakMatches = [];
+
+  for (let i = 0; i < 12; i++) {
+    const diff = Math.abs(searchVector[i] - contactVector[i]);
+    if (diff < 0.2) {
+      strongMatches.push(dimensions[i]);
+    } else if (diff > 0.5) {
+      weakMatches.push(dimensions[i]);
+    }
+  }
+
+  let explanation = `${Math.round(similarity * 100)}% preference match. `;
+  
+  if (strongMatches.length > 0) {
+    explanation += `Strong alignment: ${strongMatches.slice(0, 3).join(', ')}. `;
+  }
+  
+  if (weakMatches.length > 0) {
+    explanation += `Different preferences: ${weakMatches.slice(0, 2).join(', ')}.`;
+  }
+
+  return explanation.trim();
+} 
