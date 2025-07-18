@@ -12,4 +12,3 @@ RUN bunx prisma generate
 RUN bun run build
 
 # نشغّل الملف النهائي مباشرةً (وليس عبر "bun run")
-CMD ["bun", "run", "start"]
