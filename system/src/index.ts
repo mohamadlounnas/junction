@@ -16,6 +16,9 @@ import { salesRoutes } from './routes/sales';
 import { settingsRoutes } from './routes/settings';
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+const PROTOCOL = process.env.PROTOCOL || 'http';
+const BASE_URL = process.env.BASE_URL || `${PROTOCOL}://${HOST}:${PORT}`;
 
 // Initialize the app
 const app = new Elysia()
@@ -64,8 +67,16 @@ Advanced recommendation engine using **12-dimensional vector similarity** to mat
       },
       servers: [
         {
+          url: BASE_URL,
+          description: 'Production Server - Algeria Real Estate AI'
+        },
+        {
           url: `http://localhost:${PORT}`,
           description: 'Development Server - Algeria Real Estate AI'
+        },
+        {
+          url: `https://api.smartcontact.dz`,
+          description: 'Production API - Smart Contact Algeria'
         }
       ],
       tags: [
@@ -597,9 +608,9 @@ process.on('SIGTERM', async () => {
 // Export the app for Bun to serve
 export default {
   port: Number(PORT),
-  hostname: '0.0.0.0',
+  hostname: HOST === 'localhost' ? '0.0.0.0' : HOST,
   fetch: app.fetch,
-  development: false
+  development: process.env.NODE_ENV === 'development'
 };
 
 // Initialize the server
@@ -624,8 +635,8 @@ export default {
     }
     
     console.log('✅ Smart Contact System initialized successfully!');
-    console.log(`🌐 Server will start on: http://localhost:${PORT}`);
-    console.log(`📚 Swagger: http://localhost:${PORT}/swagger`);
+    console.log(`🌐 Server will start on: ${BASE_URL}`);
+    console.log(`📚 Swagger: ${BASE_URL}/swagger`);
     console.log(`🇩🇿 Algeria Real Estate AI System Ready!`);
     
   } catch (error) {

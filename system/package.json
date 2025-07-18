@@ -4,7 +4,8 @@
   "description": "AI-Powered Real Estate Recommendation System for Algeria",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "bun src/index.ts",
+    "dev:watch": "bun --watch src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "start": "bun run dist/index.js",
     "db:generate": "prisma generate",
