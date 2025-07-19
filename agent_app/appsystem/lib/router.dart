@@ -3,10 +3,10 @@ import 'package:appsystem/screens/auth/modern_login_page.dart';
 import 'package:appsystem/screens/auth/modern_signup_page.dart';
 import 'package:appsystem/screens/dashboard/modern_dashboard_page.dart';
 import 'package:appsystem/screens/dashboard/content_library_page.dart';
-import 'package:appsystem/screens/dashboard/settings_page.dart';
 import 'package:appsystem/screens/dashboard/map_page.dart';
 import 'package:appsystem/screens/dashboard/leads_page.dart';
 import 'package:appsystem/screens/chatbot/chatbot_page.dart';
+import 'package:appsystem/screens/dashboard/settings_screen.dart';
 import 'package:appsystem/screens/properties/add_property_page.dart';
 import 'package:appsystem/screens/properties/property_list_page.dart'
     as properties;
@@ -59,7 +59,7 @@ final router = GoRouter(
             ),
             GoRoute(
               path: '/settings',
-              builder: (context, state) => const SettingsPage(),
+              builder: (context, state) => const SettingsScreen(),
             ),
             GoRoute(
               path: '/chatbot',
