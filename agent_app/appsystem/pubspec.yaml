@@ -69,6 +69,11 @@ dependency_overrides:
   
   # Icons
   ionicons: ^0.2.2
+  
+  # PDF handling and file operations
+  open_file: ^3.3.2
+  share_plus: ^7.2.1
+  url_launcher: ^6.2.1
 
   
 

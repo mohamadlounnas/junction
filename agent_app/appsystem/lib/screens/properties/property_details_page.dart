@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import '../../services/property_service.dart';
+import '../../services/quote_service.dart';
+import '../../services/contacts_service.dart' as contacts_service;
+import '../../widgets/contact_selection_dialog.dart';
 
 /// صفحة تفاصيل العقار
 /// تعرض معلومات العقار مع التوصيات للعملاء المحتملين
@@ -14,10 +20,7 @@ import '../../services/property_service.dart';
 class PropertyDetailsPage extends StatefulWidget {
   final String propertyId;
 
-  const PropertyDetailsPage({
-    super.key,
-    required this.propertyId,
-  });
+  const PropertyDetailsPage({super.key, required this.propertyId});
 
   @override
   State<PropertyDetailsPage> createState() => _PropertyDetailsPageState();
@@ -82,19 +85,28 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
         _isLoadingRecommendations = true;
       });
 
-      final result = await PropertyService().getPropertyRecommendations(widget.propertyId);
+      final result = await PropertyService().getPropertyRecommendations(
+        widget.propertyId,
+      );
 
       if (result['success'] == true) {
         setState(() {
-          _contactRecommendations = (result['data'] as List<ContactRecommendation>?) ?? [];
+          final data = result['data'];
+          if (data is List) {
+            _contactRecommendations = data
+                .whereType<ContactRecommendation>()
+                .toList();
+          } else {
+            _contactRecommendations = [];
+          }
           _isLoadingRecommendations = false;
         });
-        
+
         // Log metadata for debugging
         final metadata = result['metadata'] as Map<String, dynamic>?;
         final filters = result['filters'] as Map<String, dynamic>?;
         final total = result['total'] as int?;
-        
+
         print('Property recommendations loaded:');
         print('- Total recommendations: $total');
         print('- Metadata: $metadata');
@@ -131,43 +143,53 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
               ),
             )
           : _error.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.warning_2,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'خطأ',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Iconsax.warning_2,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'خطأ',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             color: Theme.of(context).colorScheme.error,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _error,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _loadPropertyDetails,
-                          icon: const Icon(Iconsax.refresh),
-                          label: const Text('إعادة المحاولة'),
-                        ),
-                      ],
                     ),
-                  ),
-                )
-              : _buildPropertyDetails(),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadPropertyDetails,
+                      icon: const Icon(Iconsax.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _buildPropertyDetails(),
+      floatingActionButton: _property != null
+          ? FloatingActionButton.extended(
+              onPressed: _showPdfGenerationDialog,
+              icon: const Icon(Iconsax.document_text),
+              label: const Text('إنشاء عرض سعر PDF'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            )
+          : null,
     );
   }
 
@@ -179,7 +201,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
       slivers: [
         // شريط التطبيق مع الصورة
         _buildPropertyAppBar(),
-        
+
         // محتوى العقار
         SliverToBoxAdapter(
           child: Column(
@@ -187,7 +209,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
             children: [
               // معلومات العقار الأساسية
               _buildBasicInfo(),
-              
+
               // التبويبات
               _buildTabSection(),
             ],
@@ -210,10 +232,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
             color: Colors.black.withOpacity(0.3),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
-            Iconsax.arrow_right,
-            color: Colors.white,
-          ),
+          child: const Icon(Iconsax.arrow_right, color: Colors.white),
         ),
       ),
       actions: [
@@ -227,10 +246,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
               color: Colors.black.withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Iconsax.share,
-              color: Colors.white,
-            ),
+            child: const Icon(Iconsax.share, color: Colors.white),
           ),
         ),
         const SizedBox(width: 8),
@@ -260,10 +276,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.3),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
                 ),
               ),
             ),
@@ -313,10 +326,11 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                   children: [
                     Text(
                       _property!.title,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -330,9 +344,12 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                         Expanded(
                           child: Text(
                             '${_property!.city}, ${_property!.wilaya}',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ),
                       ],
@@ -369,7 +386,8 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
           const SizedBox(height: 24),
 
           // الوصف
-          if (_property!.description != null && _property!.description!.isNotEmpty) ...[
+          if (_property!.description != null &&
+              _property!.description!.isNotEmpty) ...[
             Text(
               'الوصف',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -459,11 +477,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     return Expanded(
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 24,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(icon, size: 24, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 4),
           Text(
             label,
@@ -502,7 +516,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
               borderRadius: BorderRadius.circular(12),
             ),
             labelColor: Theme.of(context).colorScheme.onPrimary,
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             labelStyle: const TextStyle(fontWeight: FontWeight.w600),
             tabs: const [
               Tab(text: 'التفاصيل'),
@@ -515,10 +531,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
           height: 600, // ارتفاع ثابت للمحتوى
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildDetailsTab(),
-              _buildContactRecommendationsTab(),
-            ],
+            children: [_buildDetailsTab(), _buildContactRecommendationsTab()],
           ),
         ),
       ],
@@ -534,9 +547,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
         children: [
           // المرافق
           _buildFeaturesSection(),
-          
+
           const SizedBox(height: 24),
-          
+
           // معلومات إضافية
           _buildAdditionalInfo(),
         ],
@@ -548,10 +561,12 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
   Widget _buildFeaturesSection() {
     final features = [
       if (_property!.hasParking) {'icon': Iconsax.car, 'label': 'موقف سيارة'},
-      if (_property!.hasSecurity) {'icon': Iconsax.security_safe, 'label': 'أمان'},
+      if (_property!.hasSecurity)
+        {'icon': Iconsax.security_safe, 'label': 'أمان'},
       if (_property!.hasElevator) {'icon': Iconsax.arrow_up_3, 'label': 'مصعد'},
       if (_property!.hasGarden) {'icon': Iconsax.tree, 'label': 'حديقة'},
-      if (_property!.hasBalcony) {'icon': Iconsax.home_trend_up, 'label': 'شرفة'},
+      if (_property!.hasBalcony)
+        {'icon': Iconsax.home_trend_up, 'label': 'شرفة'},
       if (_property!.hasSwimmingPool) {'icon': Iconsax.drop, 'label': 'مسبح'},
     ];
 
@@ -575,10 +590,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
           runSpacing: 12,
           children: features.map((feature) {
             return Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(20),
@@ -667,9 +679,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
           color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
         ),
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -683,11 +693,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -794,7 +800,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
                   child: Text(
                     recommendation.contact.name.isNotEmpty
                         ? recommendation.contact.name[0].toUpperCase()
@@ -812,10 +820,11 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                     children: [
                       Text(
                         recommendation.contact.name,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                       Text(
                         recommendation.contact.typeDisplayName,
@@ -851,10 +860,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
 
             // حالة المطابقة
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: recommendation.statusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
@@ -1004,4 +1010,359 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
         return Colors.grey;
     }
   }
-} 
+
+  /// Show PDF generation dialog
+  Future<void> _showPdfGenerationDialog() async {
+    if (_property == null) return;
+    if (!mounted) return;
+
+    final selectedContact = await showDialog<contacts_service.Contact>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => ContactSelectionDialog(
+        propertyId: widget.propertyId,
+        propertyTitle: _property!.title,
+      ),
+    );
+
+    if (selectedContact != null) {
+      // Add a small delay to ensure the dialog is properly closed
+      await Future.delayed(const Duration(milliseconds: 100));
+      await _generatePdfQuote(selectedContact);
+    }
+  }
+
+  /// Generate PDF quote for the selected contact
+  Future<void> _generatePdfQuote(contacts_service.Contact contact) async {
+    if (_property == null) return;
+
+    // Show loading dialog
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('جاري إنشاء عرض السعر PDF...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // Create quote request
+      final request = QuoteRequest(
+        propertyId: widget.propertyId,
+        contactId: contact.id,
+        language: 'ar',
+        companyInfo: QuoteService.getDefaultCompanyInfo(),
+      );
+
+      // Generate PDF quote
+      final response = await QuoteService.generatePdfQuote(request);
+
+      // Close loading dialog safely
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // Add a small delay to ensure the dialog is properly closed
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (response.success && response.pdf != null) {
+        await _showPdfSuccessDialog(response.pdf!);
+      } else {
+        _showErrorDialog(response.message ?? 'فشل في إنشاء عرض السعر');
+      }
+    } catch (e) {
+      // Close loading dialog safely
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // Add a small delay to ensure the dialog is properly closed
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      _showErrorDialog('حدث خطأ أثناء إنشاء عرض السعر: $e');
+    }
+  }
+
+  /// Show PDF success dialog with download options
+  Future<void> _showPdfSuccessDialog(QuoteData pdfData) async {
+    if (!mounted) return;
+
+    try {
+      final result = await showDialog<String>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Iconsax.tick_circle,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text('تم إنشاء عرض السعر بنجاح'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('رقم العرض: ${pdfData.quote.quoteNumber}'),
+              const SizedBox(height: 8),
+              Text(
+                'المبلغ الإجمالي: ${QuoteService.formatPrice(pdfData.quote.totalAmount)}',
+              ),
+              const SizedBox(height: 8),
+              Text('صالح حتى: ${_formatDate(pdfData.quote.validUntil)}'),
+              const SizedBox(height: 16),
+              const Text('اختر الإجراء المطلوب:'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('download'),
+              child: const Text('فتح في المتصفح'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('share'),
+              child: const Text('مشاركة الرابط'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('copy'),
+              child: const Text('نسخ الرابط'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('open'),
+              child: const Text('فتح الملف'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != null) {
+        await _handlePdfAction(result, pdfData);
+      }
+    } catch (e) {
+      // Handle any dialog-related errors silently
+      print('Dialog error: $e');
+    }
+  }
+
+  /// Handle PDF action (download, share, copy, open)
+  Future<void> _handlePdfAction(String action, QuoteData pdfData) async {
+    try {
+      switch (action) {
+        case 'download':
+          await _downloadPdf(pdfData);
+          break;
+        case 'share':
+          await _sharePdf(pdfData);
+          break;
+        case 'copy':
+          await _copyPdfUrl(pdfData);
+          break;
+        case 'open':
+          await _openPdf(pdfData);
+          break;
+      }
+    } catch (e) {
+      _showErrorDialog('حدث خطأ أثناء معالجة الملف: $e');
+    }
+  }
+
+  /// Download PDF file
+  Future<void> _downloadPdf(QuoteData pdfData) async {
+    try {
+      // Open the download URL directly in browser
+      final downloadUrl = 'https://junction.feeef.org${pdfData.downloadUrl}';
+      await _openUrl(downloadUrl);
+      _showSuccessMessage('تم فتح رابط التحميل في المتصفح');
+    } catch (e) {
+      throw Exception('خطأ في فتح رابط التحميل: $e');
+    }
+  }
+
+  /// Share PDF file
+  Future<void> _sharePdf(QuoteData pdfData) async {
+    try {
+      // Share the download URL
+      final downloadUrl = 'https://junction.feeef.org${pdfData.downloadUrl}';
+      await _shareUrl(downloadUrl, pdfData.fileName);
+      // Success message is handled inside _shareUrl or its fallback
+    } catch (e) {
+      throw Exception('خطأ في مشاركة الرابط: $e');
+    }
+  }
+
+  /// Copy PDF URL to clipboard
+  Future<void> _copyPdfUrl(QuoteData pdfData) async {
+    try {
+      final downloadUrl = 'https://junction.feeef.org${pdfData.downloadUrl}';
+      await Clipboard.setData(ClipboardData(text: downloadUrl));
+      // Show success message immediately
+      _showSuccessMessage('تم نسخ رابط التحميل إلى الحافظة');
+    } catch (e) {
+      throw Exception('خطأ في نسخ الرابط: $e');
+    }
+  }
+
+  /// Open PDF file
+  Future<void> _openPdf(QuoteData pdfData) async {
+    try {
+      // Open the download URL directly in browser
+      final downloadUrl = 'https://junction.feeef.org${pdfData.downloadUrl}';
+      await _openUrl(downloadUrl);
+      _showSuccessMessage('تم فتح الملف في المتصفح');
+    } catch (e) {
+      throw Exception('خطأ في فتح الملف: $e');
+    }
+  }
+
+  /// Open URL in browser
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw Exception('لا يمكن فتح الرابط');
+    }
+  }
+
+  /// Share URL
+  Future<void> _shareUrl(String url, String fileName) async {
+    try {
+      await Share.share(
+        'عرض السعر: $fileName\n$url',
+        subject: 'عرض سعر عقاري - $fileName',
+      );
+      // Show success message for successful share
+      _showSuccessMessage('تم مشاركة رابط التحميل');
+    } catch (e) {
+      // Fallback: Copy to clipboard and show message
+      print('Share failed, falling back to clipboard: $e');
+      await _copyToClipboard(url, fileName);
+    }
+  }
+
+  /// Copy URL to clipboard as fallback
+  Future<void> _copyToClipboard(String url, String fileName) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: url));
+      // Add a small delay to ensure the message is displayed
+      await Future.delayed(const Duration(milliseconds: 100));
+      _showSuccessMessage('تم نسخ الرابط إلى الحافظة');
+    } catch (e) {
+      // Final fallback: just show the URL
+      _showInfoDialog('رابط التحميل:\n$url');
+    }
+  }
+
+  /// Show error dialog
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Iconsax.warning_2,
+                color: Theme.of(context).colorScheme.error,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text('خطأ'),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Handle any dialog-related errors silently
+      print('Error dialog error: $e');
+    }
+  }
+
+  /// Show success message
+  void _showSuccessMessage(String message) {
+    if (!mounted) return;
+
+    // Hide any existing snackbar first
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Iconsax.tick_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'حسناً',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Show info dialog
+  void _showInfoDialog(String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Iconsax.info_circle,
+              color: Theme.of(context).colorScheme.primary,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text('معلومات'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('حسناً'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Format date for display
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+}
