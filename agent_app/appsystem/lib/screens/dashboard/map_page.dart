@@ -329,7 +329,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       }
 
       // Create Property using the correct constructor
-      return Property.fromJson(propertyData);
+      return Property.fromJson(Map<String, dynamic>.from(propertyData as Map));
     } catch (e) {
       print('Error converting property ${propertyData['id']}: $e');
       return null;

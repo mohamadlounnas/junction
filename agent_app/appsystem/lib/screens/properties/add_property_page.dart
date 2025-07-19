@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/property_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
+import 'package:universal_html/html.dart' as html;
+
 
 /// Simplified Add Property Page
 /// Streamlined form for creating new properties with essential fields only
@@ -109,78 +111,289 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     super.dispose();
   }
 
-  Future<void> _pickImages() async {
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
-      final List<XFile> images = await _picker.pickMultiImage(
+      // For web, try alternative approach first
+      if (kIsWeb) {
+        await _pickImageWeb();
+        return;
+      }
+      
+      // For mobile platforms
+      final XFile? image = await _picker.pickImage(
+        source: source,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
+        requestFullMetadata: false,
       );
       
-      if (images.isNotEmpty) {
-        // Validate image files
-        final List<XFile> validImages = [];
-        for (final image in images) {
-          final bytes = await image.readAsBytes();
-          final sizeInMB = bytes.length / (1024 * 1024);
-          
-          // Check file size (max 5MB per image)
-          if (sizeInMB > 5) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('الصورة ${image.name} كبيرة جداً. الحد الأقصى 5 ميجابايت'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            continue;
-          }
-          
-          // Check file type
-          final extension = image.name.toLowerCase().split('.').last;
-          if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('نوع الملف ${image.name} غير مدعوم. استخدم JPG, PNG, أو WebP'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            continue;
-          }
-          
-          validImages.add(image);
-        }
-        
-        if (validImages.isNotEmpty) {
-          setState(() {
-            // Convert XFile to File for mobile platforms, keep XFile for web
-            if (kIsWeb) {
-              _selectedImages.addAll(validImages);
-            } else {
-              _selectedImages.addAll(validImages.map((image) => File(image.path)));
-            }
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('تم اختيار ${validImages.length} صورة'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        }
+      if (image != null) {
+        await _processSelectedImage(image);
       }
     } catch (e) {
+      print('AddPropertyPage: Image picker error: $e');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في اختيار الصور: ${e.toString()}'),
+            content: Text('خطأ في اختيار الصورة: ${e.toString()}'),
             backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Web-specific image picker implementation
+  Future<void> _pickImageWeb() async {
+    try {
+      final input = html.FileUploadInputElement()
+        ..accept = 'image/*'
+        ..multiple = false;
+      
+      input.click();
+      
+      await input.onChange.first;
+      
+      if (input.files != null && input.files!.isNotEmpty) {
+        final file = input.files!.first;
+        final reader = html.FileReader();
+        
+        reader.onLoad.listen((event) {
+          final bytes = reader.result as List<int>;
+          final tempFile = XFile.fromData(
+            Uint8List.fromList(bytes),
+            name: file.name,
+          );
+          _processSelectedImage(tempFile);
+        });
+        
+        reader.readAsArrayBuffer(file);
+      }
+    } catch (e) {
+      print('AddPropertyPage: Web image picker failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _showWebImagePickerFallback() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          title: Text(
+            'اختيار الصورة',
+            style: TextStyle(
+              color: isDark ? Colors.white : colorScheme.onSurface,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'يبدو أن هناك مشكلة في إعداد اختيار الصور. يرجى:',
+                style: TextStyle(
+                  color: isDark ? Colors.white : colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '1. تحديث الصفحة (F5)\n2. المحاولة مرة أخرى\n3. التأكد من أن المتصفح يدعم اختيار الملفات',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'حسناً',
+                style: TextStyle(color: colorScheme.primary),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  Future<void> _processSelectedImage(XFile image) async {
+    try {
+      // Validate image file
+      final bytes = await image.readAsBytes();
+      final sizeInMB = bytes.length / (1024 * 1024);
+      
+      // Check file size (max 5MB per image)
+      if (sizeInMB > 5) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('الصورة ${image.name} كبيرة جداً. الحد الأقصى 5 ميجابايت'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Check file type
+      final extension = image.name.toLowerCase().split('.').last;
+      if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('نوع الملف ${image.name} غير مدعوم. استخدم JPG, PNG, أو WebP'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      setState(() {
+        // For web, keep as XFile; for mobile, convert to File
+        if (kIsWeb) {
+          _selectedImages.add(image);
+        } else {
+          _selectedImages.add(File(image.path));
+        }
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم اختيار صورة: ${image.name}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('AddPropertyPage: Error processing image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في معالجة الصورة: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    // For web, directly pick from gallery without showing dialog
+    if (kIsWeb) {
+      await _pickImageFromSource(ImageSource.gallery);
+      return;
+    }
+    
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          title: Text(
+            'اختر مصدر الصورة',
+            style: TextStyle(
+              color: isDark ? Colors.white : colorScheme.onSurface,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: colorScheme.primary,
+                ),
+                title: Text(
+                  'من المعرض',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : colorScheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImageFromSource(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: colorScheme.primary,
+                ),
+                title: Text(
+                  'من الكاميرا',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : colorScheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImageFromSource(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'إلغاء',
+                style: TextStyle(color: colorScheme.primary),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Upload images for a property after it's created
+  Future<void> _uploadImagesForProperty(String propertyId) async {
+    if (_selectedImages.isEmpty) return;
+    
+    try {
+      // TODO: Implement image upload functionality
+      // This would typically involve:
+      // 1. Converting images to bytes
+      // 2. Creating a multipart request
+      // 3. Sending to the server
+      // 4. Updating the property with image URLs
+      
+      print('AddPropertyPage: Would upload ${_selectedImages.length} images for property $propertyId');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('سيتم إضافة الصور لاحقاً (${_selectedImages.length} صورة)'),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('AddPropertyPage: Error uploading images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في رفع الصور: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -199,10 +412,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       if (_selectedImages.isNotEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('سيتم إضافة العقار أولاً، ثم رفع الصور لاحقاً'),
+            SnackBar(
+              content: Text('سيتم إضافة العقار أولاً. تم اختيار ${_selectedImages.length} صورة وستتم إضافتها لاحقاً'),
               backgroundColor: Colors.blue,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -244,6 +457,10 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
       if (result['success'] == true) {
         print('AddPropertyPage: Property created successfully');
+        
+        // Get the property ID from the response
+        final propertyId = result['data']?['id']?.toString();
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -253,12 +470,17 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             ),
           );
           
+          // Upload images if any were selected
+          if (_selectedImages.isNotEmpty && propertyId != null) {
+            await _uploadImagesForProperty(propertyId);
+          }
+          
           // Add a small delay to ensure the snackbar is shown
           await Future.delayed(const Duration(milliseconds: 500));
           
           // Use GoRouter navigation
           if (mounted) {
-            context.pop();
+            context.go('/dashboard/properties');
           }
         }
       } else {
@@ -709,7 +931,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                   ),
                 ),
                 child: InkWell(
-                  onTap: _pickImages,
+                  onTap: _showImageSourceDialog,
                   borderRadius: BorderRadius.circular(12),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -721,14 +943,14 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'إضافة صور',
+                        'إضافة صورة',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: isDark ? Colors.white : colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        'اضغط لاختيار صور متعددة',
+                        'اضغط لاختيار صورة واحدة',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withOpacity(0.7),
                         ),
@@ -742,12 +964,37 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
               // Selected images grid
               if (_selectedImages.isNotEmpty) ...[
-                Text(
-                  'الصور المختارة (${_selectedImages.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isDark ? Colors.white : colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'الصور المختارة (${_selectedImages.length})',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: isDark ? Colors.white : colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _selectedImages.clear();
+                        });
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('تم مسح جميع الصور'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.clear_all),
+                      label: const Text('مسح الكل'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 GridView.builder(
@@ -798,6 +1045,15 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               setState(() {
                                 _selectedImages.removeAt(index);
                               });
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم حذف الصورة'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
                             },
                             child: Container(
                               padding: const EdgeInsets.all(4),

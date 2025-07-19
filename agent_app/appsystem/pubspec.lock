@@ -113,6 +113,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  charcode:
+    dependency: transitive
+    description:
+      name: charcode
+      sha256: fb0f1107cac15a5ea6ef0a6ef71a807b9e4267c713bb93e00e92d737cc8dbd8a
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.0"
   checked_yaml:
     dependency: transitive
     description:
@@ -169,8 +177,16 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.6"
+  csslib:
+    dependency: transitive
+    description:
+      name: csslib
+      sha256: "09bad715f418841f976c77db72d5398dc1253c21fb9c0c7f0b0b985860b2d58e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   cupertino_icons:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: cupertino_icons
       sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
@@ -271,7 +287,7 @@ packages:
     source: hosted
     version: "5.0.0"
   flutter_map:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: flutter_map
       sha256: "2ecb34619a4be19df6f40c2f8dce1591675b4eff7a6857bd8f533706977385da"
@@ -313,7 +329,7 @@ packages:
     source: hosted
     version: "2.1.3"
   go_router:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: go_router
       sha256: c489908a54ce2131f1d1b7cc631af9c1a06fac5ca7c449e959192089f9489431
@@ -321,7 +337,7 @@ packages:
     source: hosted
     version: "16.0.0"
   google_fonts:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: google_fonts
       sha256: b1ac0fe2832c9cc95e5e88b57d627c5e68c223b9657f4b96e1487aa9098c7b82
@@ -336,8 +352,16 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
+  html:
+    dependency: transitive
+    description:
+      name: html
+      sha256: "6d1264f2dffa1b1101c25a91dff0dc2daee4c18e87cd8538729773c073dbf602"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.15.6"
   http:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: http
       sha256: "2c11f3f94c687ee9bad77c171151672986360b2b001d109814ee7140b2cf261b"
@@ -361,7 +385,7 @@ packages:
     source: hosted
     version: "4.1.2"
   iconsax:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: iconsax
       sha256: fb0144c61f41f3f8a385fadc27783ea9f5359670be885ed7f35cef32565d5228
@@ -369,7 +393,7 @@ packages:
     source: hosted
     version: "0.0.8"
   image_picker:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: image_picker
       sha256: "021834d9c0c3de46bf0fe40341fa07168407f694d9b2bb18d532dc1261867f7a"
@@ -449,7 +473,7 @@ packages:
     source: hosted
     version: "1.0.5"
   ionicons:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: ionicons
       sha256: "5496bc65a16115ecf05b15b78f494ee4a8869504357668f0a11d689e970523cf"
@@ -457,7 +481,7 @@ packages:
     source: hosted
     version: "0.2.2"
   ionicons_named:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: ionicons_named
       sha256: "44ed1b96c1509d824c01a5737ef45ae4c21ad8458f1b1bdcfb1eca9fbadae872"
@@ -473,7 +497,7 @@ packages:
     source: hosted
     version: "0.7.2"
   json_annotation:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: json_annotation
       sha256: "1ce844379ca14835a50d2f019a3099f419082cfdd231cd86a142af94dd5c6bb1"
@@ -489,7 +513,7 @@ packages:
     source: hosted
     version: "6.10.0"
   latlong2:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: latlong2
       sha256: "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
@@ -500,26 +524,26 @@ packages:
     dependency: transitive
     description:
       name: leak_tracker
-      sha256: "6bb818ecbdffe216e81182c2f0714a2e62b593f4a4f13098713ff1685dfb6ab0"
+      sha256: "8dcda04c3fc16c14f48a7bb586d4be1f0d1572731b6d81d51772ef47c02081e0"
       url: "https://pub.dev"
     source: hosted
-    version: "10.0.9"
+    version: "11.0.1"
   leak_tracker_flutter_testing:
     dependency: transitive
     description:
       name: leak_tracker_flutter_testing
-      sha256: f8b613e7e6a13ec79cfdc0e97638fddb3ab848452eff057653abd3edba760573
+      sha256: "1dbc140bb5a23c75ea9c4811222756104fbcd1a27173f0c34ca01e16bea473c1"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.9"
+    version: "3.0.10"
   leak_tracker_testing:
     dependency: transitive
     description:
       name: leak_tracker_testing
-      sha256: "6ba465d5d76e67ddf503e1161d1f4a6bc42306f9d66ca1e8f079a47290fb06d3"
+      sha256: "8d5a2d49f4a66b49744b23b018848400d23e54caf9463f4eb20df3eb8acb2eb1"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.1"
+    version: "3.0.2"
   lints:
     dependency: transitive
     description:
@@ -681,7 +705,7 @@ packages:
     source: hosted
     version: "1.9.1"
   path_provider:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -737,7 +761,7 @@ packages:
     source: hosted
     version: "1.11.1"
   permission_handler:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: permission_handler
       sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
@@ -825,7 +849,7 @@ packages:
     source: hosted
     version: "2.1.0"
   provider:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: provider
       sha256: "4abbd070a04e9ddc287673bf5a030c7ca8b685ff70218720abab8b092f53dd84"
@@ -849,7 +873,7 @@ packages:
     source: hosted
     version: "1.5.0"
   record:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: record
       sha256: "2e3d56d196abcd69f1046339b75e5f3855b2406fc087e5991f6703f188aa03a6"
@@ -966,7 +990,7 @@ packages:
     source: hosted
     version: "1.10.1"
   speech_to_text:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: speech_to_text
       sha256: "97425fd8cc60424061a0584b6c418c0eedab5201cc5e96ef15a946d7fab7b9b7"
@@ -1041,10 +1065,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: fb31f383e2ee25fbbfe06b40fe21e1e458d14080e3c67e7ba0acfde4df4e0bbd
+      sha256: "522f00f556e73044315fa4585ec3270f1808a4b186c936e612cab0b565ff1e00"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.4"
+    version: "0.7.6"
   timing:
     dependency: transitive
     description:
@@ -1145,18 +1169,18 @@ packages:
     dependency: transitive
     description:
       name: vector_math
-      sha256: "80b3257d1492ce4d091729e3a67a60407d227c27241d6927be0130c98e741803"
+      sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.4"
+    version: "2.2.0"
   vm_service:
     dependency: transitive
     description:
       name: vm_service
-      sha256: ddfa8d30d89985b96407efce8acbdd124701f96741f2d981ca860662f1c0dc02
+      sha256: "45caa6c5917fa127b5dbcfbd1fa60b14e583afdc08bfc96dda38886ca252eb60"
       url: "https://pub.dev"
     source: hosted
-    version: "15.0.0"
+    version: "15.0.2"
   watcher:
     dependency: transitive
     description:
