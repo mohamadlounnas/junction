@@ -170,7 +170,7 @@ packages:
     source: hosted
     version: "3.0.6"
   cupertino_icons:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: cupertino_icons
       sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
@@ -189,10 +189,10 @@ packages:
     dependency: transitive
     description:
       name: dart_style
-      sha256: "5b236382b47ee411741447c1f1e111459c941ea1b3f2b540dde54c210a3662af"
+      sha256: "8a0e5fba27e8ee025d2ffb4ee820b4e6e2cf5e4246a6b1a477eb66866947e0bb"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.0"
+    version: "3.1.1"
   fake_async:
     dependency: transitive
     description:
@@ -271,7 +271,7 @@ packages:
     source: hosted
     version: "5.0.0"
   flutter_map:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: flutter_map
       sha256: "2ecb34619a4be19df6f40c2f8dce1591675b4eff7a6857bd8f533706977385da"
@@ -313,7 +313,7 @@ packages:
     source: hosted
     version: "2.1.3"
   go_router:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: go_router
       sha256: c489908a54ce2131f1d1b7cc631af9c1a06fac5ca7c449e959192089f9489431
@@ -321,7 +321,7 @@ packages:
     source: hosted
     version: "16.0.0"
   google_fonts:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: google_fonts
       sha256: b1ac0fe2832c9cc95e5e88b57d627c5e68c223b9657f4b96e1487aa9098c7b82
@@ -337,7 +337,7 @@ packages:
     source: hosted
     version: "2.3.2"
   http:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: http
       sha256: "2c11f3f94c687ee9bad77c171151672986360b2b001d109814ee7140b2cf261b"
@@ -361,7 +361,7 @@ packages:
     source: hosted
     version: "4.1.2"
   iconsax:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: iconsax
       sha256: fb0144c61f41f3f8a385fadc27783ea9f5359670be885ed7f35cef32565d5228
@@ -369,7 +369,7 @@ packages:
     source: hosted
     version: "0.0.8"
   image_picker:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: image_picker
       sha256: "021834d9c0c3de46bf0fe40341fa07168407f694d9b2bb18d532dc1261867f7a"
@@ -449,7 +449,7 @@ packages:
     source: hosted
     version: "1.0.5"
   ionicons:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: ionicons
       sha256: "5496bc65a16115ecf05b15b78f494ee4a8869504357668f0a11d689e970523cf"
@@ -457,7 +457,7 @@ packages:
     source: hosted
     version: "0.2.2"
   ionicons_named:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: ionicons_named
       sha256: "44ed1b96c1509d824c01a5737ef45ae4c21ad8458f1b1bdcfb1eca9fbadae872"
@@ -473,7 +473,7 @@ packages:
     source: hosted
     version: "0.7.2"
   json_annotation:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: json_annotation
       sha256: "1ce844379ca14835a50d2f019a3099f419082cfdd231cd86a142af94dd5c6bb1"
@@ -489,7 +489,7 @@ packages:
     source: hosted
     version: "6.10.0"
   latlong2:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: latlong2
       sha256: "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
@@ -617,7 +617,7 @@ packages:
     source: hosted
     version: "1.9.1"
   path_provider:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -673,7 +673,7 @@ packages:
     source: hosted
     version: "1.11.1"
   permission_handler:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: permission_handler
       sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
@@ -761,7 +761,7 @@ packages:
     source: hosted
     version: "2.1.0"
   provider:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: provider
       sha256: "4abbd070a04e9ddc287673bf5a030c7ca8b685ff70218720abab8b092f53dd84"
@@ -785,7 +785,7 @@ packages:
     source: hosted
     version: "1.5.0"
   record:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: record
       sha256: "2e3d56d196abcd69f1046339b75e5f3855b2406fc087e5991f6703f188aa03a6"
@@ -817,7 +817,7 @@ packages:
     source: hosted
     version: "0.7.2"
   record_platform_interface:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: record_platform_interface
       sha256: c1ad38f51e4af88a085b3e792a22c685cb3e7c23fc37aa7ce44c4cf18f25fe89
@@ -886,7 +886,7 @@ packages:
     source: hosted
     version: "1.10.1"
   speech_to_text:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       name: speech_to_text
       sha256: "97425fd8cc60424061a0584b6c418c0eedab5201cc5e96ef15a946d7fab7b9b7"
