@@ -151,10 +151,24 @@ Returns complete quote object with:
         contactId, 
         agentId, 
         language = 'fr',
-        format = 'A4',
-        orientation = 'portrait',
+        format,
+        orientation,
         companyInfo
       } = body;
+
+      // Handle format and orientation with defaults
+      const pdfFormat = (format === 'A4' || format === 'Letter') ? format : 'A4';
+      const pdfOrientation = (orientation === 'portrait' || orientation === 'landscape') ? orientation : 'portrait';
+      
+      // Filter out empty company info fields
+      const cleanCompanyInfo = companyInfo ? {
+        name: companyInfo.name || '',
+        address: companyInfo.address || '',
+        phone: companyInfo.phone || '',
+        email: companyInfo.email || '',
+        website: companyInfo.website || '',
+        taxId: companyInfo.taxId || ''
+      } : undefined;
 
       // Generate the quote first
       const quote = await generatePropertyQuote(propertyId, contactId, agentId, { language });
@@ -162,8 +176,8 @@ Returns complete quote object with:
       // Generate PDF
       const { filePath, fileName } = await generateQuotePDF(
         quote,
-        { format, orientation },
-        companyInfo
+        { format: pdfFormat, orientation: pdfOrientation },
+        cleanCompanyInfo
       );
 
       return {
@@ -193,13 +207,13 @@ Returns complete quote object with:
       contactId: t.Optional(t.String()),
       agentId: t.Optional(t.String()),
       language: t.Optional(t.Union([t.Literal('ar'), t.Literal('fr'), t.Literal('en')])),
-      format: t.Optional(t.Union([t.Literal('A4'), t.Literal('Letter')])),
-      orientation: t.Optional(t.Union([t.Literal('portrait'), t.Literal('landscape')])),
+      format: t.Optional(t.String()),
+      orientation: t.Optional(t.String()),
       companyInfo: t.Optional(t.Object({
-        name: t.String(),
-        address: t.String(),
-        phone: t.String(),
-        email: t.String(),
+        name: t.Optional(t.String()),
+        address: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
+        email: t.Optional(t.String()),
         website: t.Optional(t.String()),
         taxId: t.Optional(t.String())
       }))
@@ -230,6 +244,11 @@ Generate beautifully formatted PDF documents for property quotes with profession
 - **Orientation**: Portrait (default) or Landscape
 - **Margins**: Optimized for printing
 - **Quality**: Standard or High resolution
+
+#### **Request Parameters**
+- **format**: Optional string - "A4" or "Letter" (defaults to "A4" if empty or invalid)
+- **orientation**: Optional string - "portrait" or "landscape" (defaults to "portrait" if empty or invalid)
+- **companyInfo**: Optional object with company branding details (empty strings are converted to empty values)
 
 #### **Content Sections**
 - Company information and branding

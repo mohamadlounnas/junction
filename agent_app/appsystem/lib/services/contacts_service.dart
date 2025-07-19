@@ -238,7 +238,9 @@ class PropertyRecommendation {
 
   factory PropertyRecommendation.fromJson(Map<String, dynamic> json) {
     return PropertyRecommendation(
-      property: json['property'] ?? {},
+      property: json['property'] != null 
+        ? Map<String, dynamic>.from(json['property'] as Map)
+        : <String, dynamic>{},
       similarity: (json['similarity'] ?? 0.0).toDouble(),
       combinedScore: (json['combinedScore'] ?? 0.0).toDouble(),
       matchType: json['matchType'] ?? 'primary',
@@ -381,7 +383,7 @@ class ContactsService {
           
           return {
             'success': true,
-            'data': data.map((item) => Contact.fromJson(item)).toList(),
+            'data': data.map((item) => Contact.fromJson(Map<String, dynamic>.from(item as Map))).toList(),
             'pagination': pagination,
             'filters': jsonResponse['filters'] ?? {},
           };
@@ -426,7 +428,7 @@ class ContactsService {
         if (jsonResponse['success'] == true) {
           return {
             'success': true,
-            'data': Contact.fromJson(jsonResponse['data']),
+            'data': Contact.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map)),
           };
         } else {
           return {

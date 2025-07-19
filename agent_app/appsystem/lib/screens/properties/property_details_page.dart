@@ -58,7 +58,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
 
       if (result['success'] == true) {
         setState(() {
-          _property = Property.fromJson(result['data']);
+          _property = Property.fromJson(Map<String, dynamic>.from(result['data'] as Map));
           _isLoading = false;
         });
       } else {

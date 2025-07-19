@@ -528,7 +528,11 @@ class ContactRecommendation {
 
   factory ContactRecommendation.fromJson(Map<String, dynamic> json) {
     return ContactRecommendation(
-      contact: Contact.fromJson(json['contact'] ?? {}),
+      contact: Contact.fromJson(
+        json['contact'] != null 
+          ? Map<String, dynamic>.from(json['contact'] as Map)
+          : <String, dynamic>{}
+      ),
       similarity: (json['similarity'] ?? 0.0).toDouble(),
       explanation: json['explanation'] ?? '',
     );
@@ -726,7 +730,7 @@ class PropertyService {
           // Convert JSON data to Property objects
           for (final propertyData in propertiesData) {
             try {
-              final property = Property.fromJson(propertyData);
+              final property = Property.fromJson(Map<String, dynamic>.from(propertyData as Map));
               allProperties.add(property);
             } catch (e) {
               print('PropertyService: Failed to parse property: $e');
@@ -800,7 +804,7 @@ class PropertyService {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        return Property.fromJson(jsonResponse['data']);
+        return Property.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map));
       } else {
         throw Exception('Failed to retrieve property: ${response.statusCode}');
       }
