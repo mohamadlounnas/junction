@@ -1,8 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart'; // Added for Color
 
 // Conditional imports for platform-specific file handling
@@ -1208,7 +1205,7 @@ class PropertyService {
                 .toList();
           } else if (data is List) {
             // API returns { data: [...] }
-            recommendations = (data as List<dynamic>)
+            recommendations = data
                 .map((item) => ContactRecommendation.fromJson(item))
                 .toList();
           }
@@ -1236,26 +1233,16 @@ class PropertyService {
         }
       } else {
         print(
-          'PropertyService: API returned error: ${jsonResponse['message']}',
-        );
-        return {
-          'success': false,
-          'message': jsonResponse['message'] ?? 'Failed to get contact recommendations',
-          'data': <ContactRecommendation>[],
-          'metadata': {},
-          'property': {},
-          'filters': {},
-          'total': 0,
-        };
-      }
-      } else {
-        print(
           'PropertyService: HTTP error ${response.statusCode}: ${response.body}',
         );
         return {
           'success': false,
           'message': 'HTTP ${response.statusCode}: ${response.reasonPhrase}',
           'data': <ContactRecommendation>[],
+          'metadata': {},
+          'property': {},
+          'filters': {},
+          'total': 0,
         };
       }
     } catch (e) {
