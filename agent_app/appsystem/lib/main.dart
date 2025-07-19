@@ -1,5 +1,6 @@
 import 'package:appsystem/providers/language_provider.dart';
 import 'package:appsystem/router.dart';
+import 'package:appsystem/services/leads_services.dart';
 import 'package:appsystem/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => LanguageProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => LeadsServices()),
+      ],
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
           return MaterialApp.router(
