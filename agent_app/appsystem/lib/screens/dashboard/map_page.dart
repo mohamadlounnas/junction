@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:appsystem/theme.dart';
 import 'package:appsystem/services/property_service.dart';
 import 'package:appsystem/services/messaging_service.dart';
+import 'dart:math';
 
 // Property type enum for map filtering
 enum PropertyType {
@@ -63,11 +65,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   late AnimationController _clientListController;
   late AnimationController _searchAnimationController;
   late AnimationController _filterAnimationController;
+  late AnimationController _clusterPulseController;
+  late AnimationController _markerBounceController;
+  late AnimationController _markerRotationController;
   late Animation<double> _markerScaleAnimation;
   late Animation<double> _cardSlideAnimation;
   late Animation<double> _clientListFadeAnimation;
   late Animation<double> _searchSlideAnimation;
   late Animation<double> _filterSlideAnimation;
+  late Animation<double> _clusterPulseAnimation;
+  late Animation<double> _markerBounceAnimation;
+  late Animation<double> _markerRotationAnimation;
 
   /// Selected property for detailed view
   Property? _selectedProperty;
@@ -168,6 +176,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _clientListController.dispose();
     _searchAnimationController.dispose();
     _filterAnimationController.dispose();
+    _clusterPulseController.dispose();
+    _markerBounceController.dispose();
+    _markerRotationController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _mapController.dispose();
@@ -195,6 +206,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
     _filterAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _clusterPulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _markerBounceController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _markerRotationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -232,8 +258,32 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _clientListController, curve: Curves.easeInOut),
     );
 
-    // Start marker animation
+    _clusterPulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _clusterPulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _markerBounceAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _markerBounceController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _markerRotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _markerRotationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Start marker animations
     _markerAnimationController.forward();
+    _markerBounceController.forward();
+    _markerRotationController.repeat();
+    _clusterPulseController.repeat();
   }
 
   /// Load properties from API using the new Property model with pagination
@@ -703,25 +753,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       left: 0,
       right: 0,
       child: Container(
-        margin: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
         child: ListTile(
           leading: Icon(
             Iconsax.map,
             color: Theme.of(context).primaryColor,
             size: 28,
           ),
-          title: Text('الخريطة', style: Theme.of(context).textTheme.titleLarge),
+          title: Text('الخريطة', style: Theme.of(context).textTheme.titleLarge!.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
           subtitle: Row(
             children: [
               Icon(statusIcon, color: statusColor, size: 16),
@@ -822,12 +860,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             : Icon(
                 icon,
                 color: isActive
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
               ),
         onPressed: isLoading ? null : onPressed,
         tooltip: tooltip,
-        style: IconButton.styleFrom(padding: const EdgeInsets.all(8)),
+        style: IconButton.styleFrom(padding: const EdgeInsets.all(8), backgroundColor: Colors.transparent),
       ),
     );
   }
@@ -1301,6 +1339,22 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  /// Get theme-aware shadow color
+  Color _getThemeShadowColor(BuildContext context, {double opacity = 0.3}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return isDarkMode 
+        ? Colors.black.withOpacity(opacity * 2)
+        : Colors.black.withOpacity(opacity);
+  }
+
+  /// Get theme-aware surface color
+  Color _getThemeSurfaceColor(BuildContext context, {double opacity = 1.0}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return isDarkMode 
+        ? Theme.of(context).colorScheme.surface
+        : Colors.white.withOpacity(opacity);
+  }
+
   /// Builds the main map widget with OpenStreetMap tiles
   Widget _buildMap() {
     return Container(
@@ -1337,53 +1391,693 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  /// Builds animated property markers
+  /// Builds animated property markers with clustering support
   Widget _buildPropertyMarkers() {
+    // Group properties by proximity for clustering
+    final clusters = _createPropertyClusters();
+    
     return MarkerLayer(
-      markers: _filteredProperties.map((property) {
-        return Marker(
-          point: LatLng(property.latitude!, property.longitude!),
-          width: 60,
-          height: 60,
-          child: AnimatedBuilder(
-            animation: _markerScaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _markerScaleAnimation.value,
-                child: GestureDetector(
-                  onTap: () => _onPropertyTap(property),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _selectedProperty?.id == property.id
+      markers: clusters.map((cluster) {
+        if (cluster.properties.length == 1) {
+          // Single property marker
+          final property = cluster.properties.first;
+          return _buildSinglePropertyMarker(property, cluster.center);
+        } else {
+          // Clustered markers
+          return _buildClusteredMarker(cluster);
+        }
+      }).toList(),
+    );
+  }
+
+  /// Creates property clusters based on proximity
+  List<PropertyCluster> _createPropertyClusters() {
+    if (_filteredProperties.isEmpty) return [];
+
+    final clusters = <PropertyCluster>[];
+    final clusterRadius = 50.0; // Distance in pixels for clustering
+    final usedProperties = <String>{};
+
+    for (final property in _filteredProperties) {
+      if (usedProperties.contains(property.id)) continue;
+
+      final cluster = PropertyCluster(
+        center: LatLng(property.latitude!, property.longitude!),
+        properties: [property],
+      );
+      usedProperties.add(property.id);
+
+      // Find nearby properties to add to this cluster
+      for (final otherProperty in _filteredProperties) {
+        if (usedProperties.contains(otherProperty.id)) continue;
+        if (property.id == otherProperty.id) continue;
+
+        final distance = _calculateDistance(
+          property.latitude!,
+          property.longitude!,
+          otherProperty.latitude!,
+          otherProperty.longitude!,
+        );
+
+        // Convert distance to approximate pixels (rough estimation)
+        final zoomLevel = _mapController.camera.zoom;
+        final pixelsPerDegree = 256 * pow(2, zoomLevel) / 360;
+        final distanceInPixels = distance * pixelsPerDegree;
+
+        if (distanceInPixels <= clusterRadius) {
+          cluster.properties.add(otherProperty);
+          usedProperties.add(otherProperty.id);
+        }
+      }
+
+      // Update cluster center to be the average of all properties
+      if (cluster.properties.length > 1) {
+        final avgLat = cluster.properties
+            .map((p) => p.latitude!)
+            .reduce((a, b) => a + b) / cluster.properties.length;
+        final avgLng = cluster.properties
+            .map((p) => p.longitude!)
+            .reduce((a, b) => a + b) / cluster.properties.length;
+        cluster.center = LatLng(avgLat, avgLng);
+      }
+
+      clusters.add(cluster);
+    }
+
+    return clusters;
+  }
+
+  /// Calculates distance between two points in degrees
+  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+    const double earthRadius = 6371; // Earth's radius in kilometers
+    
+    final dLat = _degreesToRadians(lat2 - lat1);
+    final dLng = _degreesToRadians(lng2 - lng1);
+    
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
+        sin(dLng / 2) * sin(dLng / 2);
+    
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  /// Converts degrees to radians
+  double _degreesToRadians(double degrees) {
+    return degrees * (pi / 180);
+  }
+
+    /// Builds a single property marker with enhanced animations
+  Marker _buildSinglePropertyMarker(Property property, LatLng position) {
+    return Marker(
+      point: position,
+      width: 60,
+      height: 60,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _markerScaleAnimation,
+          _markerBounceAnimation,
+          _markerRotationAnimation,
+        ]),
+        builder: (context, child) {
+          final isSelected = _selectedProperty?.id == property.id;
+          final bounceValue = _markerBounceAnimation.value;
+          final rotationValue = _markerRotationAnimation.value;
+          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+          
+          return Transform.scale(
+            scale: _markerScaleAnimation.value * (1.0 + bounceValue * 0.1),
+            child: Transform.rotate(
+              angle: isSelected ? rotationValue * 0.1 : 0.0,
+              child: GestureDetector(
+                onTap: () => _onPropertyTap(property),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : (isDarkMode 
+                            ? Theme.of(context).colorScheme.surface
+                            : Colors.white),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected 
                           ? Theme.of(context).primaryColor
-                          : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).primaryColor,
-                        width: 3,
+                          : (isDarkMode
+                              ? Theme.of(context).primaryColor.withOpacity(0.8)
+                              : Theme.of(context).primaryColor),
+                      width: isSelected ? 4 : 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isSelected 
+                            ? Theme.of(context).primaryColor.withOpacity(0.4)
+                            : (isDarkMode
+                                ? Colors.black.withOpacity(0.6)
+                                : Colors.black.withOpacity(0.3)),
+                        blurRadius: isSelected ? 12 : 8,
+                        offset: const Offset(0, 2),
+                        spreadRadius: isSelected ? 2 : 0,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Property type icon with rotation animation
+                      Center(
+                        child: Transform.rotate(
+                          angle: isSelected ? rotationValue * 0.2 : 0.0,
+                          child: Icon(
+                            _getPropertyIcon(property.propertyType),
+                            color: isSelected
+                                ? Colors.white
+                                : (isDarkMode
+                                    ? Theme.of(context).primaryColor
+                                    : Theme.of(context).primaryColor),
+                            size: 24,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      _getPropertyIcon(property.propertyType),
-                      color: _selectedProperty?.id == property.id
-                          ? Colors.white
-                          : Theme.of(context).primaryColor,
-                      size: 24,
-                    ),
+                      ),
+                      // VIP indicator for expensive properties with pulse
+                      if (property.price > 50000000) // 50M DZD threshold
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: AnimatedBuilder(
+                            animation: _clusterPulseAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: 1.0 + _clusterPulseAnimation.value * 0.2,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: isDarkMode
+                                          ? [Colors.orange.shade600, Colors.orange.shade800]
+                                          : [Colors.orange, Colors.orange.shade600],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.orange.withOpacity(isDarkMode ? 0.5 : 0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'VIP',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      // Selection indicator with ripple effect
+                      if (isSelected)
+                        Positioned.fill(
+                          child: AnimatedBuilder(
+                            animation: _clusterPulseAnimation,
+                            builder: (context, child) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: (isDarkMode ? Colors.white : Colors.white).withOpacity(
+                                      0.3 + _clusterPulseAnimation.value * 0.2,
+                                    ),
+                                    width: 2,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              );
-            },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Builds a clustered marker for multiple properties with enhanced animations
+  Marker _buildClusteredMarker(PropertyCluster cluster) {
+    final propertyCount = cluster.properties.length;
+    final isLargeCluster = propertyCount > 10;
+    final isVeryLargeCluster = propertyCount > 50;
+    
+    return Marker(
+      point: cluster.center,
+      width: isVeryLargeCluster ? 90 : (isLargeCluster ? 80 : 70),
+      height: isVeryLargeCluster ? 90 : (isLargeCluster ? 80 : 70),
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _markerScaleAnimation,
+          _markerBounceAnimation,
+          _clusterPulseAnimation,
+        ]),
+        builder: (context, child) {
+          final bounceValue = _markerBounceAnimation.value;
+          final pulseValue = _clusterPulseAnimation.value;
+          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+          
+          return Transform.scale(
+            scale: _markerScaleAnimation.value * (1.0 + bounceValue * 0.05),
+            child: GestureDetector(
+              onTap: () => _onClusterTap(cluster),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDarkMode
+                        ? [
+                            Theme.of(context).primaryColor,
+                            Theme.of(context).primaryColor.withOpacity(0.9),
+                            Theme.of(context).primaryColor.withOpacity(0.7),
+                          ]
+                        : [
+                            Theme.of(context).primaryColor,
+                            Theme.of(context).primaryColor.withOpacity(0.8),
+                            Theme.of(context).primaryColor.withOpacity(0.6),
+                          ],
+                    stops: [0.0, 0.7, 1.0],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.white,
+                    width: isVeryLargeCluster ? 4 : 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).primaryColor.withOpacity(isDarkMode ? 0.6 : 0.4),
+                      blurRadius: isVeryLargeCluster ? 16 : 12,
+                      offset: const Offset(0, 4),
+                      spreadRadius: isVeryLargeCluster ? 2 : 0,
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Cluster icon with rotation animation
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _markerRotationAnimation,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: isVeryLargeCluster 
+                                ? _markerRotationAnimation.value * 0.1 
+                                : 0.0,
+                            child: Icon(
+                              Iconsax.building,
+                              color: isDarkMode 
+                                  ? Colors.white.withOpacity(0.95)
+                                  : Colors.white,
+                              size: isVeryLargeCluster ? 32 : (isLargeCluster ? 28 : 24),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Property count with bounce animation
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: AnimatedBuilder(
+                        animation: _markerBounceAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: 1.0 + bounceValue * 0.2,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isVeryLargeCluster ? 8 : 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDarkMode
+                                      ? [
+                                          Theme.of(context).colorScheme.surface,
+                                          Theme.of(context).colorScheme.surface.withOpacity(0.9),
+                                        ]
+                                      : [Colors.white, Colors.white.withOpacity(0.9)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isDarkMode
+                                        ? Colors.black.withOpacity(0.5)
+                                        : Colors.black.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                propertyCount > 999 ? '999+' : propertyCount.toString(),
+                                style: TextStyle(
+                                  color: isDarkMode
+                                      ? Theme.of(context).primaryColor
+                                      : Theme.of(context).primaryColor,
+                                  fontSize: isVeryLargeCluster ? 12 : 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Enhanced pulse animation for large clusters
+                    if (isLargeCluster)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _clusterPulseAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: 1.0 + pulseValue * 0.3,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: (isDarkMode ? Colors.white : Colors.white).withOpacity(
+                                      0.2 + pulseValue * 0.3,
+                                    ),
+                                    width: isVeryLargeCluster ? 3 : 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    // Additional ripple effect for very large clusters
+                    if (isVeryLargeCluster)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _clusterPulseAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: 1.0 + pulseValue * 0.5,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: (isDarkMode 
+                                        ? Colors.orange.shade400 
+                                        : Colors.orange).withOpacity(
+                                      0.1 + pulseValue * 0.2,
+                                    ),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    // Floating particles for very large clusters
+                    if (isVeryLargeCluster)
+                      ...List.generate(3, (index) {
+                        return Positioned(
+                          left: 20 + index * 15,
+                          top: 10 + index * 5,
+                          child: AnimatedBuilder(
+                            animation: _markerRotationAnimation,
+                            builder: (context, child) {
+                              final angle = _markerRotationAnimation.value * 2 * pi + index * pi / 3;
+                              return Transform.rotate(
+                                angle: angle,
+                                child: Transform.translate(
+                                  offset: Offset(
+                                    cos(angle) * 5,
+                                    sin(angle) * 5,
+                                  ),
+                                  child: Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: isDarkMode
+                                          ? Colors.white.withOpacity(0.7)
+                                          : Colors.white.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: isDarkMode
+                                              ? Colors.white.withOpacity(0.3)
+                                              : Colors.white.withOpacity(0.2),
+                                          blurRadius: 2,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Handles cluster tap to show cluster details with enhanced animations
+  void _onClusterTap(PropertyCluster cluster) {
+    // Trigger pulse animation for the tapped cluster
+    _clusterPulseController.forward().then((_) {
+      _clusterPulseController.reverse();
+    });
+    
+    // Add haptic feedback
+    HapticFeedback.mediumImpact();
+    
+    if (cluster.properties.length == 1) {
+      _onPropertyTap(cluster.properties.first);
+      return;
+    }
+
+    // Show cluster details dialog with animation
+    showDialog(
+      context: context,
+      builder: (context) => _buildClusterDetailsDialog(cluster),
+    ).then((_) {
+      // Trigger bounce animation when dialog closes
+      _markerBounceController.forward().then((_) {
+        _markerBounceController.reverse();
+      });
+    });
+  }
+
+  /// Builds cluster details dialog with theme support
+  Widget _buildClusterDetailsDialog(PropertyCluster cluster) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return AlertDialog(
+      backgroundColor: isDarkMode 
+          ? Theme.of(context).colorScheme.surface
+          : Theme.of(context).colorScheme.surface,
+      title: Row(
+        children: [
+          Icon(
+            Iconsax.building, 
+            color: Theme.of(context).primaryColor,
           ),
-        );
-      }).toList(),
+          const SizedBox(width: 8),
+          Text(
+            'مجموعة العقارات',
+            style: TextStyle(
+              color: isDarkMode 
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+      content: Container(
+        width: double.maxFinite,
+        constraints: const BoxConstraints(maxHeight: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${cluster.properties.length} عقار في هذه المنطقة',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: isDarkMode 
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: cluster.properties.length,
+                itemBuilder: (context, index) {
+                  final property = cluster.properties[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Theme.of(context).colorScheme.surface.withOpacity(0.5)
+                          : Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? Theme.of(context).primaryColor.withOpacity(0.3)
+                            : Theme.of(context).primaryColor.withOpacity(0.2),
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? Theme.of(context).primaryColor.withOpacity(0.2)
+                              : Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _getPropertyIcon(property.propertyType),
+                          color: Theme.of(context).primaryColor,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        property.title,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode 
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        property.formattedPrice,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? Theme.of(context).primaryColor.withOpacity(0.2)
+                              : Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Iconsax.location,
+                            color: Theme.of(context).primaryColor,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _navigateToProperty(property);
+                          },
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _navigateToProperty(property);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'إغلاق',
+            style: TextStyle(
+              color: isDarkMode 
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            _zoomToCluster(cluster);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+            foregroundColor: Colors.white,
+          ),
+          child: Text('تكبير المنطقة'),
+        ),
+      ],
+    );
+  }
+
+  /// Zooms to cluster area
+  void _zoomToCluster(PropertyCluster cluster) {
+    if (cluster.properties.length <= 1) return;
+
+    // Calculate bounds for all properties in cluster
+    double minLat = double.infinity;
+    double maxLat = -double.infinity;
+    double minLng = double.infinity;
+    double maxLng = -double.infinity;
+
+    for (final property in cluster.properties) {
+      minLat = min(minLat, property.latitude!);
+      maxLat = max(maxLat, property.latitude!);
+      minLng = min(minLng, property.longitude!);
+      maxLng = max(maxLng, property.longitude!);
+    }
+
+    // Calculate center and zoom level
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+    
+    // Calculate appropriate zoom level based on bounds
+    final latDiff = maxLat - minLat;
+    final lngDiff = maxLng - minLng;
+    final maxDiff = max(latDiff, lngDiff);
+    
+    double zoomLevel = 15.0;
+    if (maxDiff > 0.1) zoomLevel = 12.0;
+    if (maxDiff > 0.05) zoomLevel = 13.0;
+    if (maxDiff > 0.02) zoomLevel = 14.0;
+
+    _mapController.move(LatLng(centerLat, centerLng), zoomLevel);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تم التكبير على ${cluster.properties.length} عقار'),
+        backgroundColor: Theme.of(context).primaryColor,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -1396,14 +2090,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         children: [
           FloatingActionButton.small(
             onPressed: _showPropertyList,
-            backgroundColor: Theme.of(context).primaryColor,
-            child: const Icon(Iconsax.building, color: Colors.white),
+            child: const Icon(Iconsax.building),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: _toggleMapStyle,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            child: Icon(Iconsax.layer, color: Theme.of(context).primaryColor),
+            child: Icon(Iconsax.layer),
           ),
         ],
       ),
@@ -2273,13 +2965,21 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _hidePropertyCard();
   }
 
-  /// Handles property marker tap events
+  /// Handles property marker tap events with enhanced animations
   void _onPropertyTap(Property property) {
+    // Trigger bounce animation for the tapped marker
+    _markerBounceController.forward().then((_) {
+      _markerBounceController.reverse();
+    });
+    
     setState(() {
       _selectedProperty = property;
       _showPropertyCard = true;
     });
     _propertyCardController.forward();
+    
+    // Add haptic feedback if available
+    HapticFeedback.lightImpact();
   }
 
   /// Hides the property card
@@ -2895,3 +3595,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
 /// Client status enum
 enum ClientStatus { hot, warm, cold }
+
+/// Property cluster class to group nearby properties
+class PropertyCluster {
+  LatLng center;
+  final List<Property> properties;
+
+  PropertyCluster({
+    required this.center,
+    required this.properties,
+  });
+}

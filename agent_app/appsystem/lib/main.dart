@@ -3,6 +3,7 @@ import 'package:appsystem/router.dart';
 import 'package:appsystem/services/leads_services.dart';
 import 'package:appsystem/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -20,26 +21,30 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => LeadsServices()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: Consumer<LanguageProvider>(
-        builder: (context, languageProvider, child) {
+      child: Consumer2<LanguageProvider, ThemeProvider>(
+        builder: (context, languageProvider, themeProvider, child) {
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
-            title: 'وكيل عقارات محترف - Professional Real Estate Agent',
-            theme: AppTheme().getTheme(),
+            title: languageProvider.fullAppTitle,
+            theme: AppTheme().getTheme(
+              brightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
+            ),
             routerConfig: router,
             locale: languageProvider.currentLocale,
-            supportedLocales: const [Locale('en'), Locale('ar')],
+            supportedLocales: const [
+              Locale('ar'), // Arabic (RTL)
+              Locale('en'), // English (LTR)
+            ],
             localizationsDelegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
             ],
             builder: (context, child) {
               return Directionality(
-                textDirection:
-                    languageProvider.currentLocale.languageCode == 'ar'
-                    ? TextDirection.rtl
-                    : TextDirection.ltr,
+                textDirection: languageProvider.textDirection,
                 child: child!,
               );
             },

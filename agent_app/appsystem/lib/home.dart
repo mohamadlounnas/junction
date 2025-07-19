@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:appsystem/widgets/theme_toggle.dart';
+import 'package:appsystem/widgets/language_toggle.dart';
 
 class DashboardView extends StatefulWidget {
   final Widget? content;
@@ -49,6 +51,8 @@ class _DashboardViewState extends State<DashboardView> {
           Positioned.fill(
             child: ColoredBox(color: Theme.of(context).colorScheme.surface),
           ),
+          // hide in light mode
+          if (Theme.of(context).brightness == Brightness.dark)
           Positioned(
             top: 0,
             left: 0,
@@ -131,8 +135,6 @@ class _DashboardViewState extends State<DashboardView> {
                                   Row(children: const []),
                                   Text(
                                     "و  كيل عقارات محترف",
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: Colors.white),
                                   ),
                                 ],
                               ),
@@ -144,35 +146,9 @@ class _DashboardViewState extends State<DashboardView> {
                             //       style: const TextStyle(color: Colors.white),
                             //     ),
                             //   ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.brightness_6,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {},
-                            ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.language,
-                                color: Colors.white,
-                              ),
-                              onSelected: (String languageCode) {},
-                              itemBuilder: (BuildContext context) =>
-                                  <PopupMenuEntry<String>>[
-                                    const PopupMenuItem<String>(
-                                      value: 'en',
-                                      child: Text('English'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'ar',
-                                      child: Text('العربية'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'fr',
-                                      child: Text('Français'),
-                                    ),
-                                  ],
-                            ),
+                            ThemeToggle(size: 36),
+                            const SizedBox(width: 10),
+                            LanguageToggle(size: 36),
                           ],
                         ),
                         automaticallyImplyLeading: false,
@@ -245,7 +221,7 @@ class NavigationSidebar extends StatelessWidget {
             ) ==
             true)
           NavigationSidebarItem(
-            leading: Icon(Iconsax.home, color: Color(0xFF1877F2)),
+            leading: Image.asset('assets/logo.png', width: 32, height: 32),
             title: Text(
               mode == NavigationSidebarItemMode.full
                   ? "وكيل عقارات محترف"

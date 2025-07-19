@@ -1,3 +1,6 @@
+import 'package:appsystem/services/contacts_service.dart' as contacts_service;
+import 'package:appsystem/services/quote_service.dart';
+import 'package:appsystem/widgets/contact_selection_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';

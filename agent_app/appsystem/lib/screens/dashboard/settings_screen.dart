@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../services/settings_service.dart';
 import '../../providers/settings_provider.dart';
+import '../../widgets/theme_toggle.dart';
+import '../../widgets/language_toggle.dart';
+import '../../theme.dart';
 
 class Setting {
   final String id;
@@ -623,7 +626,8 @@ class CategorySection extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Category header
         Padding(
@@ -653,16 +657,15 @@ class CategorySection extends StatelessWidget {
 
         // Settings grid/list
         if (isWide)
-          Wrap(
+          Column(
             spacing: 16,
-            runSpacing: 16,
             children: settings.map((setting) {
               notifiers.putIfAbsent(
                 setting.key,
                 () => ValueNotifier<String>(setting.value),
               );
               return SizedBox(
-                width: 400,
+                width: 600,
                 child: SettingTile(
                   setting: setting,
                   notifier: notifiers[setting.key]!,
@@ -875,7 +878,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     final isWide = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           'Settings',
