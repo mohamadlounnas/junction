@@ -2,7 +2,6 @@ import 'package:appsystem/core/responsive_layout.dart';
 import 'package:appsystem/screens/auth/modern_login_page.dart';
 import 'package:appsystem/screens/auth/modern_signup_page.dart';
 import 'package:appsystem/screens/dashboard/modern_dashboard_page.dart';
-import 'package:appsystem/screens/dashboard/content_library_page.dart';
 import 'package:appsystem/screens/dashboard/map_page.dart';
 import 'package:appsystem/screens/dashboard/leads_page.dart';
 import 'package:appsystem/screens/chatbot/chatbot_page.dart';
@@ -34,7 +33,7 @@ final router = GoRouter(
       path: '/signup',
       builder: (context, state) => const ModernSignupPage(),
     ),
-
+    
     // Dashboard routes with responsive layout wrapper
     GoRoute(
       path: '/dashboard/home',
@@ -82,7 +81,7 @@ final router = GoRouter(
       path: '/dashboard/settings',
       builder: (context, state) => ResponsiveLayout(
         currentRoute: state.uri.toString(),
-        child: const SettingsPage(),
+        child: const SettingsScreen(),
       ),
     ),
     GoRoute(
@@ -92,7 +91,7 @@ final router = GoRouter(
         child: const ChatBotPage(),
       ),
     ),
-
+    
     // Fallback route for any unmatched /dashboard/* routes
     GoRoute(
       path: '/dashboard',
