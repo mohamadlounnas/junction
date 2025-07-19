@@ -96,7 +96,7 @@ class _ModernLoginPageState extends State<ModernLoginPage>
         );
 
         // Navigate to dashboard
-        context.go('/dashboard/overview');
+        context.go('/dashboard/home');
       }
     }
   }

@@ -8,21 +8,24 @@
             "name": "appsystem",
             "cwd": "agent_app/appsystem",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "args": ["--web-experimental-hot-reload"]
         },
         {
             "name": "appsystem (profile mode)",
             "cwd": "agent_app/appsystem",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "args": ["--web-experimental-hot-reload"]
         },
         {
             "name": "appsystem (release mode)",
             "cwd": "agent_app/appsystem",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "args": ["--web-experimental-hot-reload"]
         }
     ]
 }

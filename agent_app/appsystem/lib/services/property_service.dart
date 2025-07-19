@@ -4,190 +4,276 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart'; // Added for Color
 
-/// Property data model with JSON serialization
+/// Property data model matching Prisma schema exactly
 class Property {
   final String id;
   final String title;
-  final String titleEn;
-  final String price;
-  final String currency;
-  final LatLng location;
-  final PropertyType type;
-  final int bedrooms;
-  final int bathrooms;
-  final double area;
-  final double rating;
-  final String imageUrl;
-  final String? wilaya;
-  final String? city;
   final String? description;
-  final String? transactionType;
-  final String? condition;
-  final List<String>? images;
-  final Map<String, dynamic>? additionalData;
+  final double price;
+  final double area;
+  final int rooms;
+  final int? bathrooms;
+  final String wilaya;
+  final String city;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  final String propertyType; // APARTMENT, VILLA, HOUSE, OFFICE, SHOP, WAREHOUSE, LAND, GARAGE
+  final String transactionType; // RENT, SALE
+  final String furnishing; // FURNISHED, SEMI_FURNISHED, UNFURNISHED
+  final String condition; // POOR, FAIR, GOOD, EXCELLENT, NEW
+  final bool hasParking;
+  final bool hasSecurity;
+  final bool hasElevator;
+  final bool hasGarden;
+  final bool hasBalcony;
+  final bool hasSwimmingPool;
+  final int? buildingAge;
+  final int? floor;
+  final int? totalFloors;
+  final String? imageUrl; // image_url from Prisma
+  final List<String> images;
+  final List<double> scores;
+  final String status; // AVAILABLE, RESERVED, SOLD, RENTED, INACTIVE
+  final String? ownerId;
+  final int viewCount;
+  final bool featured;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? geohash;
+  final String? geohashPrecision5;
+  final String? geohashPrecision6;
+  final String? geohashPrecision7;
 
   Property({
     required this.id,
     required this.title,
-    required this.titleEn,
-    required this.price,
-    required this.currency,
-    required this.location,
-    required this.type,
-    required this.bedrooms,
-    required this.bathrooms,
-    required this.area,
-    required this.rating,
-    required this.imageUrl,
-    this.wilaya,
-    this.city,
     this.description,
-    this.transactionType,
-    this.condition,
-    this.images,
-    this.additionalData,
+    required this.price,
+    required this.area,
+    required this.rooms,
+    this.bathrooms,
+    required this.wilaya,
+    required this.city,
+    this.address,
+    this.latitude,
+    this.longitude,
+    required this.propertyType,
+    required this.transactionType,
+    required this.furnishing,
+    required this.condition,
+    required this.hasParking,
+    required this.hasSecurity,
+    required this.hasElevator,
+    required this.hasGarden,
+    required this.hasBalcony,
+    required this.hasSwimmingPool,
+    this.buildingAge,
+    this.floor,
+    this.totalFloors,
+    this.imageUrl,
+    required this.images,
+    required this.scores,
+    required this.status,
+    this.ownerId,
+    required this.viewCount,
+    required this.featured,
+    required this.createdAt,
+    required this.updatedAt,
+    this.geohash,
+    this.geohashPrecision5,
+    this.geohashPrecision6,
+    this.geohashPrecision7,
   });
 
-  /// Create Property from JSON data
+  /// Create Property from JSON data (matching Prisma schema)
   factory Property.fromJson(Map<String, dynamic> json) {
     try {
-      // Extract coordinates
-      final latitude = json['latitude'];
-      final longitude = json['longitude'];
-
-      if (latitude == null || longitude == null) {
-        throw Exception(
-          'Property missing coordinates: lat=$latitude, lng=$longitude',
-        );
-      }
-
-      // Handle different property type formats
-      String propertyTypeStr = json['propertyType'] ?? 'APARTMENT';
-      if (propertyTypeStr is String) {
-        propertyTypeStr = propertyTypeStr.toUpperCase();
-      }
-
-      // Handle bathrooms field - might be missing or named differently
-      int bathrooms = 0;
-      if (json['bathrooms'] != null) {
-        bathrooms = (json['bathrooms'] is int)
-            ? json['bathrooms']
-            : int.tryParse(json['bathrooms'].toString()) ?? 0;
-      }
-
-      // Format price
-      final rawPrice = json['price'] ?? 0;
-      String formattedPrice;
-      if (rawPrice is num) {
-        if (rawPrice >= 1000000) {
-          formattedPrice = '${(rawPrice / 1000000).toStringAsFixed(1)}M';
-        } else if (rawPrice >= 1000) {
-          formattedPrice = '${(rawPrice / 1000).toStringAsFixed(0)}K';
-        } else {
-          formattedPrice = rawPrice.toStringAsFixed(0);
-        }
-      } else {
-        formattedPrice = rawPrice.toString();
-      }
-
-      // Convert property type
-      PropertyType propertyType;
-      switch (propertyTypeStr) {
-        case 'APARTMENT':
-          propertyType = PropertyType.apartment;
-          break;
-        case 'VILLA':
-          propertyType = PropertyType.villa;
-          break;
-        case 'OFFICE':
-          propertyType = PropertyType.office;
-          break;
-        case 'LAND':
-          propertyType = PropertyType.land;
-          break;
-        case 'WAREHOUSE':
-          propertyType = PropertyType.warehouse;
-          break;
-        case 'HOUSE':
-          propertyType = PropertyType.villa; // Map HOUSE to villa
-          break;
-        case 'SHOP':
-          propertyType = PropertyType.office; // Map SHOP to office
-          break;
-        case 'GARAGE':
-          propertyType = PropertyType.warehouse; // Map GARAGE to warehouse
-          break;
-        default:
-          propertyType = PropertyType.apartment;
-      }
-
-      // Handle images
-      List<String> imageList = [];
-      if (json['image_url'] != null) {
-        imageList.add(json['image_url']);
-      }
-      if (json['images'] != null && json['images'] is List) {
-        imageList.addAll((json['images'] as List).cast<String>());
-      }
-
       return Property(
         id: json['id']?.toString() ?? '',
         title: json['title'] ?? '',
-        titleEn: json['title'] ?? '', // Use title as fallback
-        price: formattedPrice,
-        currency: 'دج', // Algerian Dinar
-        location: LatLng(
-          (latitude is num)
-              ? latitude.toDouble()
-              : double.tryParse(latitude.toString()) ?? 0,
-          (longitude is num)
-              ? longitude.toDouble()
-              : double.tryParse(longitude.toString()) ?? 0,
-        ),
-        type: propertyType,
-        bedrooms: json['rooms'] ?? 0,
-        bathrooms: bathrooms,
-        area: (json['area'] ?? 0).toDouble(),
-        rating: 4.5, // Default rating
-        imageUrl: imageList.isNotEmpty
-            ? imageList.first
-            : _getDefaultImageUrl(),
-        wilaya: json['wilaya'],
-        city: json['city'],
         description: json['description'],
-        transactionType: json['transactionType'],
-        condition: json['condition'],
-        images: imageList.isNotEmpty ? imageList : null,
-        additionalData: json,
+        price: (json['price'] ?? 0).toDouble(),
+        area: (json['area'] ?? 0).toDouble(),
+        rooms: json['rooms'] ?? 0,
+        bathrooms: json['bathrooms'],
+        wilaya: json['wilaya'] ?? '',
+        city: json['city'] ?? '',
+        address: json['address'],
+        latitude: json['latitude']?.toDouble(),
+        longitude: json['longitude']?.toDouble(),
+        propertyType: json['propertyType'] ?? 'APARTMENT',
+        transactionType: json['transactionType'] ?? 'SALE',
+        furnishing: json['furnishing'] ?? 'UNFURNISHED',
+        condition: json['condition'] ?? 'GOOD',
+        hasParking: json['hasParking'] ?? false,
+        hasSecurity: json['hasSecurity'] ?? false,
+        hasElevator: json['hasElevator'] ?? false,
+        hasGarden: json['hasGarden'] ?? false,
+        hasBalcony: json['hasBalcony'] ?? false,
+        hasSwimmingPool: json['hasSwimmingPool'] ?? false,
+        buildingAge: json['buildingAge'],
+        floor: json['floor'],
+        totalFloors: json['totalFloors'],
+        imageUrl: json['image_url'], // Note: Prisma uses image_url
+        images: List<String>.from(json['images'] ?? []),
+        scores: List<double>.from(json['scores'] ?? List.filled(12, 0.5)),
+        status: json['status'] ?? 'AVAILABLE',
+        ownerId: json['ownerId'],
+        viewCount: json['viewCount'] ?? 0,
+        featured: json['featured'] ?? false,
+        createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : DateTime.now(),
+        updatedAt: json['updatedAt'] != null 
+          ? DateTime.parse(json['updatedAt']) 
+          : DateTime.now(),
+        geohash: json['geohash'],
+        geohashPrecision5: json['geohashPrecision5'],
+        geohashPrecision6: json['geohashPrecision6'],
+        geohashPrecision7: json['geohashPrecision7'],
       );
     } catch (e) {
       throw Exception('Failed to parse property JSON: $e');
     }
   }
 
-  /// Convert Property to JSON
+  /// Convert Property to JSON (matching Prisma schema)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
-      'titleEn': titleEn,
+      'description': description,
       'price': price,
-      'currency': currency,
-      'latitude': location.latitude,
-      'longitude': location.longitude,
-      'propertyType': type.name.toUpperCase(),
-      'bedrooms': bedrooms,
-      'bathrooms': bathrooms,
       'area': area,
-      'rating': rating,
-      'imageUrl': imageUrl,
+      'rooms': rooms,
+      'bathrooms': bathrooms,
       'wilaya': wilaya,
       'city': city,
-      'description': description,
+      'address': address,
+      'latitude': latitude,
+      'longitude': longitude,
+      'propertyType': propertyType,
       'transactionType': transactionType,
+      'furnishing': furnishing,
       'condition': condition,
+      'hasParking': hasParking,
+      'hasSecurity': hasSecurity,
+      'hasElevator': hasElevator,
+      'hasGarden': hasGarden,
+      'hasBalcony': hasBalcony,
+      'hasSwimmingPool': hasSwimmingPool,
+      'buildingAge': buildingAge,
+      'floor': floor,
+      'totalFloors': totalFloors,
+      'image_url': imageUrl, // Note: Prisma uses image_url
       'images': images,
+      'scores': scores,
+      'status': status,
+      'ownerId': ownerId,
+      'viewCount': viewCount,
+      'featured': featured,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'geohash': geohash,
+      'geohashPrecision5': geohashPrecision5,
+      'geohashPrecision6': geohashPrecision6,
+      'geohashPrecision7': geohashPrecision7,
     };
+  }
+
+  /// Get formatted price in Algerian Dinar
+  String get formattedPrice {
+    if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)}M دج';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(0)}K دج';
+    }
+    return '${price.toStringAsFixed(0)} دج';
+  }
+
+  /// Get main image URL with fallback
+  String get mainImageUrl {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return imageUrl!.startsWith('http') ? imageUrl! : 'https://junction.feeef.org$imageUrl';
+    }
+    if (images.isNotEmpty) {
+      final img = images.first;
+      return img.startsWith('http') ? img : 'https://junction.feeef.org$img';
+    }
+    return _getDefaultImageUrl();
+  }
+
+  /// Get property type display name in Arabic
+  String get propertyTypeDisplayName {
+    switch (propertyType) {
+      case 'APARTMENT':
+        return 'شقة';
+      case 'VILLA':
+        return 'فيلا';
+      case 'HOUSE':
+        return 'منزل';
+      case 'OFFICE':
+        return 'مكتب';
+      case 'SHOP':
+        return 'محل';
+      case 'WAREHOUSE':
+        return 'مستودع';
+      case 'LAND':
+        return 'أرض';
+      case 'GARAGE':
+        return 'مرآب';
+      default:
+        return propertyType;
+    }
+  }
+
+  /// Get transaction type display name in Arabic
+  String get transactionTypeDisplayName {
+    switch (transactionType) {
+      case 'SALE':
+        return 'للبيع';
+      case 'RENT':
+        return 'للإيجار';
+      default:
+        return transactionType;
+    }
+  }
+
+  /// Get condition display name in Arabic
+  String get conditionDisplayName {
+    switch (condition) {
+      case 'NEW':
+        return 'جديد';
+      case 'EXCELLENT':
+        return 'ممتاز';
+      case 'GOOD':
+        return 'جيد';
+      case 'FAIR':
+        return 'مقبول';
+      case 'POOR':
+        return 'سيء';
+      default:
+        return condition;
+    }
+  }
+
+  /// Get status display name in Arabic
+  String get statusDisplayName {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'متاح';
+      case 'RESERVED':
+        return 'محجوز';
+      case 'SOLD':
+        return 'مباع';
+      case 'RENTED':
+        return 'مؤجر';
+      case 'INACTIVE':
+        return 'غير نشط';
+      default:
+        return status;
+    }
   }
 
   /// Get default image URL for properties without images
@@ -199,50 +285,88 @@ class Property {
   Property copyWith({
     String? id,
     String? title,
-    String? titleEn,
-    String? price,
-    String? currency,
-    LatLng? location,
-    PropertyType? type,
-    int? bedrooms,
-    int? bathrooms,
+    String? description,
+    double? price,
     double? area,
-    double? rating,
-    String? imageUrl,
+    int? rooms,
+    int? bathrooms,
     String? wilaya,
     String? city,
-    String? description,
+    String? address,
+    double? latitude,
+    double? longitude,
+    String? propertyType,
     String? transactionType,
+    String? furnishing,
     String? condition,
+    bool? hasParking,
+    bool? hasSecurity,
+    bool? hasElevator,
+    bool? hasGarden,
+    bool? hasBalcony,
+    bool? hasSwimmingPool,
+    int? buildingAge,
+    int? floor,
+    int? totalFloors,
+    String? imageUrl,
     List<String>? images,
-    Map<String, dynamic>? additionalData,
+    List<double>? scores,
+    String? status,
+    String? ownerId,
+    int? viewCount,
+    bool? featured,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? geohash,
+    String? geohashPrecision5,
+    String? geohashPrecision6,
+    String? geohashPrecision7,
   }) {
     return Property(
       id: id ?? this.id,
       title: title ?? this.title,
-      titleEn: titleEn ?? this.titleEn,
+      description: description ?? this.description,
       price: price ?? this.price,
-      currency: currency ?? this.currency,
-      location: location ?? this.location,
-      type: type ?? this.type,
-      bedrooms: bedrooms ?? this.bedrooms,
-      bathrooms: bathrooms ?? this.bathrooms,
       area: area ?? this.area,
-      rating: rating ?? this.rating,
-      imageUrl: imageUrl ?? this.imageUrl,
+      rooms: rooms ?? this.rooms,
+      bathrooms: bathrooms ?? this.bathrooms,
       wilaya: wilaya ?? this.wilaya,
       city: city ?? this.city,
-      description: description ?? this.description,
+      address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      propertyType: propertyType ?? this.propertyType,
       transactionType: transactionType ?? this.transactionType,
+      furnishing: furnishing ?? this.furnishing,
       condition: condition ?? this.condition,
+      hasParking: hasParking ?? this.hasParking,
+      hasSecurity: hasSecurity ?? this.hasSecurity,
+      hasElevator: hasElevator ?? this.hasElevator,
+      hasGarden: hasGarden ?? this.hasGarden,
+      hasBalcony: hasBalcony ?? this.hasBalcony,
+      hasSwimmingPool: hasSwimmingPool ?? this.hasSwimmingPool,
+      buildingAge: buildingAge ?? this.buildingAge,
+      floor: floor ?? this.floor,
+      totalFloors: totalFloors ?? this.totalFloors,
+      imageUrl: imageUrl ?? this.imageUrl,
       images: images ?? this.images,
-      additionalData: additionalData ?? this.additionalData,
+      scores: scores ?? this.scores,
+      status: status ?? this.status,
+      ownerId: ownerId ?? this.ownerId,
+      viewCount: viewCount ?? this.viewCount,
+      featured: featured ?? this.featured,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      geohash: geohash ?? this.geohash,
+      geohashPrecision5: geohashPrecision5 ?? this.geohashPrecision5,
+      geohashPrecision6: geohashPrecision6 ?? this.geohashPrecision6,
+      geohashPrecision7: geohashPrecision7 ?? this.geohashPrecision7,
     );
   }
 
   @override
   String toString() {
-    return 'Property(id: $id, title: $title, location: $location, price: $price)';
+    return 'Property(id: $id, title: $title, price: $price, wilaya: $wilaya)';
   }
 
   @override
@@ -255,8 +379,7 @@ class Property {
   int get hashCode => id.hashCode;
 }
 
-/// Property types enum
-enum PropertyType { apartment, villa, office, land, warehouse }
+// PropertyType enum removed - now using string values matching Prisma schema
 
 /// Contact data model for potential clients
 class Contact {
@@ -440,6 +563,33 @@ class PropertyService {
   PropertyService({String? baseUrl, http.Client? httpClient})
     : _baseUrl = baseUrl ?? 'https://junction.feeef.org',
       _httpClient = httpClient ?? http.Client();
+
+  /// Standardized error handling for consistent error responses
+  Map<String, dynamic> _handleError(dynamic error, String operation) {
+    String errorMessage;
+    
+    if (error.toString().contains('timeout')) {
+      errorMessage = 'مهلة الانتظار انتهت - يرجى التحقق من اتصال الإنترنت\nNetwork timeout - please check your internet connection';
+    } else if (error.toString().contains('SocketException')) {
+      errorMessage = 'فشل الاتصال بالشبكة - يرجى التحقق من اتصال الإنترنت\nNetwork connection failed - please check your internet connection';
+    } else if (error.toString().contains('HttpException')) {
+      errorMessage = 'خطأ في الاتصال بالخادم - يرجى المحاولة لاحقاً\nServer connection error - please try again later';
+    } else if (error.toString().contains('FormatException')) {
+      errorMessage = 'خطأ في تنسيق البيانات المستلمة\nData format error received from server';
+    } else {
+      errorMessage = 'خطأ في الشبكة: $error\nNetwork error: $error';
+    }
+
+    print('PropertyService: $operation failed - $error');
+    
+    return {
+      'success': false,
+      'message': errorMessage,
+      'error': error.toString(),
+      'operation': operation,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
 
   /// Get all properties with optional filtering - returns List<Property>
   /// This method implements pagination to fetch ALL properties from the API
@@ -634,20 +784,9 @@ class PropertyService {
 
       return allProperties;
     } catch (e) {
-      print('PropertyService: Network error: $e');
-      if (e.toString().contains('timeout')) {
-        throw Exception(
-          'Network timeout - please check your internet connection and try again',
-        );
-      } else if (e.toString().contains('SocketException')) {
-        throw Exception(
-          'Network connection failed - please check your internet connection',
-        );
-      } else if (e.toString().contains('HttpException')) {
-        throw Exception('Server connection error - please try again later');
-      } else {
-        throw Exception('Network error: $e');
-      }
+      // For this method that returns List<Property>, we still throw but with consistent message
+      final errorResponse = _handleError(e, 'fetch all properties');
+      throw Exception(errorResponse['message']);
     }
   }
 
@@ -719,11 +858,7 @@ class PropertyService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Network error occurred',
-        'error': e.toString(),
-      };
+      return _handleError(e, 'create property');
     }
   }
 

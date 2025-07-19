@@ -5,6 +5,18 @@ import 'package:latlong2/latlong.dart';
 import 'package:appsystem/theme.dart';
 import 'package:appsystem/services/property_service.dart';
 
+// Property type enum for map filtering
+enum PropertyType {
+  apartment,
+  villa,
+  house,
+  office,
+  shop,
+  warehouse,
+  land,
+  garage,
+}
+
 /// A comprehensive map screen that displays OpenStreetMap with interactive features.
 ///
 /// This screen provides:
@@ -61,11 +73,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   bool _showSearchBar = false;
   bool _showFilters = false;
   String _searchQuery = '';
-  PropertyType? _selectedPropertyType;
+  String? _selectedPropertyType;
   double? _minPrice;
   double? _maxPrice;
-  int? _minBedrooms;
-  int? _maxBedrooms;
+  int? _minRooms;
+  int? _maxRooms;
 
   /// Potential clients state
   List<ContactRecommendation> _potentialClients = [];
@@ -81,7 +93,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   List<Property> get _filteredProperties {
     return _properties.where((property) {
       // Only include properties with valid coordinates
-      if (property.location.latitude == 0 && property.location.longitude == 0) {
+      if (property.latitude == null || property.longitude == null ||
+          property.latitude == 0 && property.longitude == 0) {
         return false;
       }
 
@@ -90,20 +103,19 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         final query = _searchQuery.toLowerCase();
         final matchesSearch =
             property.title.toLowerCase().contains(query) ||
-            property.titleEn.toLowerCase().contains(query) ||
-            property.price.contains(query);
+            property.formattedPrice.toLowerCase().contains(query);
         if (!matchesSearch) return false;
       }
 
       // Property type filter
       if (_selectedPropertyType != null &&
-          property.type != _selectedPropertyType) {
+          property.propertyType != _selectedPropertyType) {
         return false;
       }
 
       // Price filter
       if (_minPrice != null || _maxPrice != null) {
-        final propertyPrice = _extractPriceValue(property.price);
+        final propertyPrice = property.price;
         if (_minPrice != null && propertyPrice < _minPrice!) {
           return false;
         }
@@ -112,11 +124,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         }
       }
 
-      // Bedrooms filter
-      if (_minBedrooms != null && property.bedrooms < _minBedrooms!) {
+      // Rooms filter
+      if (_minRooms != null && property.rooms < _minRooms!) {
         return false;
       }
-      if (_maxBedrooms != null && property.bedrooms > _maxBedrooms!) {
+      if (_maxRooms != null && property.rooms > _maxRooms!) {
         return false;
       }
 
@@ -244,7 +256,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       if (properties.isNotEmpty) {
         final totalProperties = properties.length;
         final propertiesWithCoordinates = properties
-            .where((p) => p.location.latitude != 0 && p.location.longitude != 0)
+            .where((p) => p.latitude != null && p.longitude != null && 
+                         p.latitude != 0 && p.longitude != 0)
             .length;
 
         if (propertiesWithCoordinates == totalProperties) {
@@ -303,43 +316,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         return null; // Skip properties without coordinates
       }
 
-      // Handle different property type formats
-      String propertyTypeStr = propertyData['propertyType'] ?? 'APARTMENT';
-      if (propertyTypeStr is String) {
-        propertyTypeStr = propertyTypeStr.toUpperCase();
-      }
-
-      // Handle bathrooms field - might be missing or named differently
-      int bathrooms = 0;
-      if (propertyData['bathrooms'] != null) {
-        bathrooms = (propertyData['bathrooms'] is int)
-            ? propertyData['bathrooms']
-            : int.tryParse(propertyData['bathrooms'].toString()) ?? 0;
-      }
-
-      return Property(
-        id: propertyData['id']?.toString() ?? '',
-        title: propertyData['title'] ?? '',
-        titleEn: propertyData['title'] ?? '', // Use title as fallback
-        price: _formatPrice(propertyData['price'] ?? 0),
-        currency: 'دج', // Algerian Dinar
-        location: LatLng(
-          (latitude is num)
-              ? latitude.toDouble()
-              : double.tryParse(latitude.toString()) ?? 0,
-          (longitude is num)
-              ? longitude.toDouble()
-              : double.tryParse(longitude.toString()) ?? 0,
-        ),
-        type: _convertPropertyType(propertyTypeStr),
-        bedrooms: propertyData['rooms'] ?? 0,
-        bathrooms: bathrooms,
-        area: (propertyData['area'] ?? 0).toDouble(),
-        rating: 4.5, // Default rating
-        imageUrl: propertyData['image_url'] ?? _getDefaultImageUrl(),
-        wilaya: propertyData['wilaya'],
-        city: propertyData['city'],
-      );
+      // Create Property using the correct constructor
+      return Property.fromJson(propertyData);
     } catch (e) {
       print('Error converting property ${propertyData['id']}: $e');
       return null;
@@ -358,24 +336,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       return numPrice.toStringAsFixed(0);
     } catch (e) {
       return '0';
-    }
-  }
-
-  /// Convert API property type to map property type
-  PropertyType _convertPropertyType(String apiType) {
-    switch (apiType.toUpperCase()) {
-      case 'APARTMENT':
-        return PropertyType.apartment;
-      case 'VILLA':
-        return PropertyType.villa;
-      case 'OFFICE':
-        return PropertyType.office;
-      case 'LAND':
-        return PropertyType.land;
-      case 'WAREHOUSE':
-        return PropertyType.warehouse;
-      default:
-        return PropertyType.apartment;
     }
   }
 
@@ -498,15 +458,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       _selectedPropertyType = null;
       _minPrice = null;
       _maxPrice = null;
-      _minBedrooms = null;
-      _maxBedrooms = null;
+      _minRooms = null;
+      _maxRooms = null;
     });
   }
 
   /// Navigate to property on map
   void _navigateToProperty(Property property) {
-    _mapController.move(property.location, 15.0);
-    _onPropertyTap(property);
+    if (property.latitude != null && property.longitude != null) {
+      _mapController.move(LatLng(property.latitude!, property.longitude!), 15.0);
+      _onPropertyTap(property);
+    }
   }
 
   @override
@@ -988,7 +950,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children: PropertyType.values.map((type) {
+                      children: ['APARTMENT', 'VILLA', 'HOUSE', 'OFFICE', 'SHOP', 'WAREHOUSE', 'LAND', 'GARAGE'].map((type) {
                         final isSelected = _selectedPropertyType == type;
                         return FilterChip(
                           label: Text(_getPropertyTypeName(type)),
@@ -1129,7 +1091,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               ),
                             ),
                             onChanged: (value) {
-                              _minBedrooms = int.tryParse(value);
+                              _minRooms = int.tryParse(value);
                             },
                           ),
                         ),
@@ -1160,7 +1122,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               ),
                             ),
                             onChanged: (value) {
-                              _maxBedrooms = int.tryParse(value);
+                              _maxRooms = int.tryParse(value);
                             },
                           ),
                         ),
@@ -1226,7 +1188,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        _getPropertyIcon(property.type),
+                        _getPropertyIcon(property.propertyType),
                         color: Theme.of(context).primaryColor,
                         size: 24,
                       ),
@@ -1238,7 +1200,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       ),
                     ),
                     subtitle: Text(
-                      '${property.price} ${property.currency}',
+                      property.formattedPrice,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.w600,
@@ -1264,34 +1226,49 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 
   /// Get property type name in Arabic
-  String _getPropertyTypeName(PropertyType type) {
-    switch (type) {
-      case PropertyType.villa:
-        return 'فيلا';
-      case PropertyType.apartment:
+  String _getPropertyTypeName(String type) {
+    switch (type.toUpperCase()) {
+      case 'APARTMENT':
         return 'شقة';
-      case PropertyType.office:
+      case 'VILLA':
+        return 'فيلا';
+      case 'HOUSE':
+        return 'بيت';
+      case 'OFFICE':
         return 'مكتب';
-      case PropertyType.land:
-        return 'أرض';
-      case PropertyType.warehouse:
+      case 'SHOP':
+        return 'محل';
+      case 'WAREHOUSE':
         return 'مستودع';
+      case 'LAND':
+        return 'أرض';
+      case 'GARAGE':
+        return 'كراج';
+      default:
+        return type;
     }
   }
 
   /// Get the appropriate icon for property type
-  IconData _getPropertyIcon(PropertyType type) {
-    switch (type) {
-      case PropertyType.apartment:
+  IconData _getPropertyIcon(String type) {
+    switch (type.toUpperCase()) {
+      case 'APARTMENT':
         return Iconsax.building;
-      case PropertyType.villa:
+      case 'VILLA':
+      case 'HOUSE':
         return Iconsax.house;
-      case PropertyType.office:
+      case 'OFFICE':
         return Iconsax.briefcase;
-      case PropertyType.land:
+      case 'LAND':
         return Iconsax.map;
-      case PropertyType.warehouse:
+      case 'WAREHOUSE':
         return Iconsax.box;
+      case 'SHOP':
+        return Iconsax.shop;
+      case 'GARAGE':
+        return Iconsax.car;
+      default:
+        return Iconsax.building;
     }
   }
 
@@ -1336,7 +1313,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return MarkerLayer(
       markers: _filteredProperties.map((property) {
         return Marker(
-          point: property.location,
+          point: LatLng(property.latitude!, property.longitude!),
           width: 60,
           height: 60,
           child: AnimatedBuilder(
@@ -1365,7 +1342,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       ],
                     ),
                     child: Icon(
-                      _getPropertyIcon(property.type),
+                      _getPropertyIcon(property.propertyType),
                       color: _selectedProperty?.id == property.id
                           ? Colors.white
                           : Theme.of(context).primaryColor,
@@ -1455,7 +1432,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         image: DecorationImage(
-          image: NetworkImage(_selectedProperty!.imageUrl),
+          image: NetworkImage(_selectedProperty!.mainImageUrl),
           fit: BoxFit.cover,
         ),
       ),
@@ -1501,7 +1478,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '${_selectedProperty!.price} ${_selectedProperty!.currency}',
+                '${_selectedProperty!.price} دج',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -1550,7 +1527,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             children: [
               _buildPropertyFeature(
                 Iconsax.home,
-                '${_selectedProperty!.bedrooms} غرف',
+                '${_selectedProperty!.rooms} غرف',
               ),
               const SizedBox(width: 16),
               _buildPropertyFeature(
@@ -1570,7 +1547,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               Icon(Iconsax.star1, color: Colors.amber, size: 16),
               const SizedBox(width: 4),
               Text(
-                '${_selectedProperty!.rating}',
+                '${_selectedProperty!.scores.reduce((a, b) => a + b) / _selectedProperty!.scores.length}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(width: 8),
@@ -2089,7 +2066,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          _getPropertyTypeName(_convertPropertyType(type)),
+                          _getPropertyTypeName(type),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
@@ -2390,9 +2367,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     // Add property type preference
     if (clientData['preferredPropertyType'] != null) {
       interests.add(
-        _getPropertyTypeName(
-          _convertPropertyType(clientData['preferredPropertyType']),
-        ),
+        _getPropertyTypeName(clientData['preferredPropertyType']),
       );
     }
 

@@ -267,11 +267,11 @@ class _AddPropertyPageState extends State<AddPropertyPage>
         'hasSwimmingPool': _hasSwimmingPool,
         'featured': _isFeatured,
         if (_buildingAgeController.text.isNotEmpty)
-          'buildingAge': int.parse(_buildingAgeController.text),
+          'buildingAge': int.tryParse(_buildingAgeController.text) ?? 0,
         if (_floorController.text.isNotEmpty)
-          'floor': int.parse(_floorController.text),
+          'floor': int.tryParse(_floorController.text) ?? 0,
         if (_totalFloorsController.text.isNotEmpty)
-          'totalFloors': int.parse(_totalFloorsController.text),
+          'totalFloors': int.tryParse(_totalFloorsController.text) ?? 1,
         if (_latitude != null) 'latitude': _latitude,
         if (_longitude != null) 'longitude': _longitude,
       };
@@ -855,7 +855,12 @@ class _AddPropertyPageState extends State<AddPropertyPage>
                   isDark: isDark,
                   colorScheme: colorScheme,
                   onChanged: (value) {
-                    _latitude = double.tryParse(value);
+                    final parsed = double.tryParse(value);
+                    if (parsed != null && parsed >= -90 && parsed <= 90) {
+                      _latitude = parsed;
+                    } else {
+                      _latitude = null;
+                    }
                   },
                 ),
               ),
@@ -871,7 +876,12 @@ class _AddPropertyPageState extends State<AddPropertyPage>
                   isDark: isDark,
                   colorScheme: colorScheme,
                   onChanged: (value) {
-                    _longitude = double.tryParse(value);
+                    final parsed = double.tryParse(value);
+                    if (parsed != null && parsed >= -180 && parsed <= 180) {
+                      _longitude = parsed;
+                    } else {
+                      _longitude = null;
+                    }
                   },
                 ),
               ),

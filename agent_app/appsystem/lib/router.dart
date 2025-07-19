@@ -8,67 +8,24 @@ import 'package:appsystem/screens/dashboard/map_page.dart';
 import 'package:appsystem/screens/dashboard/leads_page.dart';
 import 'package:appsystem/screens/chatbot/chatbot_page.dart';
 import 'package:appsystem/screens/properties/add_property_page.dart';
-import 'package:appsystem/screens/properties/property_list_page.dart'
-    as properties;
+import 'package:appsystem/screens/properties/property_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _shellNavigatorKey =
-    GlobalKey<NavigatorState>();
 
 final router = GoRouter(
   initialLocation: '/dashboard/home',
   redirect: (context, state) {
+    // Redirect /dashboard to /dashboard/home
+    if (state.uri.toString() == '/dashboard') {
+      return '/dashboard/home';
+    }
     return null;
   },
   navigatorKey: _rootNavigatorKey,
   routes: [
-    GoRoute(
-      path: "/dashboard",
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const ModernDashboardPage(),
-      ),
-      routes: [
-        ShellRoute(
-          navigatorKey: _shellNavigatorKey,
-          builder: (context, state, child) {
-            return ResponsiveLayout(
-              currentRoute: state.uri.toString(),
-              child: child,
-            );
-          },
-          routes: [
-            GoRoute(
-              path: '/home',
-              builder: (context, state) => const ModernDashboardPage(),
-            ),
-            GoRoute(path: '/map', builder: (context, state) => const MapPage()),
-            GoRoute(
-              path: '/leads',
-              builder: (context, state) => const LeadsPage(),
-            ),
-            GoRoute(
-              path: '/properties',
-              builder: (context, state) => const properties.PropertiesPage(),
-            ),
-            GoRoute(
-              path: '/add-property',
-              builder: (context, state) => const AddPropertyPage(),
-            ),
-            GoRoute(
-              path: '/settings',
-              builder: (context, state) => const SettingsPage(),
-            ),
-            GoRoute(
-              path: '/chatbot',
-              builder: (context, state) => const ChatBotPage(),
-            ),
-          ],
-        ),
-      ],
-    ),
+    // Authentication routes
     GoRoute(
       path: '/auth',
       builder: (context, state) => const ModernLoginPage(),
@@ -76,6 +33,70 @@ final router = GoRouter(
     GoRoute(
       path: '/signup',
       builder: (context, state) => const ModernSignupPage(),
+    ),
+    
+    // Dashboard routes with responsive layout wrapper
+    GoRoute(
+      path: '/dashboard/home',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const ModernDashboardPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/overview',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const ModernDashboardPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/map',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const MapPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/leads',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const LeadsPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/properties',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const PropertiesPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/add-property',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const AddPropertyPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/settings',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const SettingsPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/dashboard/chatbot',
+      builder: (context, state) => ResponsiveLayout(
+        currentRoute: state.uri.toString(),
+        child: const ChatBotPage(),
+      ),
+    ),
+    
+    // Fallback route for any unmatched /dashboard/* routes
+    GoRoute(
+      path: '/dashboard',
+      redirect: (context, state) => '/dashboard/home',
     ),
   ],
 );
