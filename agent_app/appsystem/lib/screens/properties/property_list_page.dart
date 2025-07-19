@@ -27,12 +27,19 @@ class _PropertiesPageState extends State<PropertiesPage> {
   String _error = '';
   String _searchQuery = '';
   String _selectedFilter = 'الكل';
-  
+
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   // خيارات التصفية
-  final List<String> _filterOptions = ['الكل', 'للبيع', 'للإيجار', 'شقة', 'فيلا', 'منزل'];
+  final List<String> _filterOptions = [
+    'الكل',
+    'للبيع',
+    'للإيجار',
+    'شقة',
+    'فيلا',
+    'منزل',
+  ];
 
   @override
   void initState() {
@@ -94,12 +101,23 @@ class _PropertiesPageState extends State<PropertiesPage> {
   void _filterProperties() {
     setState(() {
       _filteredProperties = _properties.where((property) {
-        final matchesSearch = _searchQuery.isEmpty ||
-            property['title']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) == true ||
-            property['city']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) == true ||
-            property['wilaya']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) == true;
+        final matchesSearch =
+            _searchQuery.isEmpty ||
+            property['title']?.toString().toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ==
+                true ||
+            property['city']?.toString().toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ==
+                true ||
+            property['wilaya']?.toString().toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ==
+                true;
 
-        final matchesFilter = _selectedFilter == 'الكل' ||
+        final matchesFilter =
+            _selectedFilter == 'الكل' ||
             property['transactionType']?.toString() == _selectedFilter ||
             property['propertyType']?.toString() == _selectedFilter;
 
@@ -111,8 +129,8 @@ class _PropertiesPageState extends State<PropertiesPage> {
   /// الحصول على عدد الأعمدة بناءً على حجم الشاشة
   int _getCrossAxisCount(double width) {
     if (width >= 1200) return 4; // Desktop large
-    if (width >= 900) return 3;  // Desktop medium
-    if (width >= 600) return 2;  // Tablet
+    if (width >= 900) return 3; // Desktop medium
+    if (width >= 600) return 2; // Tablet
     return 1; // Mobile
   }
 
@@ -120,7 +138,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = _getCrossAxisCount(screenWidth);
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: RefreshIndicator(
@@ -130,7 +148,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
           slivers: [
             // قسم البحث والتصفية
             _buildSearchAndFilterSection(),
-            
+
             // المحتوى
             _buildContentSection(crossAxisCount),
           ],
@@ -160,7 +178,6 @@ class _PropertiesPageState extends State<PropertiesPage> {
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
                 ),
-                
               ),
               child: TextField(
                 controller: _searchController,
@@ -187,7 +204,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                           },
                           icon: Icon(
                             Iconsax.close_circle,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         )
                       : null,
@@ -199,9 +218,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // رقائق التصفية
             SizedBox(
               height: 44,
@@ -211,7 +230,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
                 itemBuilder: (context, index) {
                   final filter = _filterOptions[index];
                   final isSelected = _selectedFilter == filter;
-                  
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: FilterChip(
@@ -219,7 +238,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                         filter,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
@@ -229,15 +250,24 @@ class _PropertiesPageState extends State<PropertiesPage> {
                         });
                         _filterProperties();
                       },
-                      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                      selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                      checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceVariant,
+                      selectedColor: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer,
+                      checkmarkColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimaryContainer,
                       labelStyle: TextStyle(
                         color: isSelected
                             ? Theme.of(context).colorScheme.onPrimaryContainer
                             : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -360,17 +390,16 @@ class _PropertiesPageState extends State<PropertiesPage> {
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          childAspectRatio: crossAxisCount >= 4 ? 0.85 : 0.75, // أصغر للشاشات الكبيرة
+          childAspectRatio: crossAxisCount >= 4
+              ? 0.85
+              : 0.75, // أصغر للشاشات الكبيرة
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final property = _filteredProperties[index];
-            return _buildPropertyCard(property);
-          },
-          childCount: _filteredProperties.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final property = _filteredProperties[index];
+          return _buildPropertyCard(property);
+        }, childCount: _filteredProperties.length),
       ),
     );
   }
@@ -380,9 +409,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
     return Card(
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: () {
           context.go('/dashboard/property/${property['id']}');
@@ -429,7 +456,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.9),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -442,7 +471,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                       child: Text(
                         '${property['price']?.toString() ?? '0'} دج',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
@@ -459,7 +490,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getTransactionTypeColor(property['transactionType']).withOpacity(0.9),
+                        color: _getTransactionTypeColor(
+                          property['transactionType'],
+                        ).withOpacity(0.9),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -510,10 +543,13 @@ class _PropertiesPageState extends State<PropertiesPage> {
                         Expanded(
                           child: Text(
                             '${property['city'] ?? ''}, ${property['wilaya'] ?? ''}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -536,7 +572,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
                       child: Text(
                         _getPropertyTypeText(property['propertyType']),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -556,9 +594,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
   Widget _buildPlaceholderImage() {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         color: Theme.of(context).colorScheme.surfaceVariant,
       ),
       child: Center(

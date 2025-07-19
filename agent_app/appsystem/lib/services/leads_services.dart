@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class LeadsServices extends ChangeNotifier {
   List<ContactModel> _contacts = [];
@@ -8,6 +11,38 @@ class LeadsServices extends ChangeNotifier {
   void addContact(ContactModel contact) {
     _contacts.add(contact);
     notifyListeners();
+  }
+
+  Future<void> fetchContacts() async {
+    // Fetch contacts from the API endpoint
+    final response = await http.get(
+      Uri.parse('https://junction.feeef.org/api/contacts/'),
+    );
+
+    // Check if the response was successful
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load contacts');
+    }
+
+    // Parse the response body
+    final Map<String, dynamic> responseBody = jsonDecode(response.body);
+
+    // Ensure the response contains the expected structure
+    if (responseBody['success'] != true || !responseBody.containsKey('data')) {
+      throw Exception('Unexpected response format');
+    }
+
+    // Extract the contacts data
+    final List<dynamic> contactsData = responseBody['data'];
+
+    // Convert the contacts data to a list of ContactModel
+    _contacts = contactsData
+        .map((json) => ContactModel.fromJson(json))
+        .toList();
+
+    // Notify listeners about the updated contacts
+    notifyListeners();
+    print(_contacts.length);
   }
 }
 
