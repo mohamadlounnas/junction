@@ -14,10 +14,7 @@ import '../../widgets/enhanced_recommendation_cards.dart';
 class ContactDetailsPage extends StatefulWidget {
   final String contactId;
 
-  const ContactDetailsPage({
-    super.key,
-    required this.contactId,
-  });
+  const ContactDetailsPage({super.key, required this.contactId});
 
   @override
   State<ContactDetailsPage> createState() => _ContactDetailsPageState();
@@ -90,15 +87,22 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
 
       if (result['success'] == true) {
         setState(() {
-          _propertyRecommendations = (result['data'] as List<PropertyRecommendation>?) ?? [];
+          final data = result['data'];
+          if (data is List) {
+            _propertyRecommendations = data
+                .whereType<PropertyRecommendation>()
+                .toList();
+          } else {
+            _propertyRecommendations = [];
+          }
           _isLoadingRecommendations = false;
         });
-        
+
         // Log metadata for debugging
         final metadata = result['metadata'] as Map<String, dynamic>?;
         final filters = result['filters'] as Map<String, dynamic>?;
         final total = result['total'] as int?;
-        
+
         print('Contact recommendations loaded:');
         print('- Total recommendations: $total');
         print('- Metadata: $metadata');
@@ -138,21 +142,22 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
               ),
             )
           : _error.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.warning_2,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'خطأ',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Iconsax.warning_2,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'خطأ',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             color: Theme.of(context).colorScheme.error,
                           ),
                         ),
@@ -336,7 +341,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
       slivers: [
         // شريط التطبيق مع معلومات العميل
         _buildContactAppBar(),
-        
+
         // محتوى العميل
         SliverToBoxAdapter(
           child: Column(
@@ -344,7 +349,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
             children: [
               // معلومات العميل الأساسية
               _buildBasicInfo(),
-              
+
               // التبويبات
               _buildTabSection(),
             ],
@@ -367,10 +372,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
             color: Colors.black.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
-            Iconsax.arrow_right,
-            color: Colors.white,
-          ),
+          child: const Icon(Iconsax.arrow_right, color: Colors.white),
         ),
       ),
       actions: [
@@ -384,10 +386,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
               color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Iconsax.edit,
-              color: Colors.white,
-            ),
+            child: const Icon(Iconsax.edit, color: Colors.white),
           ),
         ),
         const SizedBox(width: 8),
@@ -458,14 +457,14 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
         children: [
           // معلومات الاتصال
           _buildContactInfo(),
-          
+
           const SizedBox(height: 24),
-          
+
           // معلومات الميزانية والمعاملة
           _buildBudgetAndTransactionInfo(),
-          
+
           const SizedBox(height: 24),
-          
+
           // التفضيلات
           _buildPreferencesInfo(),
         ],
@@ -613,7 +612,9 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
               borderRadius: BorderRadius.circular(12),
             ),
             labelColor: Theme.of(context).colorScheme.onPrimary,
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             labelStyle: const TextStyle(fontWeight: FontWeight.w600),
             tabs: const [
               Tab(text: 'التفاصيل'),
@@ -626,10 +627,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
           height: 600,
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildDetailsTab(),
-              _buildPropertyRecommendationsTab(),
-            ],
+            children: [_buildDetailsTab(), _buildPropertyRecommendationsTab()],
           ),
         ),
       ],
@@ -645,9 +643,9 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
         children: [
           // المتطلبات الإضافية
           _buildAdditionalRequirements(),
-          
+
           const SizedBox(height: 24),
-          
+
           // معلومات إضافية
           _buildAdditionalInfo(),
         ],
@@ -658,8 +656,10 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
   /// بناء المتطلبات الإضافية
   Widget _buildAdditionalRequirements() {
     final requirements = [
-      if (_contact!.requiresParking) {'icon': Iconsax.car, 'label': 'موقف سيارة'},
-      if (_contact!.requiresSecurity) {'icon': Iconsax.security_safe, 'label': 'أمان'},
+      if (_contact!.requiresParking)
+        {'icon': Iconsax.car, 'label': 'موقف سيارة'},
+      if (_contact!.requiresSecurity)
+        {'icon': Iconsax.security_safe, 'label': 'أمان'},
     ];
 
     if (requirements.isEmpty) {
@@ -682,10 +682,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
           runSpacing: 12,
           children: requirements.map((requirement) {
             return Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(20),
@@ -873,9 +870,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -890,11 +885,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -976,4 +967,4 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
         return condition;
     }
   }
-} 
+}

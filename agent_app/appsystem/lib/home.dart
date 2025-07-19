@@ -130,20 +130,20 @@ class _DashboardViewState extends State<DashboardView> {
                                 children: [
                                   Row(children: const []),
                                   Text(
-                                    "Welcome",
+                                    "و  كيل عقارات محترف",
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(color: Colors.white),
                                   ),
                                 ],
                               ),
                             ),
-                            if (kDebugMode)
-                              Center(
-                                child: Text(
-                                  GoRouterState.of(context).uri.toFilePath(),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
+                            // if (kDebugMode)
+                            //   Center(
+                            //     child: Text(
+                            //       GoRouterState.of(context).uri.toFilePath(),
+                            //       style: const TextStyle(color: Colors.white),
+                            //     ),
+                            //   ),
                             IconButton(
                               icon: const Icon(
                                 Icons.brightness_6,
@@ -245,7 +245,7 @@ class NavigationSidebar extends StatelessWidget {
             ) ==
             true)
           NavigationSidebarItem(
-            leading: Icon(Icons.home, color: Color(0xFF1877F2)),
+            leading: Icon(Iconsax.home, color: Color(0xFF1877F2)),
             title: Text(
               mode == NavigationSidebarItemMode.full
                   ? "وكيل عقارات محترف"
