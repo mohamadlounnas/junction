@@ -156,7 +156,7 @@ class ChatBotService {
     if (_apiKey.isEmpty) {
       return 'خطأ في التكوين: لم يتم تعيين مفتاح OpenAI API.\nConfiguration Error: OpenAI API key not set.';
     }
-    
+
     try {
       final response = await http.post(
         Uri.parse(_apiUrl),

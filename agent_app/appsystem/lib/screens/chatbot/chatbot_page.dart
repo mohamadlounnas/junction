@@ -322,16 +322,11 @@ How can I help you today?''',
   /// Build header
   Widget _buildHeader() {
     return Container(
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
       child: Row(
         children: [
@@ -366,7 +361,7 @@ How can I help you today?''',
                 Text(
                   'Smart Assistant',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -450,7 +445,7 @@ How can I help you today?''',
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isUser
-                    ? Theme.of(context).primaryColor.withOpacity(0.2)
+                    ? Theme.of(context).colorScheme.surface.withOpacity(0.2)
                     : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20).copyWith(
                   bottomLeft: isUser
@@ -462,7 +457,7 @@ How can I help you today?''',
                 ),
                 border: Border.all(
                   color: isUser
-                      ? Theme.of(context).primaryColor.withOpacity(0.3)
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
                       : Theme.of(
                           context,
                         ).colorScheme.onPrimary.withOpacity(0.5),
@@ -498,8 +493,8 @@ How can I help you today?''',
                     message.content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isUser
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onPrimary,
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
 
@@ -508,7 +503,7 @@ How can I help you today?''',
                   Text(
                     _formatTime(message.timestamp),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 10,
                     ),
                   ),
@@ -690,8 +685,10 @@ How can I help you today?''',
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: _isListening
-                      ? Theme.of(context).primaryColor.withOpacity(0.2)
-                      : Theme.of(context).primaryColor.withOpacity(0.1),
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _isListening
@@ -738,7 +735,7 @@ How can I help you today?''',
                   decoration: InputDecoration(
                     hintText: 'اكتب رسالتك هنا...',
                     hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(

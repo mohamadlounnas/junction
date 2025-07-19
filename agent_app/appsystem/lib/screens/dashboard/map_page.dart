@@ -4,6 +4,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:appsystem/theme.dart';
 import 'package:appsystem/services/property_service.dart';
+import 'package:appsystem/services/messaging_service.dart';
 
 // Property type enum for map filtering
 enum PropertyType {
@@ -42,6 +43,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   /// Property service instance
   late final PropertyService _propertyService;
+
+  /// Messaging service instance for bulk SMS and WhatsApp
+  late final MessagingService _messagingService;
 
   /// Search and filter controllers
   final TextEditingController _searchController = TextEditingController();
@@ -93,7 +97,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   List<Property> get _filteredProperties {
     return _properties.where((property) {
       // Only include properties with valid coordinates
-      if (property.latitude == null || property.longitude == null ||
+      if (property.latitude == null ||
+          property.longitude == null ||
           property.latitude == 0 && property.longitude == 0) {
         return false;
       }
@@ -150,6 +155,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _propertyService = PropertyService();
+    _messagingService = MessagingService();
     _initializeAnimations();
     _searchController.addListener(_onSearchChanged);
     _loadPropertiesFromAPI();
@@ -166,6 +172,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _searchFocusNode.dispose();
     _mapController.dispose();
     _propertyService.dispose();
+    _messagingService.dispose();
     super.dispose();
   }
 
@@ -256,8 +263,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       if (properties.isNotEmpty) {
         final totalProperties = properties.length;
         final propertiesWithCoordinates = properties
-            .where((p) => p.latitude != null && p.longitude != null && 
-                         p.latitude != 0 && p.longitude != 0)
+            .where(
+              (p) =>
+                  p.latitude != null &&
+                  p.longitude != null &&
+                  p.latitude != 0 &&
+                  p.longitude != 0,
+            )
             .length;
 
         if (propertiesWithCoordinates == totalProperties) {
@@ -466,7 +478,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   /// Navigate to property on map
   void _navigateToProperty(Property property) {
     if (property.latitude != null && property.longitude != null) {
-      _mapController.move(LatLng(property.latitude!, property.longitude!), 15.0);
+      _mapController.move(
+        LatLng(property.latitude!, property.longitude!),
+        15.0,
+      );
       _onPropertyTap(property);
     }
   }
@@ -950,31 +965,45 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children: ['APARTMENT', 'VILLA', 'HOUSE', 'OFFICE', 'SHOP', 'WAREHOUSE', 'LAND', 'GARAGE'].map((type) {
-                        final isSelected = _selectedPropertyType == type;
-                        return FilterChip(
-                          label: Text(_getPropertyTypeName(type)),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedPropertyType = selected ? type : null;
-                            });
-                          },
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.surface,
-                          selectedColor: Theme.of(
-                            context,
-                          ).primaryColor.withOpacity(0.2),
-                          checkmarkColor: Theme.of(context).primaryColor,
-                          labelStyle: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Theme.of(context).colorScheme.onPrimary,
-                              ),
-                        );
-                      }).toList(),
+                      children:
+                          [
+                            'APARTMENT',
+                            'VILLA',
+                            'HOUSE',
+                            'OFFICE',
+                            'SHOP',
+                            'WAREHOUSE',
+                            'LAND',
+                            'GARAGE',
+                          ].map((type) {
+                            final isSelected = _selectedPropertyType == type;
+                            return FilterChip(
+                              label: Text(_getPropertyTypeName(type)),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                setState(() {
+                                  _selectedPropertyType = selected
+                                      ? type
+                                      : null;
+                                });
+                              },
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surface,
+                              selectedColor: Theme.of(
+                                context,
+                              ).primaryColor.withOpacity(0.2),
+                              checkmarkColor: Theme.of(context).primaryColor,
+                              labelStyle: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: isSelected
+                                        ? Theme.of(context).primaryColor
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary,
+                                  ),
+                            );
+                          }).toList(),
                     ),
 
                     const SizedBox(height: 16),
@@ -1510,14 +1539,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             children: [
               Icon(
                 Iconsax.location,
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).colorScheme.primary,
                 size: 16,
               ),
               const SizedBox(width: 4),
               Text(
                 '${_selectedProperty!.city ?? _selectedProperty!.wilaya ?? 'الجزائر'}, الجزائر',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -1568,14 +1597,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Widget _buildPropertyFeature(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Theme.of(context).primaryColor, size: 16),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 16),
         const SizedBox(width: 4),
         Text(text, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }
 
-  /// Builds the loading overlay for properties
+  /// Builds the loading ove  rlay for properties
   Widget _buildPropertiesLoadingOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.5),
@@ -1867,6 +1896,55 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
+                  // Bulk messaging button
+                  if (_potentialClients.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green, Colors.green.shade600],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _showBulkMessagingDialog,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Iconsax.message_text_1,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'رسالة جماعية',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1982,7 +2060,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onPrimary,
+                                  ).colorScheme.onSurface,
                                 ),
                           ),
                         ],
@@ -2091,7 +2169,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onPrimary,
+                                  ).colorScheme.onSurface,
                                 ),
                           ),
                         ),
@@ -2115,7 +2193,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         Text(
           text,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -2161,8 +2239,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   icon: const Icon(Iconsax.calendar),
                   label: const Text('حجز معاينة'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(context).primaryColor,
-                    side: BorderSide(color: Theme.of(context).primaryColor),
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -2366,9 +2446,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
     // Add property type preference
     if (clientData['preferredPropertyType'] != null) {
-      interests.add(
-        _getPropertyTypeName(clientData['preferredPropertyType']),
-      );
+      interests.add(_getPropertyTypeName(clientData['preferredPropertyType']));
     }
 
     // Add location preferences
@@ -2393,6 +2471,425 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     if (similarity > 0.8) return ClientStatus.hot;
     if (similarity > 0.6) return ClientStatus.warm;
     return ClientStatus.cold;
+  }
+
+  /// Shows the bulk messaging dialog with options for SMS and WhatsApp
+  void _showBulkMessagingDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Iconsax.message_text_1, color: Colors.green),
+            const SizedBox(width: 8),
+            Text('رسالة جماعية للعملاء المحتملين'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'اختر طريقة الإرسال:',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'سيتم إرسال رسالة إلى ${_potentialClients.length} عميل محتمل',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'الرسالة: "لدينا ما تبحث عنه! ${_selectedProperty?.title ?? 'عقار جديد'} متاح الآن. تواصل معنا للحصول على التفاصيل."',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('إلغاء'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _sendBulkSMS();
+            },
+            icon: Icon(Iconsax.message),
+            label: Text('رسالة نصية'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _sendBulkWhatsApp();
+            },
+            icon: Icon(Iconsax.message_text_1),
+            label: Text('واتساب'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Sends bulk SMS to all potential clients
+  Future<void> _sendBulkSMS() async {
+    if (_selectedProperty == null || _potentialClients.isEmpty) return;
+
+    setState(() {
+      _isLoadingClients = true;
+    });
+
+    try {
+      // Get clients with valid phone numbers
+      final clientsWithPhone = _potentialClients
+          .where(
+            (client) =>
+                client.contact.phone != null &&
+                client.contact.phone!.isNotEmpty,
+          )
+          .toList();
+
+      if (clientsWithPhone.isEmpty) {
+        _showErrorSnackBar('لا توجد أرقام هواتف صحيحة للعملاء المحتملين');
+        setState(() {
+          _isLoadingClients = false;
+        });
+        return;
+      }
+
+      // Extract and format phone numbers
+      final phoneNumbers = clientsWithPhone
+          .map((client) => client.contact.phone!)
+          .toList();
+
+      final formattedPhones = _messagingService.formatPhoneNumbers(
+        phoneNumbers: phoneNumbers,
+      );
+
+      // Validate phone numbers
+      final validation = _messagingService.validatePhoneNumbers(
+        formattedPhones,
+      );
+
+      if (validation['valid']!.isEmpty) {
+        _showErrorSnackBar('لا توجد أرقام هواتف صحيحة للعملاء المحتملين');
+        setState(() {
+          _isLoadingClients = false;
+        });
+        return;
+      }
+
+      // Prepare the message
+      final message = _generateBulkMessage();
+
+      // Show progress dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _buildBulkMessagingProgressDialog(
+          'جاري إرسال الرسائل النصية...',
+          validation['valid']!.length,
+        ),
+      );
+
+      // Send bulk SMS using the messaging service
+      final result = await _messagingService.sendBulkSMS(
+        recipients: validation['valid']!,
+        message: message,
+        senderId: 'REALESTATE',
+      );
+
+      // Close progress dialog
+      Navigator.of(context).pop();
+
+      if (result['success']) {
+        final data = result['data'];
+        final successCount = data['success'] ?? 0;
+        final failureCount = data['failed'] ?? 0;
+
+        _showBulkMessagingResults(successCount, failureCount, 'SMS');
+
+        // Log successful sends
+        if (data['results'] != null) {
+          for (final result in data['results']) {
+            if (result['status'] == 'success') {
+              print('SMS sent successfully to ${result['phone']}');
+            } else {
+              print('SMS failed to ${result['phone']}: ${result['error']}');
+            }
+          }
+        }
+      } else {
+        _showErrorSnackBar(result['message'] ?? 'فشل في إرسال الرسائل النصية');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingClients = false;
+      });
+      _showErrorSnackBar('خطأ في إرسال الرسائل النصية: $e');
+    } finally {
+      setState(() {
+        _isLoadingClients = false;
+      });
+    }
+  }
+
+  /// Sends bulk WhatsApp messages to all potential clients
+  Future<void> _sendBulkWhatsApp() async {
+    if (_selectedProperty == null || _potentialClients.isEmpty) return;
+
+    setState(() {
+      _isLoadingClients = true;
+    });
+
+    try {
+      // Get clients with valid phone numbers
+      final clientsWithPhone = _potentialClients
+          .where(
+            (client) =>
+                client.contact.phone != null &&
+                client.contact.phone!.isNotEmpty,
+          )
+          .toList();
+
+      if (clientsWithPhone.isEmpty) {
+        _showErrorSnackBar('لا توجد أرقام هواتف صحيحة للعملاء المحتملين');
+        setState(() {
+          _isLoadingClients = false;
+        });
+        return;
+      }
+
+      // Extract and format phone numbers
+      final phoneNumbers = clientsWithPhone
+          .map((client) => client.contact.phone!)
+          .toList();
+
+      final formattedPhones = _messagingService.formatPhoneNumbers(
+        phoneNumbers: phoneNumbers,
+      );
+
+      // Validate phone numbers
+      final validation = _messagingService.validatePhoneNumbers(
+        formattedPhones,
+      );
+
+      if (validation['valid']!.isEmpty) {
+        _showErrorSnackBar('لا توجد أرقام هواتف صحيحة للعملاء المحتملين');
+        setState(() {
+          _isLoadingClients = false;
+        });
+        return;
+      }
+
+      // Prepare the message
+      final message = _generateBulkMessage();
+
+      // Show progress dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _buildBulkMessagingProgressDialog(
+          'جاري إرسال رسائل الواتساب...',
+          validation['valid']!.length,
+        ),
+      );
+
+      // Send bulk WhatsApp using the messaging service
+      final result = await _messagingService.sendBulkWhatsApp(
+        recipients: validation['valid']!,
+        message: message,
+      );
+
+      // Close progress dialog
+      Navigator.of(context).pop();
+
+      if (result['success']) {
+        final data = result['data'];
+        final successCount = data['success'] ?? 0;
+        final failureCount = data['failed'] ?? 0;
+
+        _showBulkMessagingResults(successCount, failureCount, 'WhatsApp');
+
+        // Log successful sends
+        if (data['results'] != null) {
+          for (final result in data['results']) {
+            if (result['status'] == 'success') {
+              print('WhatsApp sent successfully to ${result['phone']}');
+            } else {
+              print(
+                'WhatsApp failed to ${result['phone']}: ${result['error']}',
+              );
+            }
+          }
+        }
+      } else {
+        _showErrorSnackBar(result['message'] ?? 'فشل في إرسال رسائل الواتساب');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingClients = false;
+      });
+      _showErrorSnackBar('خطأ في إرسال رسائل الواتساب: $e');
+    } finally {
+      setState(() {
+        _isLoadingClients = false;
+      });
+    }
+  }
+
+  /// Generates the bulk message content
+  String _generateBulkMessage() {
+    final property = _selectedProperty!;
+    final propertyType = _getPropertyTypeName(property.propertyType);
+    final location = property.city ?? property.wilaya ?? 'الجزائر';
+
+    return _messagingService.generatePropertyNotificationMessage(
+      propertyTitle: property.title,
+      propertyType: propertyType,
+      location: location,
+      price: property.formattedPrice,
+      contactPhone: null, // You can add a contact phone here if needed
+    );
+  }
+
+  /// Builds the bulk messaging progress dialog
+  Widget _buildBulkMessagingProgressDialog(
+    String title,
+    int totalCount, {
+    int currentIndex = 0,
+  }) {
+    final progress = totalCount > 0 ? currentIndex / totalCount : 0.0;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).primaryColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(title),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('تم إرسال $currentIndex من $totalCount رسالة'),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onSurface.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).primaryColor,
+            ),
+            minHeight: 8,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shows the bulk messaging results
+  void _showBulkMessagingResults(
+    int successCount,
+    int failureCount,
+    String type,
+  ) {
+    final totalCount = successCount + failureCount;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              successCount > 0 ? Icons.check_circle : Icons.error,
+              color: successCount > 0 ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 8),
+            Text('نتيجة الإرسال الجماعي'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'تم إرسال $type إلى $totalCount عميل:',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 16),
+                const SizedBox(width: 8),
+                Text('تم الإرسال بنجاح: $successCount'),
+              ],
+            ),
+            if (failureCount > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.error, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Text('فشل في الإرسال: $failureCount'),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              'سيتم إشعار العملاء المحتملين بالعقار الجديد المتاح!',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('إغلاق'),
+          ),
+          if (successCount > 0)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showSuccessSnackBar(
+                  'تم إرسال $successCount رسالة $type بنجاح!',
+                );
+              },
+              child: Text('ممتاز'),
+            ),
+        ],
+      ),
+    );
   }
 }
 
