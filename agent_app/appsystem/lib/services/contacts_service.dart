@@ -239,7 +239,7 @@ class PropertyRecommendation {
   factory PropertyRecommendation.fromJson(Map<String, dynamic> json) {
     return PropertyRecommendation(
       property: json['property'] != null 
-        ? Map<String, dynamic>.from(json['property'] as Map)
+        ? Map<String, dynamic>.from(json['property'] as Map<dynamic, dynamic>)
         : <String, dynamic>{},
       similarity: (json['similarity'] ?? 0.0).toDouble(),
       combinedScore: (json['combinedScore'] ?? 0.0).toDouble(),
@@ -383,7 +383,7 @@ class ContactsService {
           
           return {
             'success': true,
-            'data': data.map((item) => Contact.fromJson(Map<String, dynamic>.from(item as Map))).toList(),
+            'data': data.map((item) => Contact.fromJson(Map<String, dynamic>.from(item as Map<dynamic, dynamic>))).toList(),
             'pagination': pagination,
             'filters': jsonResponse['filters'] ?? {},
           };
@@ -428,7 +428,7 @@ class ContactsService {
         if (jsonResponse['success'] == true) {
           return {
             'success': true,
-            'data': Contact.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map)),
+            'data': Contact.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map<dynamic, dynamic>)),
           };
         } else {
           return {
@@ -493,7 +493,7 @@ class ContactsService {
           if (data != null && data['recommendations'] != null) {
             final recommendationsList = data['recommendations'] as List<dynamic>;
             recommendations = recommendationsList
-                .map((item) => PropertyRecommendation.fromJson(item))
+                .map((item) => PropertyRecommendation.fromJson(Map<String, dynamic>.from(item as Map<dynamic, dynamic>)))
                 .toList();
           }
           

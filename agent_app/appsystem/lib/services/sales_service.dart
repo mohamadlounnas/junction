@@ -55,8 +55,8 @@ class Sale {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'])
           : DateTime.now(),
-      contact: json['contact'] != null ? Contact.fromJson(Map<String, dynamic>.from(json['contact'] as Map)) : null,
-      property: json['property'] != null ? Property.fromJson(Map<String, dynamic>.from(json['property'] as Map)) : null,
+              contact: json['contact'] != null ? Contact.fromJson(Map<String, dynamic>.from(json['contact'] as Map<dynamic, dynamic>)) : null,
+              property: json['property'] != null ? Property.fromJson(Map<String, dynamic>.from(json['property'] as Map<dynamic, dynamic>)) : null,
     );
   }
 

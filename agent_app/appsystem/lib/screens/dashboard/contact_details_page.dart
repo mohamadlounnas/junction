@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../services/contacts_service.dart';
+import '../../widgets/enhanced_recommendation_cards.dart';
 
 /// صفحة تفاصيل العميل
 /// تعرض معلومات العميل مع التوصيات للعقارات المناسبة
@@ -120,6 +121,9 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1200;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _isLoading
@@ -170,7 +174,157 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
                     ),
                   ),
                 )
-              : _buildContactDetails(),
+              : isDesktop 
+                  ? _buildDesktopLayout()
+                  : _buildContactDetails(),
+    );
+  }
+
+  /// Desktop layout with recommendations sidebar
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Main content
+        Expanded(
+          flex: 2,
+          child: _buildContactDetails(),
+        ),
+        
+        // Recommendations sidebar
+        Expanded(
+          flex: 1,
+          child: _buildRecommendationsSidebar(),
+        ),
+      ],
+    );
+  }
+
+  /// Recommendations sidebar for desktop
+  Widget _buildRecommendationsSidebar() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'التوصيات الذكية',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (_propertyRecommendations.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${_propertyRecommendations.length}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // Content
+          Expanded(
+            child: _isLoadingRecommendations
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('جاري تحميل التوصيات...'),
+                      ],
+                    ),
+                  )
+                : _propertyRecommendations.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.psychology_outlined,
+                                size: 48,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'لا توجد توصيات',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'سيتم إنشاء توصيات ذكية بناءً على تفضيلات العميل',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _propertyRecommendations.length,
+                        itemBuilder: (context, index) {
+                          final recommendation = _propertyRecommendations[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: EnhancedPropertyRecommendationCard(
+                              recommendation: recommendation,
+                              onTap: () {
+                                context.go('/dashboard/property/${recommendation.property['id']}');
+                              },
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -656,180 +810,15 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
     );
   }
 
-  /// بناء بطاقة توصية عقار
+  /// بناء بطاقة توصية عقار محسنة
   Widget _buildPropertyRecommendationCard(PropertyRecommendation recommendation) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
+      child: EnhancedPropertyRecommendationCard(
+        recommendation: recommendation,
         onTap: () {
           context.go('/dashboard/property/${recommendation.property['id']}');
         },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // رأس البطاقة مع عنوان العقار ونسبة المطابقة
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          recommendation.propertyTitle,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          recommendation.propertyLocation,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: recommendation.statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${recommendation.similarityPercentage}%',
-                      style: TextStyle(
-                        color: recommendation.statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // حالة المطابقة
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: recommendation.statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  recommendation.matchStatus,
-                  style: TextStyle(
-                    color: recommendation.statusColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // معلومات العقار
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPropertyInfoItem(
-                      icon: Iconsax.moneys,
-                      label: 'السعر',
-                      value: recommendation.propertyPrice,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildPropertyInfoItem(
-                      icon: Iconsax.home_2,
-                      label: 'النوع',
-                      value: recommendation.propertyType,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // شرح المطابقة
-              if (recommendation.explanation.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'تفسير المطابقة:',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  recommendation.explanation,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 12),
-
-              // أزرار الإجراءات
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        context.go('/dashboard/property/${recommendation.property['id']}');
-                      },
-                      icon: const Icon(Iconsax.home, size: 16),
-                      label: const Text('عرض العقار'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: الاتصال بالعميل
-                      },
-                      icon: const Icon(Iconsax.call, size: 16),
-                      label: const Text('اتصال'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

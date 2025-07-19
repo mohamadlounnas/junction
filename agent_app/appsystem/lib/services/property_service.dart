@@ -530,7 +530,7 @@ class ContactRecommendation {
     return ContactRecommendation(
       contact: Contact.fromJson(
         json['contact'] != null 
-          ? Map<String, dynamic>.from(json['contact'] as Map)
+          ? Map<String, dynamic>.from(json['contact'] as Map<dynamic, dynamic>)
           : <String, dynamic>{}
       ),
       similarity: (json['similarity'] ?? 0.0).toDouble(),
@@ -730,7 +730,7 @@ class PropertyService {
           // Convert JSON data to Property objects
           for (final propertyData in propertiesData) {
             try {
-              final property = Property.fromJson(Map<String, dynamic>.from(propertyData as Map));
+              final property = Property.fromJson(Map<String, dynamic>.from(propertyData as Map<dynamic, dynamic>));
               allProperties.add(property);
             } catch (e) {
               print('PropertyService: Failed to parse property: $e');
@@ -804,7 +804,7 @@ class PropertyService {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        return Property.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map));
+        return Property.fromJson(Map<String, dynamic>.from(jsonResponse['data'] as Map<dynamic, dynamic>));
       } else {
         throw Exception('Failed to retrieve property: ${response.statusCode}');
       }
@@ -1205,12 +1205,12 @@ class PropertyService {
             // API returns { data: { recommendations: [...] } }
             final recommendationsList = data['recommendations'] as List<dynamic>;
             recommendations = recommendationsList
-                .map((item) => ContactRecommendation.fromJson(item))
+                .map((item) => ContactRecommendation.fromJson(Map<String, dynamic>.from(item as Map<dynamic, dynamic>)))
                 .toList();
           } else if (data is List) {
             // API returns { data: [...] }
             recommendations = data
-                .map((item) => ContactRecommendation.fromJson(item))
+                .map((item) => ContactRecommendation.fromJson(Map<String, dynamic>.from(item as Map<dynamic, dynamic>)))
                 .toList();
           }
           

@@ -44,6 +44,9 @@ class _PropertiesPageState extends State<PropertiesPage> {
     'شقة',
     'فيلا',
     'منزل',
+    'مكتب',
+    'محل',
+    'أرض',
   ];
 
   @override
@@ -104,6 +107,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
 
   /// تصفية العقارات بناءً على استعلام البحث والتصفية المحددة
   void _filterProperties() {
+    print('Filtering properties with filter: $_selectedFilter'); // Debug log
     setState(() {
       _filteredProperties = _properties.where((property) {
         final matchesSearch =
@@ -121,13 +125,37 @@ class _PropertiesPageState extends State<PropertiesPage> {
                 ) ==
                 true;
 
-        final matchesFilter =
-            _selectedFilter == 'الكل' ||
-            property['transactionType']?.toString() == _selectedFilter ||
-            property['propertyType']?.toString() == _selectedFilter;
+        // Handle filtering with proper mapping between Arabic UI and English data
+        bool matchesFilter = false;
+        
+        if (_selectedFilter == 'الكل') {
+          matchesFilter = true;
+        } else if (_selectedFilter == 'للبيع') {
+          matchesFilter = property['transactionType']?.toString() == 'SALE';
+        } else if (_selectedFilter == 'للإيجار') {
+          matchesFilter = property['transactionType']?.toString() == 'RENT';
+        } else if (_selectedFilter == 'شقة') {
+          matchesFilter = property['propertyType']?.toString() == 'APARTMENT';
+        } else if (_selectedFilter == 'فيلا') {
+          matchesFilter = property['propertyType']?.toString() == 'VILLA';
+        } else if (_selectedFilter == 'منزل') {
+          matchesFilter = property['propertyType']?.toString() == 'HOUSE';
+        } else if (_selectedFilter == 'مكتب') {
+          matchesFilter = property['propertyType']?.toString() == 'OFFICE';
+        } else if (_selectedFilter == 'محل') {
+          matchesFilter = property['propertyType']?.toString() == 'SHOP';
+        } else if (_selectedFilter == 'أرض') {
+          matchesFilter = property['propertyType']?.toString() == 'LAND';
+        } else {
+          // Fallback for any other filters
+          matchesFilter = property['transactionType']?.toString() == _selectedFilter ||
+                         property['propertyType']?.toString() == _selectedFilter;
+        }
 
         return matchesSearch && matchesFilter;
       }).toList();
+      
+      print('Filtered ${_filteredProperties.length} properties out of ${_properties.length} total'); // Debug log
     });
   }
 
@@ -697,12 +725,10 @@ class _PropertiesPageState extends State<PropertiesPage> {
 
   /// الحصول على لون نوع المعاملة
   Color _getTransactionTypeColor(String? transactionType) {
-    switch (transactionType?.toLowerCase()) {
-      case 'sale':
-      case 'للبيع':
+    switch (transactionType?.toUpperCase()) {
+      case 'SALE':
         return Colors.green;
-      case 'rent':
-      case 'للإيجار':
+      case 'RENT':
         return Colors.blue;
       default:
         return Colors.grey;
@@ -711,12 +737,10 @@ class _PropertiesPageState extends State<PropertiesPage> {
 
   /// الحصول على نص نوع المعاملة بالعربية
   String _getTransactionTypeText(String? transactionType) {
-    switch (transactionType?.toLowerCase()) {
-      case 'sale':
-      case 'للبيع':
+    switch (transactionType?.toUpperCase()) {
+      case 'SALE':
         return 'للبيع';
-      case 'rent':
-      case 'للإيجار':
+      case 'RENT':
         return 'للإيجار';
       default:
         return 'غير محدد';
@@ -725,16 +749,23 @@ class _PropertiesPageState extends State<PropertiesPage> {
 
   /// الحصول على نص نوع العقار بالعربية
   String _getPropertyTypeText(String? propertyType) {
-    switch (propertyType?.toLowerCase()) {
-      case 'apartment':
-      case 'شقة':
+    switch (propertyType?.toUpperCase()) {
+      case 'APARTMENT':
         return 'شقة';
-      case 'house':
-      case 'منزل':
+      case 'HOUSE':
         return 'منزل';
-      case 'villa':
-      case 'فيلا':
+      case 'VILLA':
         return 'فيلا';
+      case 'OFFICE':
+        return 'مكتب';
+      case 'SHOP':
+        return 'محل';
+      case 'WAREHOUSE':
+        return 'مستودع';
+      case 'LAND':
+        return 'أرض';
+      case 'GARAGE':
+        return 'مرآب';
       default:
         return propertyType ?? 'غير محدد';
     }
