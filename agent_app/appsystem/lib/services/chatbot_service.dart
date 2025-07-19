@@ -14,8 +14,11 @@ import 'package:path_provider/path_provider.dart';
 /// - Audio recording and processing
 /// - Permission handling for microphone access
 class ChatBotService {
-  static const String _apiKey =
-      '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';
+  // TODO: Move to environment variables or secure configuration
+  static const String _apiKey = String.fromEnvironment(
+    'OPENAI_API_KEY',
+    defaultValue: '', // Empty default - will need to be configured
+  );
   static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
 
   final SpeechToText _speechToText = SpeechToText();
@@ -149,6 +152,11 @@ class ChatBotService {
 
   /// Send message to ChatGPT API
   Future<String> sendMessage(String message) async {
+    // Check if API key is configured
+    if (_apiKey.isEmpty) {
+      return 'خطأ في التكوين: لم يتم تعيين مفتاح OpenAI API.\nConfiguration Error: OpenAI API key not set.';
+    }
+    
     try {
       final response = await http.post(
         Uri.parse(_apiUrl),

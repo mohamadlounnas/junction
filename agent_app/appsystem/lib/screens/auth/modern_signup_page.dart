@@ -103,7 +103,7 @@ class _ModernSignupPageState extends State<ModernSignupPage>
         );
 
         // Navigate to dashboard
-        context.go('/dashboard');
+        context.go('/dashboard/home');
       }
     } else if (!_acceptTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
