@@ -25,7 +25,7 @@ void main() async {
     // Show property distribution by type
     final typeCounts = <String, int>{};
     for (final property in properties) {
-      final type = property.type.name;
+      final type = property.propertyType;
       typeCounts[type] = (typeCounts[type] ?? 0) + 1;
     }
 
@@ -56,7 +56,10 @@ void main() async {
     final prices = properties
         .map(
           (p) =>
-              double.tryParse(p.price.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0,
+              double.tryParse(
+                p.price.toString().replaceAll(RegExp(r'[^\d.]'), ''),
+              ) ??
+              0.0,
         )
         .toList();
     prices.sort();

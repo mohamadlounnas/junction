@@ -82,7 +82,7 @@ final router = GoRouter(
       path: '/dashboard/settings',
       builder: (context, state) => ResponsiveLayout(
         currentRoute: state.uri.toString(),
-        child: const SettingsPage(),
+        child: const SettingsScreen(),
       ),
     ),
     GoRoute(
