@@ -11,6 +11,7 @@ import 'package:appsystem/screens/properties/property_list_page.dart';
 import 'package:appsystem/screens/properties/property_details_page.dart';
 import 'package:appsystem/screens/dashboard/contacts_page.dart';
 import 'package:appsystem/screens/dashboard/contact_details_page.dart';
+import 'package:appsystem/screens/dashboard/sales_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -72,6 +73,10 @@ final router = GoRouter(
             final contactId = state.pathParameters['id']!;
             return ContactDetailsPage(contactId: contactId);
           },
+        ),
+        GoRoute(
+          path: '/dashboard/sales',
+          builder: (context, state) => const SalesPage(),
         ),
         GoRoute(
           path: '/dashboard/properties',
