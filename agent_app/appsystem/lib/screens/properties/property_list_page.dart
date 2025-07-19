@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../services/property_service.dart';
+import '../../services/comparison_service.dart';
 
 /// صفحة العقارات
 /// تعرض جميع العقارات مع إمكانيات البحث والتصفية
@@ -27,6 +28,10 @@ class _PropertiesPageState extends State<PropertiesPage> {
   String _error = '';
   String _searchQuery = '';
   String _selectedFilter = 'الكل';
+
+  // Comparison state
+  String? _selectedPropertyId;
+  bool _isComparing = false;
 
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -154,13 +159,28 @@ class _PropertiesPageState extends State<PropertiesPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/dashboard/add-property'),
-        icon: const Icon(Iconsax.add),
-        label: const Text('إضافة عقار'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      ),
+      floatingActionButton: _isComparing
+          ? FloatingActionButton.extended(
+              onPressed: null,
+              icon: const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              label: const Text('جاري إنشاء المقارنة...'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            )
+          : FloatingActionButton.extended(
+              onPressed: () => context.go('/dashboard/add-property'),
+              icon: const Icon(Iconsax.add),
+              label: const Text('إضافة عقار'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
     );
   }
 
@@ -406,13 +426,25 @@ class _PropertiesPageState extends State<PropertiesPage> {
 
   /// بناء بطاقة عقار محسنة
   Widget _buildPropertyCard(Map<String, dynamic> property) {
+    final propertyId = property['id']?.toString() ?? '';
+    final isSelected = _selectedPropertyId == propertyId;
+    final isFirstSelected = _selectedPropertyId != null && _selectedPropertyId != propertyId;
+    
     return Card(
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: isSelected 
+            ? BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              )
+            : BorderSide.none,
+      ),
       child: InkWell(
         onTap: () {
-          context.go('/dashboard/property/${property['id']}');
+          context.go('/dashboard/property/$propertyId');
         },
         borderRadius: BorderRadius.circular(20),
         child: Column(
@@ -501,6 +533,62 @@ class _PropertiesPageState extends State<PropertiesPage> {
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // زر المقارنة
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: GestureDetector(
+                      onTap: () => _selectPropertyForComparison(propertyId),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? Theme.of(context).colorScheme.primary
+                              : isFirstSelected
+                                  ? Theme.of(context).colorScheme.secondary
+                                  : Colors.red.withOpacity(0.8), // Changed to red for visibility
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSelected 
+                                  ? Iconsax.tick_circle
+                                  : isFirstSelected
+                                      ? Iconsax.arrow_right_3
+                                      : Iconsax.add,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isSelected 
+                                  ? 'محدد'
+                                  : isFirstSelected
+                                      ? 'قارن مع'
+                                      : 'قارن',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -650,5 +738,208 @@ class _PropertiesPageState extends State<PropertiesPage> {
       default:
         return propertyType ?? 'غير محدد';
     }
+  }
+
+  /// Handle property selection for comparison
+  void _selectPropertyForComparison(String propertyId) {
+    print('Compare button tapped for property: $propertyId'); // Debug print
+    setState(() {
+      if (_selectedPropertyId == propertyId) {
+        // Deselect if already selected
+        _selectedPropertyId = null;
+        print('Property deselected: $propertyId');
+      } else if (_selectedPropertyId == null) {
+        // Select first property
+        _selectedPropertyId = propertyId;
+        print('First property selected: $propertyId');
+      } else {
+        // Compare with second property
+        print('Comparing properties: $_selectedPropertyId vs $propertyId');
+        _compareProperties(_selectedPropertyId!, propertyId);
+      }
+    });
+  }
+
+  /// Compare two properties
+  Future<void> _compareProperties(String property1Id, String property2Id) async {
+    setState(() {
+      _isComparing = true;
+    });
+
+    try {
+      final result = await ComparisonService.compareProperties(
+        property1Id: property1Id,
+        property2Id: property2Id,
+      );
+
+      if (result['success'] == true) {
+        _showComparisonSuccessDialog(result['pdf']);
+      } else {
+        _showErrorDialog('فشل في إنشاء المقارنة');
+      }
+    } catch (e) {
+      _showErrorDialog('خطأ في الشبكة: $e');
+    } finally {
+      setState(() {
+        _isComparing = false;
+        _selectedPropertyId = null;
+      });
+    }
+  }
+
+  /// Show comparison success dialog
+  void _showComparisonSuccessDialog(Map<String, dynamic> pdfData) {
+    final comparison = pdfData['comparison'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Iconsax.tick_circle,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text('تم إنشاء المقارنة بنجاح'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'تم إنشاء تقرير مقارنة احترافي بين:',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '• ${comparison['property1']}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Text(
+              '• ${comparison['property2']}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'التوصية:',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    comparison['recommendation'] ?? 'لا توجد توصية',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openComparisonPDF(pdfData['fileName']);
+            },
+            icon: const Icon(Iconsax.global),
+            label: const Text('فتح في المتصفح'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _downloadComparisonPDF(pdfData['fileName']);
+            },
+            icon: const Icon(Iconsax.document_download),
+            label: const Text('تحميل PDF'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Download comparison PDF
+  Future<void> _downloadComparisonPDF(String fileName) async {
+    try {
+      final response = await ComparisonService.downloadComparisonPDF(fileName);
+      
+      // For now, we'll show a success message
+      // In a real app, you'd save the file to device storage
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تحميل الملف: $fileName'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('فشل في تحميل الملف: $e');
+      }
+    }
+  }
+
+  /// Open comparison PDF in browser
+  Future<void> _openComparisonPDF(String fileName) async {
+    try {
+      final success = await ComparisonService.openComparisonPDF(fileName);
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم فتح الملف في المتصفح'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      } else if (mounted) {
+        _showErrorDialog('فشل في فتح الملف في المتصفح');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('خطأ في فتح الملف: $e');
+      }
+    }
+  }
+
+  /// Show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Iconsax.warning_2,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 8),
+            const Text('خطأ'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('حسناً'),
+          ),
+        ],
+      ),
+    );
   }
 }

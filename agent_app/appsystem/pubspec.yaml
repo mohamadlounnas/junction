@@ -67,6 +67,9 @@ dependencies:
   
   # Icons
   ionicons: ^0.2.2
+  
+  # URL launcher for opening PDFs and external links
+  url_launcher: ^6.2.5
 
 dependency_overrides:
   record_platform_interface: ^1.2.0
