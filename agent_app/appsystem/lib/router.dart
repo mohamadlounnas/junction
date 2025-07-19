@@ -34,62 +34,48 @@ final router = GoRouter(
       builder: (context, state) => const ModernSignupPage(),
     ),
     
-    // Dashboard routes with responsive layout wrapper
-    GoRoute(
-      path: '/dashboard/home',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const ModernDashboardPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/overview',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const ModernDashboardPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/map',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const MapPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/leads',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const LeadsPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/properties',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const PropertiesPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/add-property',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const AddPropertyPage(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/settings',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const SettingsScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/dashboard/chatbot',
-      builder: (context, state) => ResponsiveLayout(
-        currentRoute: state.uri.toString(),
-        child: const ChatBotPage(),
-      ),
+    // Dashboard shell route with responsive layout wrapper
+    ShellRoute(
+      builder: (context, state, child) {
+        return ResponsiveLayout(
+          currentRoute: state.uri.toString(),
+          child: child,
+        );
+      },
+      routes: [
+        GoRoute(
+          path: '/dashboard/home',
+          builder: (context, state) => const ModernDashboardPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/overview',
+          builder: (context, state) => const ModernDashboardPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/map',
+          builder: (context, state) => const MapPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/leads',
+          builder: (context, state) => const LeadsPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/properties',
+          builder: (context, state) => const PropertiesPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/add-property',
+          builder: (context, state) => const AddPropertyPage(),
+        ),
+        GoRoute(
+          path: '/dashboard/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: '/dashboard/chatbot',
+          builder: (context, state) => const ChatBotPage(),
+        ),
+      ],
     ),
     
     // Fallback route for any unmatched /dashboard/* routes
