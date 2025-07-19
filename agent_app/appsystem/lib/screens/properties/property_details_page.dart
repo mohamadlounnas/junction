@@ -89,17 +89,29 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
           _contactRecommendations = (result['data'] as List<ContactRecommendation>?) ?? [];
           _isLoadingRecommendations = false;
         });
+        
+        // Log metadata for debugging
+        final metadata = result['metadata'] as Map<String, dynamic>?;
+        final filters = result['filters'] as Map<String, dynamic>?;
+        final total = result['total'] as int?;
+        
+        print('Property recommendations loaded:');
+        print('- Total recommendations: $total');
+        print('- Metadata: $metadata');
+        print('- Filters: $filters');
       } else {
         setState(() {
           _contactRecommendations = [];
           _isLoadingRecommendations = false;
         });
+        print('Failed to load recommendations: ${result['message']}');
       }
     } catch (e) {
       setState(() {
         _contactRecommendations = [];
         _isLoadingRecommendations = false;
       });
+      print('Error loading recommendations: $e');
     }
   }
 

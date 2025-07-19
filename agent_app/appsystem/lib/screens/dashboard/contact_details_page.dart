@@ -81,24 +81,40 @@ class _ContactDetailsPageState extends State<ContactDetailsPage>
         _isLoadingRecommendations = true;
       });
 
-      final result = await ContactsService().getContactRecommendations(widget.contactId);
+      final result = await ContactsService().getContactRecommendations(
+        widget.contactId,
+        limit: 20,
+        minSimilarity: 0.3,
+      );
 
       if (result['success'] == true) {
         setState(() {
           _propertyRecommendations = (result['data'] as List<PropertyRecommendation>?) ?? [];
           _isLoadingRecommendations = false;
         });
+        
+        // Log metadata for debugging
+        final metadata = result['metadata'] as Map<String, dynamic>?;
+        final filters = result['filters'] as Map<String, dynamic>?;
+        final total = result['total'] as int?;
+        
+        print('Contact recommendations loaded:');
+        print('- Total recommendations: $total');
+        print('- Metadata: $metadata');
+        print('- Filters: $filters');
       } else {
         setState(() {
           _propertyRecommendations = [];
           _isLoadingRecommendations = false;
         });
+        print('Failed to load recommendations: ${result['message']}');
       }
     } catch (e) {
       setState(() {
         _propertyRecommendations = [];
         _isLoadingRecommendations = false;
       });
+      print('Error loading recommendations: $e');
     }
   }
 
