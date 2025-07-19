@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../services/property_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
 
 /// Simplified Add Property Page
 /// Streamlined form for creating new properties with essential fields only
@@ -231,35 +232,52 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         'featured': _isFeatured,
       };
 
+      print('AddPropertyPage: Submitting property data: $propertyData');
+
       // Use the property service
       final result = await PropertyService().createProperty(
         propertyData: propertyData,
         images: null, // Temporarily disable image upload
       );
 
+      print('AddPropertyPage: Property service result: $result');
+
       if (result['success'] == true) {
+        print('AddPropertyPage: Property created successfully');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message'] ?? 'تم إضافة العقار بنجاح!'),
               backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
             ),
           );
-          Navigator.of(context).pop();
+          
+          // Add a small delay to ensure the snackbar is shown
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Use GoRouter navigation
+          if (mounted) {
+            context.pop();
+          }
         }
       } else {
+        print('AddPropertyPage: Property creation failed: ${result['message']}');
         throw Exception(result['message'] ?? 'فشل في إضافة العقار');
       }
     } catch (e) {
+      print('AddPropertyPage: Exception occurred: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
     } finally {
+      // Always reset loading state
       if (mounted) {
         setState(() {
           _isLoading = false;

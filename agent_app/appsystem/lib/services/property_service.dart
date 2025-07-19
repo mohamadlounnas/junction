@@ -843,6 +843,8 @@ class PropertyService {
         'featured': _parseBoolean(propertyData['featured'] ?? false),
       };
 
+      print('PropertyService: Creating property with data: $validatedData');
+
       // For now, let's try creating the property without images first
       // We can add image upload functionality later if needed
       final response = await _httpClient.post(
@@ -851,27 +853,68 @@ class PropertyService {
           'Content-Type': 'application/json',
         },
         body: json.encode(validatedData),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout - server not responding');
+        },
       );
 
-      final jsonResponse = json.decode(response.body);
+      print('PropertyService: Response status: ${response.statusCode}');
+      print('PropertyService: Response body: ${response.body}');
 
-      if (response.statusCode == 200 && jsonResponse['success'] == true) {
-        // If images are provided, we can handle them separately later
-        // For now, just return success
-        return {
-          'success': true,
-          'data': jsonResponse['data'],
-          'message': jsonResponse['message'] ?? 'Property created successfully',
-        };
+      // Handle different response status codes
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final jsonResponse = json.decode(response.body);
+          
+          // Check if the response has the expected structure
+          if (jsonResponse['success'] == true) {
+            return {
+              'success': true,
+              'data': jsonResponse['data'],
+              'message': jsonResponse['message'] ?? 'Property created successfully',
+            };
+          } else {
+            // API returned success: false
+            return {
+              'success': false,
+              'message': jsonResponse['message'] ?? 'Failed to create property',
+              'error': jsonResponse['error'] ?? 'Unknown error',
+            };
+          }
+        } catch (parseError) {
+          print('PropertyService: Error parsing JSON response: $parseError');
+          return {
+            'success': false,
+            'message': 'Invalid response format from server',
+            'error': 'JSON parsing error: $parseError',
+          };
+        }
       } else {
-        return {
-          'success': false,
-          'message': jsonResponse['message'] ?? 'Failed to create property',
-          'error': jsonResponse['error'],
-        };
+        // HTTP error status
+        try {
+          final jsonResponse = json.decode(response.body);
+          return {
+            'success': false,
+            'message': jsonResponse['message'] ?? 'Failed to create property',
+            'error': jsonResponse['error'] ?? 'HTTP ${response.statusCode}',
+          };
+        } catch (parseError) {
+          return {
+            'success': false,
+            'message': 'Failed to create property',
+            'error': 'HTTP ${response.statusCode}: ${response.reasonPhrase}',
+          };
+        }
       }
     } catch (e) {
-      return _handleError(e, 'create property');
+      print('PropertyService: Exception in createProperty: $e');
+      return {
+        'success': false,
+        'message': 'Network error occurred',
+        'error': e.toString(),
+      };
     }
   }
 
