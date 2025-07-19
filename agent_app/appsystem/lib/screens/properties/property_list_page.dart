@@ -385,7 +385,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: الانتقال إلى تفاصيل العقار
+          context.go('/dashboard/property/${property['id']}');
         },
         borderRadius: BorderRadius.circular(20),
         child: Column(
