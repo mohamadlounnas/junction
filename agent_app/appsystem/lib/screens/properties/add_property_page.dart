@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../services/property_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// Add Property Page with Vertical Animated Stepper
-/// Integrates with Algeria Real Estate API for property creation
-/// Supports both dark and light themes with adaptive UI
+/// Simplified Add Property Page
+/// Streamlined form for creating new properties with essential fields only
 class AddPropertyPage extends StatefulWidget {
   const AddPropertyPage({super.key});
 
@@ -14,15 +15,7 @@ class AddPropertyPage extends StatefulWidget {
   State<AddPropertyPage> createState() => _AddPropertyPageState();
 }
 
-class _AddPropertyPageState extends State<AddPropertyPage>
-    with TickerProviderStateMixin {
-  // Stepper control
-  int _currentStep = 0;
-  late AnimationController _stepperController;
-  late Animation<double> _stepperAnimation;
-  late AnimationController _pageController;
-  late Animation<double> _pageAnimation;
-
+class _AddPropertyPageState extends State<AddPropertyPage> {
   // Form controllers
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -34,9 +27,6 @@ class _AddPropertyPageState extends State<AddPropertyPage>
   final _wilayaController = TextEditingController();
   final _cityController = TextEditingController();
   final _addressController = TextEditingController();
-  final _buildingAgeController = TextEditingController();
-  final _floorController = TextEditingController();
-  final _totalFloorsController = TextEditingController();
 
   // Form data
   String _selectedPropertyType = 'APARTMENT';
@@ -53,77 +43,23 @@ class _AddPropertyPageState extends State<AddPropertyPage>
   bool _hasSwimmingPool = false;
   bool _isFeatured = false;
 
-  // Location data
-  double? _latitude;
-  double? _longitude;
-
-  // Images
-  final List<File> _selectedImages = [];
+  // Images - using dynamic type to support both File and XFile
+  final List<dynamic> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   // Loading state
   bool _isLoading = false;
 
-  // Algerian wilayas
+  // Algerian wilayas (simplified list)
   final List<String> _wilayas = [
-    'Adrar',
-    'Chlef',
-    'Laghouat',
-    'Oum El Bouaghi',
-    'Batna',
-    'Béjaïa',
-    'Biskra',
-    'Béchar',
-    'Blida',
-    'Bouira',
-    'Tamanrasset',
-    'Tébessa',
-    'Tlemcen',
-    'Tiaret',
-    'Tizi Ouzou',
-    'Alger',
-    'Djelfa',
-    'Jijel',
-    'Sétif',
-    'Saïda',
-    'Skikda',
-    'Sidi Bel Abbès',
-    'Annaba',
-    'Guelma',
-    'Constantine',
-    'Médéa',
-    'Mostaganem',
-    'M\'Sila',
-    'Mascara',
-    'Ouargla',
-    'Oran',
-    'El Bayadh',
-    'Illizi',
-    'Bordj Bou Arréridj',
-    'Boumerdès',
-    'El Tarf',
-    'Tindouf',
-    'Tissemsilt',
-    'El Oued',
-    'Khenchela',
-    'Souk Ahras',
-    'Tipaza',
-    'Mila',
-    'Aïn Defla',
-    'Naâma',
-    'Aïn Témouchent',
-    'Ghardaïa',
-    'Relizane',
-    'Timimoun',
-    'Bordj Badji Mokhtar',
-    'Ouled Djellal',
-    'Béni Abbès',
-    'In Salah',
-    'In Guezzam',
-    'Touggourt',
-    'Djanet',
-    'El M\'Ghair',
-    'El Meniaa',
+    'Alger', 'Oran', 'Constantine', 'Annaba', 'Batna', 'Blida', 'Sétif',
+    'Djelfa', 'Sidi Bel Abbès', 'Biskra', 'Tébessa', 'El Oued', 'Skikda',
+    'Béjaïa', 'Tiaret', 'Ouargla', 'Béchar', 'Mostaganem', 'Bordj Bou Arréridj',
+    'Chlef', 'El Tarf', 'Tamanrasset', 'Guelma', 'Laghouat', 'Mascara',
+    'Médéa', 'Ghardaïa', 'Aïn Defla', 'Tlemcen', 'Tipaza', 'Saïda',
+    'Aïn Témouchent', 'Ghardaïa', 'Relizane', 'El Bayadh', 'Illizi',
+    'Bordj Badji Mokhtar', 'Béni Abbès', 'In Salah', 'In Guezzam',
+    'Touggourt', 'Djanet', 'El M\'Ghair', 'El Meniaa'
   ];
 
   // Property types
@@ -133,9 +69,7 @@ class _AddPropertyPageState extends State<AddPropertyPage>
     'HOUSE': 'منزل',
     'OFFICE': 'مكتب',
     'SHOP': 'محل تجاري',
-    'WAREHOUSE': 'مستودع',
     'LAND': 'أرض',
-    'GARAGE': 'كراج',
   };
 
   // Transaction types
@@ -161,33 +95,7 @@ class _AddPropertyPageState extends State<AddPropertyPage>
   };
 
   @override
-  void initState() {
-    super.initState();
-    _stepperController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _stepperAnimation = CurvedAnimation(
-      parent: _stepperController,
-      curve: Curves.easeInOut,
-    );
-
-    _pageController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _pageAnimation = CurvedAnimation(
-      parent: _pageController,
-      curve: Curves.easeInOut,
-    );
-
-    _stepperController.forward();
-  }
-
-  @override
   void dispose() {
-    _stepperController.dispose();
-    _pageController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
@@ -197,42 +105,84 @@ class _AddPropertyPageState extends State<AddPropertyPage>
     _wilayaController.dispose();
     _cityController.dispose();
     _addressController.dispose();
-    _buildingAgeController.dispose();
-    _floorController.dispose();
-    _totalFloorsController.dispose();
     super.dispose();
   }
 
-  void _nextStep() {
-    if (_currentStep < 4) {
-      setState(() {
-        _currentStep++;
-      });
-      _pageController.forward().then((_) {
-        _pageController.reset();
-        _pageController.forward();
-      });
-    }
-  }
-
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
-      _pageController.forward().then((_) {
-        _pageController.reset();
-        _pageController.forward();
-      });
-    }
-  }
-
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        _selectedImages.addAll(images.map((image) => File(image.path)));
-      });
+    try {
+      final List<XFile> images = await _picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      
+      if (images.isNotEmpty) {
+        // Validate image files
+        final List<XFile> validImages = [];
+        for (final image in images) {
+          final bytes = await image.readAsBytes();
+          final sizeInMB = bytes.length / (1024 * 1024);
+          
+          // Check file size (max 5MB per image)
+          if (sizeInMB > 5) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('الصورة ${image.name} كبيرة جداً. الحد الأقصى 5 ميجابايت'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            continue;
+          }
+          
+          // Check file type
+          final extension = image.name.toLowerCase().split('.').last;
+          if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('نوع الملف ${image.name} غير مدعوم. استخدم JPG, PNG, أو WebP'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            continue;
+          }
+          
+          validImages.add(image);
+        }
+        
+        if (validImages.isNotEmpty) {
+          setState(() {
+            // Convert XFile to File for mobile platforms, keep XFile for web
+            if (kIsWeb) {
+              _selectedImages.addAll(validImages);
+            } else {
+              _selectedImages.addAll(validImages.map((image) => File(image.path)));
+            }
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('تم اختيار ${validImages.length} صورة'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في اختيار الصور: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -244,6 +194,19 @@ class _AddPropertyPageState extends State<AddPropertyPage>
     });
 
     try {
+      // Show message about images being handled separately
+      if (_selectedImages.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('سيتم إضافة العقار أولاً، ثم رفع الصور لاحقاً'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+
       // Prepare the property data
       final propertyData = {
         'title': _titleController.text,
@@ -266,20 +229,12 @@ class _AddPropertyPageState extends State<AddPropertyPage>
         'hasBalcony': _hasBalcony,
         'hasSwimmingPool': _hasSwimmingPool,
         'featured': _isFeatured,
-        if (_buildingAgeController.text.isNotEmpty)
-          'buildingAge': int.tryParse(_buildingAgeController.text) ?? 0,
-        if (_floorController.text.isNotEmpty)
-          'floor': int.tryParse(_floorController.text) ?? 0,
-        if (_totalFloorsController.text.isNotEmpty)
-          'totalFloors': int.tryParse(_totalFloorsController.text) ?? 1,
-        if (_latitude != null) 'latitude': _latitude,
-        if (_longitude != null) 'longitude': _longitude,
       };
 
       // Use the property service
       final result = await PropertyService().createProperty(
         propertyData: propertyData,
-        images: _selectedImages.isNotEmpty ? _selectedImages : null,
+        images: null, // Temporarily disable image upload
       );
 
       if (result['success'] == true) {
@@ -338,693 +293,424 @@ class _AddPropertyPageState extends State<AddPropertyPage>
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Row(
-        children: [
-          // Vertical Stepper Sidebar
-          Container(
-            width: 280,
-            padding: const EdgeInsets.all(20),
-            child: FadeTransition(
-              opacity: _stepperAnimation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(-0.5, 0),
-                  end: Offset.zero,
-                ).animate(_stepperAnimation),
-                child: _buildVerticalStepper(isDark, colorScheme),
-              ),
-            ),
-          ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Basic Information Section
+              _buildSectionTitle('المعلومات الأساسية', Icons.info_outline, isDark, colorScheme),
+              const SizedBox(height: 16),
 
-          // Vertical Divider
-          Container(
-            width: 1,
-            margin: const EdgeInsets.symmetric(vertical: 20),
-            color: colorScheme.outline.withOpacity(0.3),
-          ),
-
-          // Content Area
-          Expanded(
-            child: FadeTransition(
-              opacity: _pageAnimation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.3, 0),
-                  end: Offset.zero,
-                ).animate(_pageAnimation),
-                child: _buildCurrentStep(isDark, colorScheme),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerticalStepper(bool isDark, ColorScheme colorScheme) {
-    final steps = [
-      {
-        'title': 'معلومات أساسية',
-        'subtitle': 'العنوان والوصف والسعر',
-        'icon': Icons.info_outline,
-      },
-      {
-        'title': 'الموقع',
-        'subtitle': 'الولاية والمدينة والعنوان',
-        'icon': Icons.location_on_outlined,
-      },
-      {
-        'title': 'التفاصيل',
-        'subtitle': 'الحالة والتأثيث والعمر',
-        'icon': Icons.details_outlined,
-      },
-      {
-        'title': 'المميزات',
-        'subtitle': 'المرافق والخدمات',
-        'icon': Icons.featured_play_list_outlined,
-      },
-      {
-        'title': 'الصور',
-        'subtitle': 'إضافة صور العقار',
-        'icon': Icons.photo_library_outlined,
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'خطوات إضافة العقار',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: isDark ? Colors.white : colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        Expanded(
-          child: ListView.builder(
-            itemCount: steps.length,
-            itemBuilder: (context, index) {
-              final step = steps[index];
-              final isActive = index == _currentStep;
-              final isCompleted = index < _currentStep;
-              final isUpcoming = index > _currentStep;
-
-              return _buildVerticalStepItem(
-                index: index,
-                step: step,
-                isActive: isActive,
-                isCompleted: isCompleted,
-                isUpcoming: isUpcoming,
+              // Title
+              _buildTextField(
+                controller: _titleController,
+                label: 'عنوان العقار',
+                hint: 'أدخل عنوان العقار',
                 isDark: isDark,
                 colorScheme: colorScheme,
-              );
-            },
-          ),
-        ),
-
-        // Navigation Buttons
-        const SizedBox(height: 20),
-        _buildNavigationButtons(isDark, colorScheme),
-      ],
-    );
-  }
-
-  Widget _buildVerticalStepItem({
-    required int index,
-    required Map<String, dynamic> step,
-    required bool isActive,
-    required bool isCompleted,
-    required bool isUpcoming,
-    required bool isDark,
-    required ColorScheme colorScheme,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Step Circle and Line
-          Column(
-            children: [
-              // Step Circle
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCompleted
-                      ? colorScheme.primary
-                      : isActive
-                      ? colorScheme.primary.withOpacity(0.8)
-                      : colorScheme.outline.withOpacity(0.3),
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: colorScheme.primary.withOpacity(0.3),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Icon(
-                  isCompleted ? Icons.check : step['icon'] as IconData,
-                  color: isCompleted || isActive
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurface.withOpacity(0.5),
-                  size: 24,
-                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'يرجى إدخال عنوان';
+                  }
+                  if (value.length < 5) {
+                    return 'يجب أن يكون العنوان 5 أحرف على الأقل';
+                  }
+                  return null;
+                },
               ),
 
-              // Vertical Line
-              if (index < 4)
-                Container(
-                  width: 2,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isCompleted
-                        ? colorScheme.primary
-                        : colorScheme.outline.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-            ],
-          ),
+              const SizedBox(height: 16),
 
-          const SizedBox(width: 16),
-
-          // Step Content
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? colorScheme.primary.withOpacity(0.1)
-                    : isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isActive
-                      ? colorScheme.primary.withOpacity(0.3)
-                      : colorScheme.outline.withOpacity(0.2),
-                  width: isActive ? 2 : 1,
-                ),
+              // Description
+              _buildTextField(
+                controller: _descriptionController,
+                label: 'الوصف',
+                hint: 'صف عقارك...',
+                maxLines: 3,
+                isDark: isDark,
+                colorScheme: colorScheme,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+              const SizedBox(height: 16),
+
+              // Price and Area Row
+              Row(
                 children: [
-                  Text(
-                    step['title'] as String,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: isActive || isCompleted
-                          ? colorScheme.primary
-                          : isDark
-                          ? Colors.white
-                          : colorScheme.onSurface,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _priceController,
+                      label: 'السعر (دينار جزائري)',
+                      hint: '0',
+                      keyboardType: TextInputType.number,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال السعر';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'يرجى إدخال رقم صحيح';
+                        }
+                        return null;
+                      },
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    step['subtitle'] as String,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.7),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _areaController,
+                      label: 'المساحة (م²)',
+                      hint: '0',
+                      keyboardType: TextInputType.number,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال المساحة';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'يرجى إدخال رقم صحيح';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildCurrentStep(bool isDark, ColorScheme colorScheme) {
-    switch (_currentStep) {
-      case 0:
-        return _buildBasicInfoStep(isDark, colorScheme);
-      case 1:
-        return _buildLocationStep(isDark, colorScheme);
-      case 2:
-        return _buildDetailsStep(isDark, colorScheme);
-      case 3:
-        return _buildFeaturesStep(isDark, colorScheme);
-      case 4:
-        return _buildImagesStep(isDark, colorScheme);
-      default:
-        return Container();
-    }
-  }
+              const SizedBox(height: 16),
 
-  Widget _buildBasicInfoStep(bool isDark, ColorScheme colorScheme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'المعلومات الأساسية',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: isDark ? Colors.white : colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
+              // Rooms and Bathrooms Row
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _roomsController,
+                      label: 'الغرف',
+                      hint: '0',
+                      keyboardType: TextInputType.number,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال عدد الغرف';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'يرجى إدخال رقم صحيح';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _bathroomsController,
+                      label: 'الحمامات',
+                      hint: '0',
+                      keyboardType: TextInputType.number,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال عدد الحمامات';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'يرجى إدخال رقم صحيح';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
 
-            // Title
-            _buildTextField(
-              controller: _titleController,
-              label: 'عنوان العقار',
-              hint: 'أدخل عنوان العقار',
-              isDark: isDark,
-              colorScheme: colorScheme,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'يرجى إدخال عنوان';
-                }
-                if (value.length < 5) {
-                  return 'يجب أن يكون العنوان 5 أحرف على الأقل';
-                }
-                return null;
-              },
-            ),
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 16),
+              // Property Type and Transaction Type
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'نوع العقار',
+                      value: _selectedPropertyType,
+                      items: _propertyTypes,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPropertyType = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'نوع المعاملة',
+                      value: _selectedTransactionType,
+                      items: _transactionTypes,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedTransactionType = value!;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
 
-            // Description
-            _buildTextField(
-              controller: _descriptionController,
-              label: 'الوصف',
-              hint: 'صف عقارك...',
-              maxLines: 3,
-              isDark: isDark,
-              colorScheme: colorScheme,
-            ),
+              const SizedBox(height: 32),
 
-            const SizedBox(height: 16),
+              // Location Section
+              _buildSectionTitle('الموقع', Icons.location_on_outlined, isDark, colorScheme),
+              const SizedBox(height: 16),
 
-            // Price and Area Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: _priceController,
-                    label: 'السعر (دينار جزائري)',
-                    hint: '0',
-                    keyboardType: TextInputType.number,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال السعر';
-                      }
-                      if (double.tryParse(value) == null) {
-                        return 'يرجى إدخال رقم صحيح';
-                      }
-                      return null;
-                    },
+              // Wilaya Dropdown
+              _buildDropdown(
+                label: 'الولاية',
+                value: _wilayaController.text.isEmpty ? null : _wilayaController.text,
+                items: Map.fromEntries(_wilayas.map((w) => MapEntry(w, w))),
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _wilayaController.text = value!;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'يرجى اختيار الولاية';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // City
+              _buildTextField(
+                controller: _cityController,
+                label: 'المدينة',
+                hint: 'أدخل اسم المدينة',
+                isDark: isDark,
+                colorScheme: colorScheme,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'يرجى إدخال اسم المدينة';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Address
+              _buildTextField(
+                controller: _addressController,
+                label: 'العنوان',
+                hint: 'أدخل العنوان الكامل',
+                maxLines: 2,
+                isDark: isDark,
+                colorScheme: colorScheme,
+              ),
+
+              const SizedBox(height: 32),
+
+              // Details Section
+              _buildSectionTitle('التفاصيل', Icons.details_outlined, isDark, colorScheme),
+              const SizedBox(height: 16),
+
+              // Condition and Furnishing
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'الحالة',
+                      value: _selectedCondition,
+                      items: _conditionOptions,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCondition = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'التأثيث',
+                      value: _selectedFurnishing,
+                      items: _furnishingOptions,
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedFurnishing = value!;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Features Section
+              _buildSectionTitle('المميزات', Icons.featured_play_list_outlined, isDark, colorScheme),
+              const SizedBox(height: 16),
+
+              // Feature toggles
+              _buildFeatureToggle(
+                title: 'موقف سيارات',
+                subtitle: 'العقار يحتوي على موقف سيارات',
+                icon: Icons.local_parking,
+                value: _hasParking,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasParking = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'حراسة',
+                subtitle: 'خدمة حراسة 24/7',
+                icon: Icons.security,
+                value: _hasSecurity,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasSecurity = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'مصعد',
+                subtitle: 'المبنى يحتوي على مصعد',
+                icon: Icons.elevator,
+                value: _hasElevator,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasElevator = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'مسبح',
+                subtitle: 'العقار يحتوي على مسبح',
+                icon: Icons.pool,
+                value: _hasSwimmingPool,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasSwimmingPool = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'حديقة',
+                subtitle: 'العقار يحتوي على حديقة',
+                icon: Icons.nature,
+                value: _hasGarden,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasGarden = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'شرفة',
+                subtitle: 'العقار يحتوي على شرفة',
+                icon: Icons.balcony,
+                value: _hasBalcony,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _hasBalcony = value;
+                  });
+                },
+              ),
+
+              _buildFeatureToggle(
+                title: 'عقار مميز',
+                subtitle: 'عرض هذا العقار في نتائج البحث',
+                icon: Icons.star,
+                value: _isFeatured,
+                isDark: isDark,
+                colorScheme: colorScheme,
+                onChanged: (value) {
+                  setState(() {
+                    _isFeatured = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 32),
+
+              // Images Section
+              _buildSectionTitle('الصور', Icons.photo_library_outlined, isDark, colorScheme),
+              const SizedBox(height: 16),
+
+
+
+              // Image picker button
+              Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.1),
+                    style: BorderStyle.solid,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildTextField(
-                    controller: _areaController,
-                    label: 'المساحة (م²)',
-                    hint: '0',
-                    keyboardType: TextInputType.number,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال المساحة';
-                      }
-                      if (double.tryParse(value) == null) {
-                        return 'يرجى إدخال رقم صحيح';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Rooms and Bathrooms Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: _roomsController,
-                    label: 'الغرف',
-                    hint: '0',
-                    keyboardType: TextInputType.number,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال عدد الغرف';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'يرجى إدخال رقم صحيح';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildTextField(
-                    controller: _bathroomsController,
-                    label: 'الحمامات',
-                    hint: '0',
-                    keyboardType: TextInputType.number,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال عدد الحمامات';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'يرجى إدخال رقم صحيح';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Property Type and Transaction Type
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'نوع العقار',
-                    value: _selectedPropertyType,
-                    items: _propertyTypes,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedPropertyType = value!;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'نوع المعاملة',
-                    value: _selectedTransactionType,
-                    items: _transactionTypes,
-                    isDark: isDark,
-                    colorScheme: colorScheme,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedTransactionType = value!;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationStep(bool isDark, ColorScheme colorScheme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'تفاصيل الموقع',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: isDark ? Colors.white : colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Wilaya Dropdown
-          _buildDropdown(
-            label: 'الولاية',
-            value: _wilayaController.text.isEmpty
-                ? null
-                : _wilayaController.text,
-            items: Map.fromEntries(_wilayas.map((w) => MapEntry(w, w))),
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _wilayaController.text = value!;
-              });
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'يرجى اختيار الولاية';
-              }
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // City
-          _buildTextField(
-            controller: _cityController,
-            label: 'المدينة',
-            hint: 'أدخل اسم المدينة',
-            isDark: isDark,
-            colorScheme: colorScheme,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'يرجى إدخال اسم المدينة';
-              }
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Address
-          _buildTextField(
-            controller: _addressController,
-            label: 'العنوان',
-            hint: 'أدخل العنوان الكامل',
-            maxLines: 2,
-            isDark: isDark,
-            colorScheme: colorScheme,
-          ),
-
-          const SizedBox(height: 20),
-
-          // Coordinates (Optional)
-          Text(
-            'الإحداثيات (اختياري)',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isDark ? Colors.white : colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: TextEditingController(
-                    text: _latitude?.toString() ?? '',
-                  ),
-                  label: 'خط العرض',
-                  hint: '36.7538',
-                  keyboardType: TextInputType.number,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                  onChanged: (value) {
-                    final parsed = double.tryParse(value);
-                    if (parsed != null && parsed >= -90 && parsed <= 90) {
-                      _latitude = parsed;
-                    } else {
-                      _latitude = null;
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  controller: TextEditingController(
-                    text: _longitude?.toString() ?? '',
-                  ),
-                  label: 'خط الطول',
-                  hint: '3.0588',
-                  keyboardType: TextInputType.number,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                  onChanged: (value) {
-                    final parsed = double.tryParse(value);
-                    if (parsed != null && parsed >= -180 && parsed <= 180) {
-                      _longitude = parsed;
-                    } else {
-                      _longitude = null;
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailsStep(bool isDark, ColorScheme colorScheme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'تفاصيل العقار',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: isDark ? Colors.white : colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Condition and Furnishing
-          Row(
-            children: [
-              Expanded(
-                child: _buildDropdown(
-                  label: 'الحالة',
-                  value: _selectedCondition,
-                  items: _conditionOptions,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCondition = value!;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildDropdown(
-                  label: 'التأثيث',
-                  value: _selectedFurnishing,
-                  items: _furnishingOptions,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedFurnishing = value!;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Building Age and Floor
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: _buildingAgeController,
-                  label: 'عمر المبنى (سنوات)',
-                  hint: '0',
-                  keyboardType: TextInputType.number,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  controller: _floorController,
-                  label: 'الطابق',
-                  hint: '0',
-                  keyboardType: TextInputType.number,
-                  isDark: isDark,
-                  colorScheme: colorScheme,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Total Floors
-          _buildTextField(
-            controller: _totalFloorsController,
-            label: 'إجمالي الطوابق',
-            hint: '1',
-            keyboardType: TextInputType.number,
-            isDark: isDark,
-            colorScheme: colorScheme,
-          ),
-
-          const SizedBox(height: 20),
-
-          // Featured Property
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.star,
-                  color: _isFeatured
-                      ? Colors.amber
-                      : colorScheme.onSurface.withOpacity(0.5),
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+                child: InkWell(
+                  onTap: _pickImages,
+                  borderRadius: BorderRadius.circular(12),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 48,
+                        color: colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        'عقار مميز',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: isDark
-                                  ? Colors.white
-                                  : colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        'إضافة صور',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: isDark ? Colors.white : colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Text(
-                        'عرض هذا العقار في نتائج البحث',
+                        'اضغط لاختيار صور متعددة',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withOpacity(0.7),
                         ),
@@ -1032,304 +718,159 @@ class _AddPropertyPageState extends State<AddPropertyPage>
                     ],
                   ),
                 ),
-                Switch(
-                  value: _isFeatured,
-                  onChanged: (value) {
-                    setState(() {
-                      _isFeatured = value;
-                    });
+              ),
+
+              const SizedBox(height: 16),
+
+              // Selected images grid
+              if (_selectedImages.isNotEmpty) ...[
+                Text(
+                  'الصور المختارة (${_selectedImages.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: isDark ? Colors.white : colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: _selectedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        FutureBuilder<Uint8List>(
+                          future: _selectedImages[index] is XFile 
+                              ? _selectedImages[index].readAsBytes()
+                              : Future.value(_selectedImages[index].readAsBytesSync()),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  image: DecorationImage(
+                                    image: MemoryImage(snapshot.data!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedImages.removeAt(index);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
                   },
-                  activeColor: colorScheme.primary,
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildFeaturesStep(bool isDark, ColorScheme colorScheme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'مميزات العقار',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: isDark ? Colors.white : colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-          // Feature toggles
-          _buildFeatureToggle(
-            title: 'موقف سيارات',
-            subtitle: 'العقار يحتوي على موقف سيارات',
-            icon: Icons.local_parking,
-            value: _hasParking,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasParking = value;
-              });
-            },
-          ),
-
-          _buildFeatureToggle(
-            title: 'حراسة',
-            subtitle: 'خدمة حراسة 24/7',
-            icon: Icons.security,
-            value: _hasSecurity,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasSecurity = value;
-              });
-            },
-          ),
-
-          _buildFeatureToggle(
-            title: 'مصعد',
-            subtitle: 'المبنى يحتوي على مصعد',
-            icon: Icons.elevator,
-            value: _hasElevator,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasElevator = value;
-              });
-            },
-          ),
-
-          _buildFeatureToggle(
-            title: 'حديقة',
-            subtitle: 'العقار يحتوي على حديقة',
-            icon: Icons.yard,
-            value: _hasGarden,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasGarden = value;
-              });
-            },
-          ),
-
-          _buildFeatureToggle(
-            title: 'شرفة',
-            subtitle: 'العقار يحتوي على شرفة',
-            icon: Icons.balcony,
-            value: _hasBalcony,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasBalcony = value;
-              });
-            },
-          ),
-
-          _buildFeatureToggle(
-            title: 'مسبح',
-            subtitle: 'العقار يحتوي على مسبح',
-            icon: Icons.pool,
-            value: _hasSwimmingPool,
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onChanged: (value) {
-              setState(() {
-                _hasSwimmingPool = value;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImagesStep(bool isDark, ColorScheme colorScheme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'صور العقار',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: isDark ? Colors.white : colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Image picker button
-          Container(
-            width: double.infinity,
-            height: 120,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.1),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: InkWell(
-              onTap: _pickImages,
-              borderRadius: BorderRadius.circular(12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_photo_alternate,
-                    size: 48,
-                    color: colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'إضافة صور',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: isDark ? Colors.white : colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
+              // Submit Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitProperty,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  Text(
-                    'اضغط لاختيار صور متعددة',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Selected images grid
-          if (_selectedImages.isNotEmpty) ...[
-            Text(
-              'الصور المختارة (${_selectedImages.length})',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: isDark ? Colors.white : colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-              ),
-              itemCount: _selectedImages.length,
-              itemBuilder: (context, index) {
-                return Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: FileImage(_selectedImages[index]),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedImages.removeAt(index);
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16,
+                  child: _isLoading
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'جاري الإضافة...',
+                              style: TextStyle(
+                                color: colorScheme.onPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'إضافة العقار',
+                          style: TextStyle(
+                            color: colorScheme.onPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildNavigationButtons(bool isDark, ColorScheme colorScheme) {
+  Widget _buildSectionTitle(String title, IconData icon, bool isDark, ColorScheme colorScheme) {
     return Row(
       children: [
-        if (_currentStep > 0)
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _isLoading ? null : _previousStep,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'السابق',
-                style: TextStyle(
-                  color: isDark ? Colors.white : colorScheme.onSurface,
-                ),
-              ),
-            ),
-          ),
-        if (_currentStep > 0) const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading
-                ? null
-                : (_currentStep == 4 ? _submitProperty : _nextStep),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoading
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        colorScheme.onPrimary,
-                      ),
-                    ),
-                  )
-                : Text(
-                    _currentStep == 4 ? 'إضافة العقار' : 'التالي',
-                    style: TextStyle(color: colorScheme.onPrimary),
-                  ),
+        Icon(
+          icon,
+          color: colorScheme.primary,
+          size: 24,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: isDark ? Colors.white : colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
@@ -1545,4 +1086,6 @@ class _AddPropertyPageState extends State<AddPropertyPage>
       ),
     );
   }
+
+
 }
