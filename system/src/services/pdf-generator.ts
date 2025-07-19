@@ -71,7 +71,17 @@ export async function generateQuotePDF(
   // Generate PDF using Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions'
+    ],
+    executablePath: process.env.CHROME_BIN || undefined
   });
 
   try {
@@ -712,7 +722,17 @@ export async function generateComparisonPDF(
   // Generate PDF using Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions'
+    ],
+    executablePath: process.env.CHROME_BIN || undefined
   });
 
   try {
@@ -844,7 +864,18 @@ export async function generateProfessionalComparisonPDF(
   // Generate PDF using Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-web-security'
+    ],
+    executablePath: process.env.CHROME_BIN || undefined
   });
 
   try {

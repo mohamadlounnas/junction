@@ -173,18 +173,40 @@ Returns complete quote object with:
       // Generate the quote first
       const quote = await generatePropertyQuote(propertyId, contactId, agentId, { language });
 
-      // Generate PDF
-      const { filePath, fileName } = await generateQuotePDF(
-        quote,
-        { format: pdfFormat, orientation: pdfOrientation },
-        cleanCompanyInfo
-      );
+      // Try to generate PDF with Puppeteer, fallback to HTML if it fails
+      let filePath: string;
+      let fileName: string;
+      let downloadUrl: string;
+
+      try {
+        const result = await generateQuotePDF(
+          quote,
+          { format: pdfFormat, orientation: pdfOrientation },
+          cleanCompanyInfo
+        );
+        filePath = result.filePath;
+        fileName = result.fileName;
+        downloadUrl = `/api/quotes/download/${fileName}`;
+      } catch (puppeteerError) {
+        console.warn('Puppeteer PDF generation failed, using HTML fallback:', puppeteerError);
+        
+        // Use HTML fallback
+        const { generateQuoteHTMLFile } = await import('../services/pdf-generator-fallback');
+        const result = await generateQuoteHTMLFile(
+          quote,
+          { format: pdfFormat, orientation: pdfOrientation },
+          cleanCompanyInfo
+        );
+        filePath = result.filePath;
+        fileName = result.fileName;
+        downloadUrl = result.downloadUrl;
+      }
 
       return {
         success: true,
         pdf: {
           fileName,
-          downloadUrl: `/api/quotes/download/${fileName}`,
+          downloadUrl,
           quote: {
             quoteNumber: quote.quoteNumber,
             totalAmount: quote.pricing.totalAmount,

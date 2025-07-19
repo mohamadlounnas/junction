@@ -613,7 +613,7 @@ Real-time statistics and insights about the Algeria real estate platform perform
       environment: process.env.NODE_ENV || 'development'
     };
   })
-  // Static file serving for uploads
+  // Static file serving for uploads and HTML files
   .get('/uploads/*', async ({ params, set }: { params: Record<string, string>, set: any }) => {
     try {
       const filePath = params['*'];
