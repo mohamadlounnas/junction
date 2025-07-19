@@ -412,7 +412,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: () {
-          // TODO: الانتقال إلى تفاصيل العقار
+          context.go('/dashboard/property/${property['id']}');
         },
         borderRadius: BorderRadius.circular(20),
         child: Column(

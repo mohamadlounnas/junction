@@ -1176,11 +1176,17 @@ class PropertyService {
 
       final response = await _httpClient.get(
         Uri.parse('$_baseUrl/api/recommendations/property/$propertyId'),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout - server not responding');
+        },
       );
 
       print(
         'PropertyService: Recommendations response status: ${response.statusCode}',
       );
+      print('PropertyService: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
@@ -1189,29 +1195,59 @@ class PropertyService {
           print(
             'PropertyService: Successfully retrieved contact recommendations',
           );
+          
+          // Handle the correct response structure from the API
+          final data = jsonResponse['data'];
+          List<ContactRecommendation> recommendations = [];
+          
+          if (data != null && data['recommendations'] != null) {
+            // API returns { data: { recommendations: [...] } }
+            final recommendationsList = data['recommendations'] as List<dynamic>;
+            recommendations = recommendationsList
+                .map((item) => ContactRecommendation.fromJson(item))
+                .toList();
+          } else if (data is List) {
+            // API returns { data: [...] }
+            recommendations = (data as List<dynamic>)
+                .map((item) => ContactRecommendation.fromJson(item))
+                .toList();
+          }
+          
           return {
             'success': true,
-            'data':
-                (jsonResponse['data'] as List<dynamic>?)
-                    ?.map((item) => ContactRecommendation.fromJson(item))
-                    .toList() ??
-                [],
-            'message':
-                jsonResponse['message'] ??
-                'Contact recommendations retrieved successfully',
+            'data': recommendations,
+            'metadata': data['metadata'] ?? {},
+            'property': data['property'] ?? {},
+            'filters': data['filters'] ?? {},
+            'total': data['total'] ?? 0,
           };
         } else {
-          print(
-            'PropertyService: API returned error: ${jsonResponse['message']}',
-          );
+          // No recommendations found
+          print('PropertyService: No recommendations found in response');
           return {
-            'success': false,
-            'message':
-                jsonResponse['message'] ??
-                'Failed to get contact recommendations',
-            'data': [],
+            'success': true,
+            'data': <ContactRecommendation>[],
+            'metadata': {},
+            'property': {},
+            'filters': {},
+            'total': 0,
+            'message': jsonResponse['message'] ?? 'No contact recommendations found',
           };
         }
+      } else {
+        print(
+          'PropertyService: API returned error: ${jsonResponse['message']}',
+        );
+        return {
+          'success': false,
+          'message': jsonResponse['message'] ?? 'Failed to get contact recommendations',
+          'data': <ContactRecommendation>[],
+          'metadata': {},
+          'property': {},
+          'filters': {},
+          'total': 0,
+        };
+      }
       } else {
         print(
           'PropertyService: HTTP error ${response.statusCode}: ${response.body}',
@@ -1219,12 +1255,12 @@ class PropertyService {
         return {
           'success': false,
           'message': 'HTTP ${response.statusCode}: ${response.reasonPhrase}',
-          'data': [],
+          'data': <ContactRecommendation>[],
         };
       }
     } catch (e) {
       print('PropertyService: Error getting contact recommendations: $e');
-      return {'success': false, 'message': 'Network error: $e', 'data': []};
+      return _handleError(e, 'get contact recommendations');
     }
   }
 
